@@ -1,0 +1,6 @@
+lattice_vector 2 0 0 
+lattice_vector 0 2 0
+lattice_vector 0 0 2
+atom 0 0 0 C
+atom 1.5 1.5 1.5 N
+atom 0.1 0.1 0.1 S

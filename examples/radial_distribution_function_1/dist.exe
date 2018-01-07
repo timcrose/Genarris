@@ -1,0 +1,1 @@
+python ../../src/genarris_master.py ./calculate_dist.conf
