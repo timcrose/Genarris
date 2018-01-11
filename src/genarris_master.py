@@ -45,15 +45,20 @@ class Genarris():
             self.inst.transfer_keywords("ISGEP_master",
             sname,self.inst.options("ISGEP_master"))
 
-        self.working_dir = self.inst.get_with_default(sname,
-        "working_dir",os.path.abspath(os.path.dirname(inst_path)))
+        self.working_dir = self.inst.get_with_default(
+            sname, "working_dir",
+            os.path.abspath(os.path.dirname(inst_path)))
 
         #Fix the working directory to this folder
         #From this point on, unless absolute necessary
         #The working directory will stay there  
         if not self.inst.has_option(sname,"working_dir"):
             self.inst.set(sname,"working_dir",self.working_dir)
-        os.chdir(self.working_dir) 
+        os.chdir(self.working_dir)
+
+        self.inst.set_default(
+            sname, "tmp_dir",
+            os.path.join(self.working_dir, "tmp"))
     
         if not self.inst.has_option(sname,"master_log_path"):
             self.inst.set(sname,"master_log_path",
@@ -215,6 +220,14 @@ class Genarris():
         from evaluation import pool_analysis
         pool_analysis.vector_distance_calculation(self.inst)
 
+    # Below are modules for testing
+    def Test_Launch_Parallel_Run_Single_Inst(self):
+        from utilities import util_test
+        util_test.test_launch_parallel_run_single_inst_main(self.inst)
+
+    def _Test_Launch_Parallel_Run_Single_Inst(self):
+        from utilities import util_test
+        util_test._test_launch_parallel_run_single_inst(self.inst)
 
 if __name__ == "__main__":
     main()  

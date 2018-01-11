@@ -246,6 +246,13 @@ def safe_rmdir(directory):
     except:
         pass
 
+def safe_remove_files(file_list):
+    for f in file_list:
+        try:
+            os.remove(f)
+        except:
+            pass
+
 def list_directory_file(paths,suffix="",depth=0):
 	'''
 	Walks the directory until the given depth and give all the files and directories

@@ -15,6 +15,9 @@ def write_log(log_path,message,time_stamp=True):
 		f.close()
 		#os.system("chmod g=u "+log_path)
 
+def print_time_log(message):
+    print(time.strftime("%Y-%m-%d %H:%M:%S") + " " + message)
+
 def write_master_log(inst,message,time_stamp=True,additional_item=None):
 	'''
 	Writes log to Genarris_master.master_log_path
