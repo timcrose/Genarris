@@ -53,10 +53,22 @@ class BatchSingleStructureOperation(object):
         misc.safe_make_dir(self._output_dir)
 
     def run(self):
+        if not self._disable_preload:
+            write_log.print_time_log(
+                    "Executing single structure operation %s on %i structures "
+                    "with %i processes" % (self._name,
+                        len(self._structure_list), self._processes_limit))
         if self._processes_limit > 1:
-            return self._parallel_run()
+            result = self._parallel_run()
         else:
-            return self._serial_run()
+            result = self._serial_run()
+
+        if not self._disable_preload:
+            write_log.print_time_log(
+                    "Completed single structure operation %s on %i structures "
+                    "with %i processes" % (self._name,
+                        len(self._structure_list), self._processes_limit))
+        return result
 
     def _parallel_run(self):
         p = multiprocessing.Pool(self._processes_limit)
@@ -83,6 +95,8 @@ class BatchSingleStructureOperation(object):
         else:
             # TODO: Create serial run for non-preload
             pass
+
+        return result
 
     def _load_structures(self):
         set_options = 0
@@ -116,6 +130,8 @@ class BatchSingleStructureOperation(object):
         except:
             try:
                 struct.build_geo_from_atom_file(path)
+                struct_id = os.path.basename(path)[:-self._structure_suffix]
+                struct.struct_id = struct_id
             except:
                 write_log.print_time_log(
                         "WARNING: Failed to load structure file: "
