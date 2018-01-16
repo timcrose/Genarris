@@ -9,7 +9,8 @@ import numpy as np
 from utilities import write_log, misc
 from core import structure_handling, pool_management
 import random, os
-from evaluation.evaluation_util import BatchSingleStructureOperation
+from evaluation.evaluation_util import BatchSingleStructureOperation, \
+        load_batch_single_structure_operation_keywords
 
 def niggli_reduction_batch(inst):
     '''
@@ -17,15 +18,8 @@ def niggli_reduction_batch(inst):
     '''
     sname = "niggli_reduction_batch"
     napm = inst.get_eval(sname,"NAPM")
-    kwargs = inst.get_kv_single_section(
-            sname, [
-                "structure_path", "structure_dir",
-                "structure_suffix", "output_dir", "output_format"],
-            eval=False)
-    kwargs.update(inst.get_kv_single_section(sname,
-        ["structure_dir_depth"], eval=True))
-    kwargs["processes_limit"] = inst.get_processes_limit(sname)
-    kwargs["disable_preload"] = False
+    kwargs = load_batch_single_structure_operation_keywords(
+            inst, sname)
 
     op = BatchSingleStructureOperation(
             structure_handling.cell_niggli_reduction,
@@ -39,16 +33,23 @@ def specific_radius_batch(inst):
     Conduct batch calculation of specific radius
     '''
     sname = "specific_radius_batch"
-    napm = inst.get_eval(sname,"NAPM")
+    napm = inst.get_eval(sname, "NAPM")
+    kwargs = load_batch_single_structure_operation_keywords(
+            inst, sname)
+    property_name = inst.get_with_default(sname, "property_name", "sr")
+    op = BatchSingleStructureOperation(
+            _specific_radius_calculation,
+            name=sname, args=(napm,),
+            kwargs={"property_name" : property_name},
+            **kwargs)
 
-    coll = misc.load_collection_with_inst(inst,sname)
-    for struct in coll:
-        nmpc = struct.get_n_atoms() / napm
-        struct.properties["sr"].append(structure_handling.specific_radius_check(struct,nmpc))
-        
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,coll)
-    return coll
+    return op.run()
+
+def _specific_radius_calculation(struct, napm, property_name="sr"):
+    nmpc = struct.get_n_atoms() / napm
+    struct.properties[property_name] = \
+            structure_handling.specific_radius_check(struct, nmpc)
+    return struct
 
 def interatomic_distance_evaluation(inst):
 	'''
@@ -446,10 +447,7 @@ def all_interatomic_distances (struct, a1, a2, a1_range=None, a2_range=None, nap
 					struct.geometry[i]["y"]-struct.geometry[j]["y"],\
 					struct.geometry[i]["z"]-struct.geometry[j]["z"]])])
 	
-#	print a1, a2
 	if a1 != a2:
-#		print a1_range, a2_range
-#		print len(struct.geometry)
 		for i in a1_range:
 			for j in a2_range:
 				if i//napm!=j//napm\

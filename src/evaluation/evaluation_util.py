@@ -1,6 +1,8 @@
 from utilities import misc, write_log
 from core.structure import Structure
 import os, multiprocessing
+
+
 class BatchSingleStructureOperation(object):
     def __init__(self, operation, name="SingleStructureOperation",
             args=(), kwargs={},
@@ -142,6 +144,16 @@ class BatchSingleStructureOperation(object):
         return False
 
 
+def load_batch_single_structure_operation_keywords(inst, section):
+    kwargs = inst.get_kv_single_section(
+            section, [
+                "structure_path", "structure_dir",
+                "structure_suffix", "output_dir", "output_format"],
+            eval=False)
+    kwargs.update(inst.get_kv_single_section(section,
+        ["structure_dir_depth"], eval=True))
+    kwargs["processes_limit"] = inst.get_processes_limit(section)
+    return kwargs
 
 def _run_operation_with_arguments(op_args):
     (operation_list, struct, args_list, kwargs_list,
@@ -153,18 +165,42 @@ def _run_operation_with_arguments(op_args):
         raise ValueError(
                 "Length of operation_list and kwargs_list must match.")
 
+    returned_result = []
     for operation, args, kwargs in zip(operation_list, args_list, kwargs_list):
-        struct = _run_operation_with_arguments(
+        result = _run_operation_with_arguments(
                 operation, struct, args, kwargs, None, "")
+        if type(result) is tuple:
+            _check_return_tuple(result)
+            struct = result[0]
+            returned_result.append(result[1])
+        else:
+            _check_return_single(result)
+            struct = result
 
     _output_structure(struct, output_dir, output_format)
     return struct
 
 def _run_operation_with_arguments(op_args):
     operation, struct, args, kwargs, output_dir, output_format = op_args
-    struct = operation(struct, *args, **kwargs)
-    _output_structure(struct, output_dir, output_format)
-    return struct
+    result = operation(struct, *args, **kwargs)
+    if type(result) is tuple:
+        _check_return_tuple(result)
+        _output_structure(result[0], output_dir, output_format)
+    else:
+        _check_return_single(result)
+        _output_structure(result, output_dir, output_format)
+    return result
+
+def _check_return_single(result):
+    if not type(result) is Structure:
+        raise ValueError("Single structure operation must return a Structure "
+                "class object")
+
+def _check_return_tuple(result):
+    if len(result) > 2 or not type(result[0]) is Structure:
+        raise ValueError("Single structure operation returning tuple "
+            "must contain only two elements: the updated "
+                "structure and additional result")
 
 def _output_structure(struct, output_dir, output_format):
     if output_dir == None:
