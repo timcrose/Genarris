@@ -13,9 +13,6 @@ import numpy
 import numpy as np
 import os
 
-#from core.file_handler import read_data, structure_dir, write_data
-
-
 class Structure(object):
     '''
     An optimized structure with relevant information
@@ -377,4 +374,11 @@ def convert_array(list_of_list):
             geometry[i]['fixed'] = list_of_list[i][6]
         except: geometry[i]['fixed'] = None
     return geometry
-    
+
+def read_data(filepath, filename=None):
+    if filename is not None: full_filepath = os.path.join(filepath, filename)
+    else: full_filepath = filepath
+    d_file = open(full_filepath, 'r')
+    contents_string = d_file.read()
+    d_file.close()
+    return contents_string

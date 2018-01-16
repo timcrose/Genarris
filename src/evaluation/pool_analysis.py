@@ -9,6 +9,7 @@ import numpy as np
 from utilities import write_log, misc
 from core import structure_handling, pool_management
 import random, os
+from evaluation.evaluation_util import BatchSingleStructureOperation
 
 def niggli_reduction_batch(inst):
     '''
@@ -16,15 +17,22 @@ def niggli_reduction_batch(inst):
     '''
     sname = "niggli_reduction_batch"
     napm = inst.get_eval(sname,"NAPM")
+    kwargs = inst.get_kv_single_section(
+            sname, [
+                "structure_path", "structure_dir",
+                "structure_suffix", "output_dir", "output_format"],
+            eval=False)
+    kwargs.update(inst.get_kv_single_section(sname,
+        ["structure_dir_depth"], eval=True))
+    kwargs["processes_limit"] = inst.get_processes_limit(sname)
+    kwargs["disable_preload"] = False
 
-    coll = misc.load_collection_with_inst(inst,sname)
-    for struct in coll:
-        structure_handling.cell_niggli_reduction(struct,napm,create_duplicate=False)
-        
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,coll)
+    op = BatchSingleStructureOperation(
+            structure_handling.cell_niggli_reduction,
+            name=sname, args=(napm,),
+            kwargs={"create_duplicate" : False}, **kwargs)
 
-    return coll
+    return op.run()
 
 def specific_radius_batch(inst):
     '''
@@ -49,7 +57,6 @@ def interatomic_distance_evaluation(inst):
 	'''
 	info_level = inst.get_info_level()
 		
-	
 	sname = "interatomic_distance_evaluation" #Module name
 	if inst.has_option(sname,"structure_path"):
 		struct_list = [inst.get(sname,"structure_path")]

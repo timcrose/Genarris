@@ -498,7 +498,7 @@ def cell_niggli_reduction(struct,napm,create_duplicate=True):
     lats = struct.get_lattice_vectors()
     from spglib import niggli_reduce
     reduced_lats =  niggli_reduce(lats)
-    if reduced_lats == None:
+    if reduced_lats is None:
         return False
     del(struct.properties["lattice_vector_a"])
     del(struct.properties["lattice_vector_b"])
@@ -507,10 +507,7 @@ def cell_niggli_reduction(struct,napm,create_duplicate=True):
     nmpc = len(struct.geometry)/napm
     cell_lower_triangular(struct,False)
     move_molecule_in(struct,nmpc,False)
-    #struct.set_lattice_angles()
     return struct
-
-
 
 def cell_modification (struct,nmpc,napm,create_duplicate=True):
 	'''
