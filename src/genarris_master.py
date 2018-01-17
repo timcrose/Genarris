@@ -150,8 +150,8 @@ class Genarris():
         harris_approximation.harris_single_molecule_prep(self.inst)
 
     def Interatomic_Distance_Evaluation(self):
-        from evaluation import pool_analysis
-        pool_analysis.interatomic_distance_evaluation(self.inst)
+        from evaluation import interatomic_distance_evaluation
+        interatomic_distance_evaluation.main(self.inst)
 
     def Interatomic_Proximities(self):
         from evaluation import interatomic_proximities
