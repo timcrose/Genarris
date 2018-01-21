@@ -172,10 +172,10 @@ class Genarris():
     def RDF_Descriptor_By_Bin(self):
         from evaluation import radial_distribution_function
         radial_distribution_function.rdf_descriptor_by_bin(self.inst)
-        
-    def Radial_Distribution_Function_1(self):
-        from evaluation import pool_analysis
-        pool_analysis.radial_distribution_function_1(self.inst)
+
+    def RDF_Descriptor_By_Point(self):
+        from evaluation import radial_distribution_function
+        radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
     def RCD_Vector_Calculation(self):
         from evaluation import relative_coordinate_descriptor
