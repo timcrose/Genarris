@@ -150,8 +150,8 @@ class Genarris():
         harris_approximation.harris_single_molecule_prep(self.inst)
 
     def Interatomic_Distance_Evaluation(self):
-        from evaluation import pool_analysis
-        pool_analysis.interatomic_distance_evaluation(self.inst)
+        from evaluation import interatomic_distance_evaluation
+        interatomic_distance_evaluation.main(self.inst)
 
     def Interatomic_Proximities(self):
         from evaluation import interatomic_proximities
@@ -168,18 +168,18 @@ class Genarris():
     def Pool_Single_Structure_Analysis(self):
         from evaluation import pool_analysis
         pool_analysis.pool_single_structure_analysis(self.inst)
-        
-    def Radial_Distribution_Function(self):
-        from evaluation import pool_analysis
-        pool_analysis.radial_distribution_function(self.inst)
-    
-    def Radial_Distribution_Function_1(self):
-        from evaluation import pool_analysis
-        pool_analysis.radial_distribution_function_1(self.inst)
 
-    def RCD_Vector_Calculation(self):
+    def RDF_Descriptor_By_Bin(self):
+        from evaluation import radial_distribution_function
+        radial_distribution_function.rdf_descriptor_by_bin(self.inst)
+
+    def RDF_Descriptor_By_Point(self):
+        from evaluation import radial_distribution_function
+        radial_distribution_function.rdf_descriptor_by_point(self.inst)
+
+    def RCD_Calculation(self):
         from evaluation import relative_coordinate_descriptor
-        relative_coordinate_descriptor.rcd_vector_calculation(self.inst)
+        relative_coordinate_descriptor.rcd_calculation(self.inst)
 
     def RCD_Difference_Compare_Single(self):
         from evaluation import relative_coordinate_descriptor as rcd

@@ -67,7 +67,15 @@ class Instruct(SafeConfigParser):
             return self.get(section,option)
         else:
             return self.get_eval(section,option)
-            
+
+    def get_or_none(self, section, option, eval=False):
+        if self.has_option(section, option):
+            if eval:
+                return self.get_eval(section, option)
+            else:
+                return self.get(section, option)
+        else:
+            return None
 
     def get_keywords(self,klist,eval=False):
         '''
@@ -124,6 +132,18 @@ class Instruct(SafeConfigParser):
             else:
                 raise ValueError("Unsupported entry for klist")
         return result
+    
+    def get_kv_single_section(self, section, keyword_list, eval=False):
+        result = {}
+        for key in keyword_list:
+            if self.has_option(section, key):
+                if eval:
+                    result[key] = self.get_eval(section, key)
+                else:
+                    result[key] = self.get(section, key)
+        return result
+
+
 
     def load_instruction_from_file(self,path):
         '''
@@ -174,8 +194,8 @@ class Instruct(SafeConfigParser):
             self.set(item[0],item[1],str(item[2]))
 
 
-    #Below is a list of functions to retrieve specific information from an instruct object
-    
+    #Below is a list of functions to retrieve specific information
+    # from an instruct object
     def procedure_exist(self,procedure):
         '''
         Checks whether or not a procedure exist
