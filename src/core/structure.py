@@ -71,7 +71,8 @@ class Structure(object):
 		
 	def build_geo_whole(self, geometry): self.geometry = geometry
 	def build_geo_from_atom_file(self, filepath): self.build_geo_whole_atom_format(read_data(filepath))
-	def build_geo_from_json_file(self, filepath): self.loads(read_data(filepath))	
+	def build_geo_from_json_file(self, filepath): self.loads(read_data(filepath))
+
 	def unpack_geometry(self, text): self.geometry = convert_array(text)    
 	def build_geo_whole_atom_format(self, atom_string):
 		'''
