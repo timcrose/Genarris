@@ -79,6 +79,7 @@ def _interatomic_distance_evaluation(struct, napm, atomic_pairs,
     return (struct, result)
 
 def _interatomic_distance_evaluation_callback(result, output_file):
+    result.sort(key=lambda x : x[0].struct_id)
     message = ""
     for case in result:
         struct = case[0]
