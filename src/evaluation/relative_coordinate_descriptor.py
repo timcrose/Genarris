@@ -7,120 +7,83 @@ Assigns a new descriptor to crystal structures,
 and conducts Affinity Propagation for pools
 '''
 
-#from core.structure import Structure()
-#from core.strucutre_handling import *
 import multiprocessing
-from core.structure_handling import *
 from core.structure import Structure
 import numpy as np
 from copy import deepcopy
-from utilities import misc
+from utilities import misc, write_log
 import os, random, time, socket
-#import misc
 
+from core.structure_handling import cm_calculation, cell_modification, \
+        mole_translation
+from evaluation.evaluation_util import BatchSingleStructureOperation, \
+        load_batch_single_structure_operation_keywords
 
-def rcd_vector_calculation(inst):
+def rcd_calculation(inst):
     '''
     Main RCD calculation module
     '''
-    sname = "rcd_vector_calculation"
+    sname = "rcd_calculation"
+    kwargs = load_batch_single_structure_operation_keywords(inst, sname)
+
+    napm = inst.get_eval(sname, "NAPM")
     axes = inst.get_eval(sname,"axes")
-    close_picks = inst.get_with_default(sname,"close_picks",7,eval=True)
-    key = inst.get_with_default(sname,"stored_property_key","RCD_vector")
-    napm = inst.get_with_default(sname,"NAPM",None,eval=True)
-    rcd_output_file = inst.get_with_default(sname,"rcd_output_file","./rcd_vectors.info")
-    processes = inst.get_processes_limit(sname)
+    close_picks = inst.get_with_default(sname, "close_picks", 16, eval=True)
+    property_name = inst.get_with_default(
+            sname, "property_name", "rcd")
+    output_info_file = inst.get_or_none(sname, "output_info_file")
 
-    coll = misc.load_collection_with_inst(inst,sname)
-    arglist = []
-    for struct in coll:
-        if "NMPC" in struct.properties:
-            nmpc = struct.properties["NMPC"]
-        elif napm!=None:
-            if len(struct.geometry)%napm!=0:
-                raise ValueError("Specified NAPM does not divide %s's atom list length"
-                                 % struct.struct_id)
-            nmpc = len(struct.geometry)/napm
-        else:
-            raise ValueError("Structure %s does not have NMPC and NAPM is not specified"
-                             % struct.struct_id)
-        if len(struct.geometry)%nmpc!=0:
-            raise ValueError("Structure %s NMPC does not divide atom list length" 
-                             % struct.struct_id)
-        
-        napm = len(struct.geometry)/nmpc
-        for axis in axes:
-            if axis[0]>=napm or axis[1]>=napm:
-                raise ValueError("Atom index for axes exceeds NAPM; indexing starts from 0")
-        
-        arglist.append((struct, nmpc, len(struct.geometry)/nmpc,
-                        axes, close_picks, key))
-    
+    op_args = (napm, axes)
+    op_kwargs = {"close_picks"   : close_picks,
+                 "property_name" : property_name}
 
-    if processes > 1:            
-        p = multiprocessing.Pool(processes=processes)
-        c = p.map(_generate_relative_coordinate_descriptor_multiprocess_wrapper,arglist)
-    else:
-        c = [_generate_relative_coordinate_descriptor_multiprocess_wrapper(args)
-             for args in arglist]
+    op = BatchSingleStructureOperation(
+            _rcd_calculation,
+            name=sname, args=op_args,
+            kwargs=op_kwargs, **kwargs)
+    result = op.run()
 
-    f = open(rcd_output_file,"a")
-    for struct in c:
-        f.write(struct.struct_id + " " + 
-                " ".join(map(str,_flatten_rcd_vector(struct.properties[key]))) +"\n")
+    if output_info_file != None:
+        _rcd_calculation_callback(
+                result, output_info_file)
 
-#    print c[0].properties["RCD_vector"]
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,c)
+    return result
 
-    return coll
-    
-
-def _flatten_rcd_vector(v):
-    return [entry for mol in v for rel in mol for entry in rel]
-
-def generate_relative_coordinate_descriptor(struct,nmpc,napm,axes,close_picks=8,key="RCD_vector"):
+def _rcd_calculation(struct, napm, axes, close_picks=16, property_name="rcd"):
     '''
     Generates and stores the rcd for the given structure
     '''
-    ref_struct = create_ref_struct(struct,nmpc,napm,close_picks)
-    print struct.struct_id
-    print ref_struct.get_geometry_atom_format()
+    if struct.get_n_atoms() %napm != 0:
+        raise ValueError("Specified NAPM does not divide %s's atom list length"
+                                 % struct.struct_id)
+    nmpc = len(struct.geometry)/napm
+ 
+    ref_struct = _create_ref_struct(struct,nmpc,napm,close_picks)
 
-#    print "This is length of ref_struct", len(ref_struct.geometry)
-    axes_list = [_calculate_molecule_axes(ref_struct.geometry[x*napm:(x+1)*napm],axes)
-                 for x in range(close_picks+1)]
-    for axis in axes_list:
-        print "This is axis: " + " ".join(map(str,axis))
-
+    axes_list = [
+            _calculate_molecule_axes(ref_struct.geometry[x*napm:(x+1)*napm],
+                                     axes)
+            for x in range(close_picks+1)]
 
     COM = [cm_calculation(ref_struct,range(x*napm,(x+1)*napm))
            for x in range(close_picks+1)]
 
-    for com in COM:
-        print "This is COM: " + " ".join(map(str,com))
-
-    diff = [np.subtract(COM[x],COM[0]) for x in range(1,close_picks+1)]
-    for d in diff:
-        print "This is difference: " + " ".join(map(str,d))
+    # Calculates Cartesian relative coordinate
+    diff = [np.subtract(COM[x], COM[0]) for x in range(1, close_picks+1)]
     
+    # Calculates relative coordinate in axes basis of reference molecule
     axes_i = np.linalg.inv(axes_list[0].T)
-    diff_t = [list(np.dot(axes_i,x)) for x in diff] #Relative coordinate in axes basis
-    for d in diff_t:
-        print "This is relative difference: " + " ".join(map(str,d))
+    diff_t = [list(np.dot(axes_i,x)) for x in diff]
     
-    
-    orien = [[float(np.dot(axes_list[x][y],axes_list[0][y])) for y in range(3)] 
-             for x in range(1,close_picks+1)]
+    orien = [[float(np.dot(axes_list[x][y], axes_list[0][y]))
+              for y in range(3)]
+             for x in range(1, close_picks+1)]
 
-    vector = [[diff_t[x], orien[x]] for x in range(close_picks)]
-    struct.properties[key] = vector
-    return struct
+    descriptor = [[diff_t[x], orien[x]] for x in range(close_picks)]
+    struct.set_property(property_name, descriptor)
+    return struct, descriptor
 
-def _generate_relative_coordinate_descriptor_multiprocess_wrapper(arglist):
-    return generate_relative_coordinate_descriptor(*arglist)
-
-def create_ref_struct(struct,nmpc,napm,close_picks=8):
+def _create_ref_struct(struct, nmpc, napm, close_picks=16):
     '''
     Using the 1st molecule in the structure as reference
     Select and return a structure with the molecules that are closest to it
@@ -154,22 +117,21 @@ def create_ref_struct(struct,nmpc,napm,close_picks=8):
 
     for i in range(1, close_picks+1): #Skip the 1st original molecule
         k, x, y, z, dist = COMt[i]
-#        print k, x, y, z, dist
         ref_struct.geometry = np.concatenate((ref_struct.geometry,
                                               all_geo[k*napm:(k+1)*napm]))
 
-        mole_translation(ref_struct, i, napm, frac=[x,y,z], create_duplicate=False)
+        mole_translation(
+                ref_struct, i, napm, frac=[x,y,z], create_duplicate=False)
 
-#    print ref_struct.get_geometry_atom_format()
     return ref_struct
 
-def _calculate_molecule_axes(geo,axes):
+def _calculate_molecule_axes(geo, axes):
     '''
     Calculates the orientation axes of the molecule
     geo: geometry slice of the molecule
     axes: a list of 2 tuples, each tuple include the indeces of two atoms
-    The first 2 axes will be established as the 2 vectors formed by the pairs of atoms
-    The third will be their cross product
+    The first 2 axes will be established as the 2 vectors formed by the
+    pairs of atoms. The third will be their cross product
     '''
     a1 = [geo[axes[0][0]][x]-geo[axes[0][1]][x] for x in range(3)]
     a2 = [geo[axes[1][0]][x]-geo[axes[1][1]][x] for x in range(3)]
@@ -192,6 +154,18 @@ def _gram_schmidt(X, row_vecs=True, norm=True):
         return Y
     else:
         return Y.T
+
+def _rcd_calculation_callback(result, output_info_file):
+    result.sort(key=lambda x : x[0].struct_id)
+    message = ""
+    for struct, rcd in result:
+        message += struct.struct_id + " "
+        message += " ".join(map(str, _flatten_rcd(rcd)))
+        message += "\n"
+    write_log.write_log(output_info_file, message, time_stamp=False)
+
+def _flatten_rcd(v):
+    return [entry for mol in v for rel in mol for entry in rel]
 
 def rcd_difference_calculation(inst):
     '''
@@ -324,15 +298,6 @@ def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector",
         except:
             pass
 
-
-
-
-
-
-
-
-        
-
 def calculate_collection_rcd_difference(coll, key="RCD_vector",
                                         ratio=1, select_pairs=4, allow_enantiomer=True,
                                         processes=1):
@@ -432,14 +397,14 @@ def calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4,
 
     v1 = copy.deepcopy(v1)
     v2 = copy.deepcopy(v2)
-    result = _calculate_rcd_vector_difference_2(v1, v2, ratio=ratio,
+    result = _calculate_rcd_difference_2(v1, v2, ratio=ratio,
                                                 select_pairs=select_pairs)
     if not allow_enantiomer:
         return result
     
     for x in v2:
         x[0][2] = - x[0][2]
-    resulte = _calculate_rcd_vector_difference_2(v1, v2, ratio=ratio,
+    resulte = _calculate_rcd_difference_2(v1, v2, ratio=ratio,
                                                  select_pairs=select_pairs)
 
     return min(result, resulte)
@@ -449,7 +414,7 @@ def _calculate_rcd_difference_multiprocess_wrapper(arglist):
 
     
 
-def _calculate_rcd_vector_difference(v1, v2, ratio=1, select_pairs=4):
+def _calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4):
     '''
     Given 2 RCD vectors, return their difference
     v1: RCD vector 1
@@ -484,7 +449,7 @@ def _calculate_rcd_vector_difference(v1, v2, ratio=1, select_pairs=4):
 
     return result
 
-def _calculate_rcd_vector_difference_2(v1, v2, ratio=1, select_pairs=4):
+def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     '''
     Given 2 RCD vectors, return their difference
     v1: RCD vector 1

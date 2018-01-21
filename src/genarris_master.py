@@ -177,9 +177,9 @@ class Genarris():
         from evaluation import radial_distribution_function
         radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
-    def RCD_Vector_Calculation(self):
+    def RCD_Calculation(self):
         from evaluation import relative_coordinate_descriptor
-        relative_coordinate_descriptor.rcd_vector_calculation(self.inst)
+        relative_coordinate_descriptor.rcd_calculation(self.inst)
 
     def RCD_Difference_Compare_Single(self):
         from evaluation import relative_coordinate_descriptor as rcd
