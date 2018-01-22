@@ -16,7 +16,7 @@ from utilities.write_log import print_time_log
 
 def get_structure_generator_from_inst(inst, sname):
     ucv_target = inst.get_eval(sname, "ucv_target")
-    nmpc = inst.get_eval(sname, "nmpc")
+    nmpc = inst.get_eval(sname, "NMPC")
     is_chiral = inst.get_boolean(sname, "is_chiral")
     molecule_path = inst.get_or_none(sname, "molecule_path")
     molecule_name = inst.get_with_default(
