@@ -4,7 +4,7 @@ This set of utilities functions contain the necessary functions that carry out p
 import os,socket,time
 from utilities import misc
 from utilities.write_log import print_time_log
-import subprocess, math
+import subprocess, math, inspect
 
 def launch_parallel_run_single_inst(new_inst,
                                     parallel_run_command,
@@ -15,15 +15,21 @@ def launch_parallel_run_single_inst(new_inst,
     new_inst: A instruction file for the parallelized Genarris master run
     parallel_run_command: 
         A list of command arguments to be used for Subprocessing.
-        Must contain $1 to be replaced by 
+        Must contain $CONF to be replaced by 
     '''
-    if not "$1" in parallel_run_command:
+    if not "$CONF" in parallel_run_command:
         raise ValueError(
-            "parallel_run_command must contain '$1' to be replaced by"
+            "parallel_run_command must contain '$CONF' to be replaced by"
             "temporary conf file path")
     misc.safe_make_dir(tmp_dir)
     print_time_log("Launching parallel instances of Genarris master; tmp_dir = " +
                    tmp_dir)
+    genarris_master_path = \
+            os.path.join(
+                    os.path.dirname(
+                        os.path.dirname(os.path.abspath(inspect.stack()[0][1]))),
+                    "genarris_master.py")
+    print_time_log("Auto-detected master path: " + genarris_master_path)
 
     processes = []
     conf_files = []
@@ -45,7 +51,9 @@ def launch_parallel_run_single_inst(new_inst,
         conf_files.append(inst_conf_file_path)
 
         args = parallel_run_command[:]
-        args[args.index("$1")] = inst_conf_file_path
+        args[args.index("$CONF")] = inst_conf_file_path
+        if "$MASTER" in args:
+            args[args.index("$MASTER")] = genarris_master_path
 
         p = subprocess.Popen(args)
         processes.append(p)
