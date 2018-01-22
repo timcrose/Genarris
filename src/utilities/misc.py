@@ -216,6 +216,19 @@ def dump_structure(struct, output_folder, output_formats, output_suffixs=None):
 	    f.write(struct.dumps())
 	f.close()
 
+def output_structure(struct, output_dir, output_format):
+    if output_dir == None:
+        return
+    if output_format == "json" or output_format == "both":
+        path = os.path.join(output_dir, struct.struct_id + ".json")
+        f = open(path, "w")
+        f.write(struct.dumps())
+        f.close()
+    if output_format == "geometry" or output_format == "both":
+        path = os.path.join(output_dir, struct.struct_id + ".in")
+        f = open(path, "w")
+        f.write(struct.get_geometry_atom_format())
+        f.close()
 
 def safe_copy_folder(src,dst):
 	'''
