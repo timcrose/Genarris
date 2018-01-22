@@ -7,8 +7,11 @@ from utilities.parallel_master import launch_parallel_run_single_inst
 
 def test_launch_parallel_run_single_inst_main(inst):
     sname = "test_launch_parallel_run_single_inst"
-    parallel_run_command = inst.get_eval(sname, "parallel_run_command")
-    parallel_run_instances = inst.get_eval(sname, "parallel_run_instances")
+    parallel_run_command = inst.get_with_default(
+            sname, "parallel_run_command",
+            ["python", "$MASTER", "$CONF"], eval=True)
+    parallel_run_instances = inst.get_with_default(
+            sname, "parallel_run_instances", 5, eval=True)
     tmp_dir = inst.get_tmp_dir()
 
     test_launch_parallel_run_single_inst(
@@ -18,7 +21,7 @@ def test_launch_parallel_run_single_inst_main(inst):
 
 def test_launch_parallel_run_single_inst(
     parallel_run_command, parallel_run_instances, tmp_dir):
-    print_time_log("Launching test parallel instances of genarris mater")    
+    print_time_log("Launching test parallel instances of genarris master")
     
     new_inst = instruct.Instruct()
     new_inst.set("Genarris_master", "procedures",
