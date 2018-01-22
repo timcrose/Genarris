@@ -6,34 +6,19 @@ This program contains different modules that calls upon shared.py to conduct str
 
 '''
 from generation import shared
-from utilities import misc, write_log,parallel_run
-from core import pool_management
-import multiprocessing, os, shutil
-import copy
+from utilities import misc, write_log, parallel_run
+import multiprocessing, os, shutil, copy
+from generation.generation_util import \
+        get_structure_generator_from_inst
 
-def structure_generation_single(inst,molecule=None):
+def structure_generation_single(inst):
     '''
     A module for testing purposes
     Generate and output one single structure
     '''
-    info_level = inst.get_eval("Genarris_master","info_level")
-
-    struct = shared.single_structure_generation(inst,molecule)
-
-    if struct == False:
-        if info_level >= 2 or (info_level >= 1 and inst.has_procedure("Structure_Generation_Single")):
-            write_log.write_master_log(inst,"structure_generation_single failed")
-        return False
-
-    if inst.has_option("structure_generation_single","struct_id"):
-        struct.struct_id = inst.get("structure_generation_single","struct_id")
-    elif inst.has_option("structure_generation_single","struct_id_scheme"):
-        misc.struct_id_assign(struct, inst.get_eval("structure_generation_single","struct_id_scheme"), inst.get_with_default("structure_generation_single","structure_index","0"))
-
-    if inst.has_option("structure_generation_single","output_file") or \
-    inst.has_option("structure_generation_single","output_folder"):
-        misc.dump_structure_with_inst(inst,"structure_generation_single",struct)
-    return struct
+    sname = "structure_generation_single"
+    generator = get_structure_generator_from_inst(inst, sname)
+    generator.generate_structure()
 
 def single_structure_generation_call(info):
     '''
@@ -42,7 +27,6 @@ def single_structure_generation_call(info):
     Used so that multiprocessing.map can send multiple arguments
     '''
     return structure_generation_single(info[0],info[1])
-
 
 def structure_generation_batch(inst):
     '''
