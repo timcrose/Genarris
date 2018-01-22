@@ -8,15 +8,120 @@ sgroup.wycgen generate a random fractional coordinate sitting on a Wyckoff posit
 sgroup.wycarr produces a list of Wyckoff position arrangements that add up to nmpc of molecules per cell
 """
 import random
+from utilities.write_log import print_time_log
 
 setting={0:random.random(),1:0.25,2:0.75}
 enantiomorphic=set([3,4,5,6,7,8,9,10,11,12,13,14,15])
 
-maximum=142
-class Sgroup():        
-    def __init__(self,sgtype=0,alternative_setting=0):
+MAX_AVAILABLE_SPACE_GROUP = 142
+CHIRAL_SPACE_GROUPS = \
+    ([1] + range(3,6) + range(16,25) + range(75,81) + range(89,99) 
+    + range(143,147) + range(149,156) + range(168,174) + range(177,183)
+    + range(195,200) + range(207,215))
+RACEMIC_SPACE_GROUPS = \
+    [x for x in range(1, 231) if not x in CHIRAL_SPACE_GROUPS] 
+
+class SpaceGroupManager():
+    def __init__(
+        self, nmpc, is_chiral, wyckoff_list=[0],
+        space_groups_allowed=None):
         '''
-        elif sgtype==:
+        nmpc: Number of molecule per cell; allowed space group must have Wyckoff
+            position combo that can match nmpc
+        is_chiral: Allowed space groups must be either chiral or racemic
+        wyckoff_list: Constrain the Wyckoff position selection.
+            Default [0], molecules must be placed on a general Wyckoff position.
+            Set this to None to allow any wyckoff position combo
+        space_groups_allowed: A list of int with allowed space groups; will be
+            further pruned to be compatible with the above
+
+        Raises ValueError if no valid space groups are allowed
+        '''
+        self._maximum_space_group = MAX_AVAILABLE_SPACE_GROUP
+        self._chiral_space_groups = CHIRAL_SPACE_GROUPS
+        self._racemic_space_groups = RACEMIC_SPACE_GROUPS
+        self._nmpc = nmpc
+        self._is_chiral = is_chiral
+        self._wyckoff_list = wyckoff_list
+        self._space_groups_allowed = space_groups_allowed
+        self._deduce_allowed_space_groups()
+
+        self._space_group = None
+        self._space_group_selected_counter = {}
+        self._space_group_user_counter = {}
+        for sg in self._space_groups_allowed:
+            self._space_group_selected_counter[sg] = 0
+            self._space_group_user_counter[sg] = 0
+
+    def _deduce_allowed_space_groups(self):
+        space_group_range = []
+        if self._space_groups_allowed != None:
+            space_group_range = self._space_groups_allowed
+        else:
+            space_group_range = range(0, self._maximum_space_group + 1)
+
+        if self._is_chiral:
+            space_group_range = \
+                [sg for sg in space_group_range
+                    if sg in self._chiral_space_groups]
+        else:
+            space_group_range = \
+                [sg for sg in space_group_range
+                    if sg in self._racemic_space_groups]
+        
+        self._space_group_range = []
+        if (self._wyckoff_list != None):
+            self._is_wyckoff_list_fixed = True
+            for sg in space_group_range:
+                space_group = Sgroup(sg)
+                if (space_group.wyckoff_counter(self._wyckoff_list)
+                    == self._nmpc):
+                    self._space_group_range.append(sg)
+        else:
+            self._is_wyckoff_list_fixed = False
+            for sg in space_group_range:
+                space_group = Sgroup(sg)
+                if sg.wyckoff_preparation(self._nmpc):
+                    self._space_group_range.append(sg)
+
+        if len(self._space_group_range) == 0:
+            raise ValueError(
+                "No available space group matches the requirement of nmpc=%i,"
+                " is_chiral=%s, wyckoff_list=%s, space_groups_allowed"
+                "=%s" % (self._nmpc, str(self.is_chiral),
+                         str(self._wyckoff_list),
+                         str(self._space_groups_allowed)))
+        print_time_log("Space group range from input: " +
+                " ".join(map(str, self._space_group_range)))
+
+    def get_space_group_randomly(self):
+        sg = self._space_group_range[
+            int(random.uniform(0, len(self._space_group_range)))]
+
+        self._space_group = Sgroup(sg)
+        self._space_group.wyckoff_preparation(self._nmpc)
+        if not self._is_wyckoff_list_fixed:
+            self._wyckoff_list = \
+                self._space_group.wyckoff_selection(self._nmpc)
+
+        self._space_group_selected_counter[sg] += 1
+        return self._space_group
+
+    def get_wyckoff_list_randomly(self):
+        if not self._is_wyckoff_list_fixed:
+            self._wyckoff_list = \
+                self._space_group.wyckoff_selection(self._nmpc)
+
+        return self._wyckoff_list
+
+    def increment_space_group_counter(self):
+        self._space_group_user_counter[
+            self._space_group.space_group_number] += 1
+
+class Sgroup():        
+    def __init__(self,space_group_number=0,alternative_setting=0):
+        '''
+        elif space_group_number==:
             self.name=
             self.pgsym=['+x+y+z'.'-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -32,7 +137,7 @@ class Sgroup():
             self.swycn=[]
             self.swyc_mult=[]
             self.snrep=
-        elif sgtype==:
+        elif space_group_number==:
             l=setting[alternative_setting]
             
             if l<0.5:         
@@ -61,10 +166,13 @@ class Sgroup():
             self.swyc_mult=[]
             self.snrep=
         '''
-	if sgtype == -1:
-		sgtype = int(random.uniform(0,maximum+0.99999))
-        self.type=sgtype
-        if sgtype==0:
+        # TODO: Add the information for the rest of the space groups
+        # TODO: Add alternative settings for space groups
+        if space_group_number == -1:
+            space_group_number = int(random.uniform(0,MAX_AVAILABLE_SPACE_GROUP+0.99999))
+        
+        self.space_group_number = space_group_number
+        if space_group_number==0:
             self.name='random'
             self.pgsym=['+x+y+z']   #Rotation in symmetry operation
             self.trans=[[0,0,0]]    #Translation in symmetry operation
@@ -80,7 +188,7 @@ class Sgroup():
             #If self.snrep>self.nsg-1, then all the Wyckoff positions under the site symmetry group can be repeated
             self.btype='P'          #Bravais centering type
             self.blt=-1             #Bravais Lattice type =-1 means random
-        elif sgtype==1:
+        elif space_group_number==1:
             self.name='P1'
             self.pgsym=['+x+y+z']
             self.trans=[[0,0,0]]
@@ -95,7 +203,7 @@ class Sgroup():
             self.snrep=1
             self.btype='P'
             self.blt=1
-        elif sgtype==2:
+        elif space_group_number==2:
             self.name='P-1'
             self.pgsym=['+x+y+z','-x-y-z']
             self.trans=[[0,0,0],[0,0,0]]
@@ -110,9 +218,9 @@ class Sgroup():
             self.snrep=1
             self.btype='P'
             self.blt=1
-        elif sgtype==3:
+        elif space_group_number==3:
 #            l=setting[alternative_setting]
-	    l=0.25 #Only beta angle non-90
+            l=0.25 #Only beta angle non-90
             if l<0.5:
                 self.name='P2/b'
                 self.pgsym=['+x+y+z','-x+y-z']
@@ -138,9 +246,9 @@ class Sgroup():
             self.swycn=[1,4]
             self.swyc_mult=[2,1]
             self.snrep=1
-        elif sgtype==4:
+        elif space_group_number==4:
 #            l=setting[alternative_setting]
-	    l=0.25
+            l=0.25
             if l<0.5:                
                 self.name='P2_1/b'
                 self.pgsym=['+x+y+z','-x+y-z']
@@ -166,9 +274,9 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[2]
             self.snrep=1
-        elif sgtype==5:
+        elif space_group_number==5:
 #            l=setting[alternative_setting]
-	    l=0.25
+            l=0.25
             if l<0.5:                
                 self.name='C2/b'
                 self.pgsym=['+x+y+z','-x+y-z']
@@ -194,9 +302,8 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[2,1]
             self.snrep=2
-        elif sgtype==6:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==6:
+            l=0.25
             if l<0.5:                
                 self.name='Pm/b'
                 self.pgsym=['+x+y+z','+x-y+z']
@@ -222,9 +329,8 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[2,1]
             self.snrep=2
-        elif sgtype==7:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==7:
+            l=0.25
             if l<0.5:                
                 self.name='Pc/b'
                 self.pgsym=['+x+y+z','+x-y+z']
@@ -250,9 +356,8 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[2]
             self.snrep=1
-        elif sgtype==8:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==8:
+            l=0.25
             if l<0.5:                
                 self.name='Cm/b'
                 self.pgsym=['+x+y+z','+x-y+z']
@@ -278,9 +383,8 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[2,1]
             self.snrep=2
-        elif sgtype==9:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==9:
+            l=0.25
             if l<0.5:                
                 self.name='Cc/b'
                 self.pgsym=['+x+y+z','+x-y+z']
@@ -306,9 +410,8 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[2]
             self.snrep=1
-        elif sgtype==10:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==10:
+            l=0.25
             if l<0.5:                
                 self.name='P2/m/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -334,9 +437,8 @@ class Sgroup():
             self.swycn=[1,2,4,8]
             self.swyc_mult=[4,2,2,1]
             self.snrep=2
-        elif sgtype==11:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==11:
+            l=0.25
             if l<0.5:                
                 self.name='P2_1/m/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -362,9 +464,8 @@ class Sgroup():
             self.swycn=[1,1,4]
             self.swyc_mult=[4,2,2]
             self.snrep=2
-        elif sgtype==12:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==12:
+            l=0.25
             if l<0.5:                
                 self.name='C2/m/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -390,9 +491,8 @@ class Sgroup():
             self.swycn=[1,1,2,2,4]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=3
-        elif sgtype==13:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==13:
+            l=0.25
             if l<0.5:                
                 self.name='P2/c/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -418,9 +518,8 @@ class Sgroup():
             self.swycn=[1,2,4]
             self.swyc_mult=[4,2,2]
             self.snrep=2
-        elif sgtype==14:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==14:
+            l=0.25
             if l<0.5:                
                 self.name='P2_1/c/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -446,9 +545,8 @@ class Sgroup():
             self.swycn=[1,4]
             self.swyc_mult=[4,2]
             self.snrep=1
-        elif sgtype==15:
-#            l=setting[alternative_setting]
-	    l=0.25
+        elif space_group_number==15:
+            l=0.25
             if l<0.5:                
                 self.name='C2/c/b'
                 self.pgsym=['+x+y+z','-x+y-z','-x-y-z','+x-y+z']
@@ -474,7 +572,7 @@ class Sgroup():
             self.swycn=[1,1,4]
             self.swyc_mult=[4,2,2]
             self.snrep=2
-        elif sgtype==16:
+        elif space_group_number==16:
             self.name='P222'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -489,7 +587,7 @@ class Sgroup():
             self.swycn=[1,4,4,4,8]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=4
-        elif sgtype==17:
+        elif space_group_number==17:
             self.name='P222_1'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0]]
@@ -504,7 +602,7 @@ class Sgroup():
             self.swycn=[1,2,2]
             self.swyc_mult=[4,2,2]
             self.snrep=3
-        elif sgtype==18:
+        elif space_group_number==18:
             self.name='P2_12_12'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -519,7 +617,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==19:
+        elif space_group_number==19:
             self.name='P2_12_12_1'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0]]
@@ -534,7 +632,7 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[4]
             self.snrep=1
-        elif sgtype==20:
+        elif space_group_number==20:
             self.name='C222_1'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0]]
@@ -549,7 +647,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[4,2,2]
             self.snrep=3
-        elif sgtype==21:
+        elif space_group_number==21:
             self.name='C222'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -564,7 +662,7 @@ class Sgroup():
             self.swycn=[1,3,2,2,4]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=4
-        elif sgtype==22:
+        elif space_group_number==22:
             self.name='F222'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -579,7 +677,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,4]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=4
-        elif sgtype==23:
+        elif space_group_number==23:
             self.name='I222'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -594,7 +692,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,4]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=4
-        elif sgtype==24:
+        elif space_group_number==24:
             self.name='I2_12_12_1'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0]]
@@ -609,7 +707,7 @@ class Sgroup():
             self.swycn=[1,1,1,1]
             self.swyc_mult=[4,2,2,2]
             self.snrep=4
-        elif sgtype==25:
+        elif space_group_number==25:
             self.name='Pmm2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -624,7 +722,7 @@ class Sgroup():
             self.swycn=[1,2,2,4]
             self.swyc_mult=[4,2,2,1]
             self.snrep=4
-        elif sgtype==26: #start test here
+        elif space_group_number==26: #start test here
             self.name='Pmc2_1'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0]]
@@ -639,7 +737,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==27:
+        elif space_group_number==27:
             self.name='Pcc2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -654,7 +752,7 @@ class Sgroup():
             self.swycn=[1,4]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==28:
+        elif space_group_number==28:
             self.name='Pma2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0,0],[0.5,0,0]]
@@ -669,7 +767,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[4,2,2]
             self.snrep=3 
-        elif sgtype==29:
+        elif space_group_number==29:
             self.name='Pca2_1'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0.5,0,0],[0.5,0,0.5]]
@@ -684,7 +782,7 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[4]
             self.snrep=1 
-        elif sgtype==30:
+        elif space_group_number==30:
             self.name='Pnc2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0.5,0.5],[0,0.5,0.5]]
@@ -699,7 +797,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=3
-        elif sgtype==31:
+        elif space_group_number==31:
             self.name='Pmn2_1'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0.5,0,0.5],[0,0,0]]
@@ -714,7 +812,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[4,2]
             self.snrep=3
-        elif sgtype==32:
+        elif space_group_number==32:
             self.name='Pba2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -729,7 +827,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=3
-        elif sgtype==33:
+        elif space_group_number==33:
             self.name='Pna2_1'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0.5,0.5,0],[0.5,0.5,0.5]]
@@ -744,7 +842,7 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[4]
             self.snrep=1
-        elif sgtype==34:
+        elif space_group_number==34:
             self.name='Pnn2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -759,7 +857,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==35:
+        elif space_group_number==35:
             self.name='Cmm2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -774,7 +872,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=5       
-        elif sgtype==36:
+        elif space_group_number==36:
             self.name='Cmc2_1'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0]]
@@ -789,7 +887,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==37:
+        elif space_group_number==37:
             self.name='Ccc2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -804,7 +902,7 @@ class Sgroup():
             self.swycn=[1,3]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==38:
+        elif space_group_number==38:
             self.name='Amm2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -819,7 +917,7 @@ class Sgroup():
             self.swycn=[1,2,1,2]
             self.swyc_mult=[4,2,2,1]
             self.snrep=4
-        elif sgtype==39:
+        elif space_group_number==39:
             self.name='Aem2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0.5,0],[0,0.5,0]]
@@ -834,7 +932,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[4,2,2]
             self.snrep=3
-        elif sgtype==40:
+        elif space_group_number==40:
             self.name='Ama2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0,0],[0.5,0,0]]
@@ -849,7 +947,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[4,2,2]
             self.snrep=3
-        elif sgtype==41:
+        elif space_group_number==41:
             self.name='Aea2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -864,7 +962,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==42:
+        elif space_group_number==42:
             self.name='Fmm2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -879,7 +977,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1]
             self.swyc_mult=[4,2,2,2,1]
             self.snrep=5
-        elif sgtype==43:
+        elif space_group_number==43:
             self.name='Fdd2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.25,0.25,0.25],[0.25,0.25,0.25]]
@@ -894,7 +992,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==44:
+        elif space_group_number==44:
             self.name='Imm2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -909,7 +1007,7 @@ class Sgroup():
             self.swycn=[1,1,1,2]
             self.swyc_mult=[4,2,2,1]
             self.snrep=4
-        elif sgtype==45:
+        elif space_group_number==45:
             self.name='Iba2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -924,7 +1022,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==46:
+        elif space_group_number==46:
             self.name='Ima2'
             self.pgsym=['+x+y+z','-x-y+z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0,0],[0.5,0,0]]
@@ -939,7 +1037,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[4,2,2]
             self.snrep=3
-        elif sgtype==47:
+        elif space_group_number==47:
             self.name='Pmmm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -963,7 +1061,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,4,4,4,8]
             self.swyc_mult=[8,4,4,4,2,2,2,1]
             self.snrep=7
-        elif sgtype==48:
+        elif space_group_number==48:
             l=setting[alternative_setting]
             if l<0.5:                
                 self.name='Pnnn_oc_1'
@@ -994,7 +1092,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,2,4]
             self.swyc_mult=[8,4,4,4,4,2]
             self.snrep=4
-        elif sgtype==49:
+        elif space_group_number==49:
             self.name='Pccm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1016,7 +1114,7 @@ class Sgroup():
             self.swycn=[1,1,4,2,2,4,4]
             self.swyc_mult=[8,4,4,4,4,2,2]
             self.snrep=5
-        elif sgtype==50:
+        elif space_group_number==50:
             l=setting[alternative_setting]
             if l<0.5:                
                 self.name='Pban_oc_1'
@@ -1047,7 +1145,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,2,4]
             self.swyc_mult=[8,4,4,4,4,2]
             self.snrep=4
-        elif sgtype==51:
+        elif space_group_number==51:
             self.name='Pmma'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0],[0,0,0],[0.5,0,0],[0,0,0],[0.5,0,0],[0,0,0],[0.5,0,0]]
@@ -1064,7 +1162,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,2,4]
             self.swyc_mult=[8,4,4,4,2,2]
             self.snrep=5
-        elif sgtype==52:
+        elif space_group_number==52:
             self.name='Pnna'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0],[0.5,0.5,0.5],[0,0.5,0.5],[0,0,0],[0.5,0,0],[0.5,0.5,0.5],[0,0.5,0.5]]
@@ -1079,7 +1177,7 @@ class Sgroup():
             self.swycn=[1,1,1,2]
             self.swyc_mult=[8,4,4,4]
             self.snrep=3
-        elif sgtype==53:
+        elif space_group_number==53:
             self.name='Pmna'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0.5,0,0.5],[0,0,0],[0,0,0],[0.5,0,0.5],[0.5,0,0.5],[0,0,0]]
@@ -1094,7 +1192,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,4]
             self.swyc_mult=[8,4,4,4,2]
             self.snrep=4
-        elif sgtype==54:
+        elif space_group_number==54:
             self.name='Pcca'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0],[0,0,0.5],[0.5,0,0.5],[0,0,0],[0.5,0,0],[0,0,0.5],[0.5,0,0.5]]
@@ -1109,7 +1207,7 @@ class Sgroup():
             self.swycn=[1,2,1,2]
             self.swyc_mult=[8,4,4,4]
             self.snrep=3
-        elif sgtype==55:
+        elif space_group_number==55:
             self.name='Pbam'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -1124,7 +1222,7 @@ class Sgroup():
             self.swycn=[1,2,2,4]
             self.swyc_mult=[8,4,4,2]
             self.snrep=3
-        elif sgtype==56:
+        elif space_group_number==56:
             self.name='Pccn'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0.5,0],[0,0.5,0.5],[0.5,0,0.5],[0,0,0],[0.5,0.5,0],[0,0.5,0.5],[0.5,0,0.5]]
@@ -1139,7 +1237,7 @@ class Sgroup():
             self.swycn=[1,2,2]
             self.swyc_mult=[8,4,4]
             self.snrep=2
-        elif sgtype==57:
+        elif space_group_number==57:
             self.name='Pbcm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0.5,0.5],[0,0.5,0],[0,0,0],[0,0,0.5],[0,0.5,0.5],[0,0.5,0]]
@@ -1154,7 +1252,7 @@ class Sgroup():
             self.swycn=[1,1,1,2]
             self.swyc_mult=[8,4,4,4]
             self.snrep=3
-        elif sgtype==58:
+        elif space_group_number==58:
             self.name='Pnnm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -1169,7 +1267,7 @@ class Sgroup():
             self.swycn=[1,1,2,4]
             self.swyc_mult=[8,4,4,2]
             self.snrep=3
-        elif sgtype==59:
+        elif space_group_number==59:
             l=setting[alternative_setting]
             if l<0.5:                
                 self.name='Pmmn_oc_1'
@@ -1196,7 +1294,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,2]
             self.swyc_mult=[8,4,4,4,2]
             self.snrep=3
-        elif sgtype==60:
+        elif space_group_number==60:
             self.name='Pbcn'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0.5,0.5],[0,0,0.5],[0.5,0.5,0],[0,0,0],[0.5,0.5,0.5],[0,0,0.5],[0.5,0.5,0]]
@@ -1211,7 +1309,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[8,4,4]
             self.snrep=2
-        elif sgtype==61:
+        elif space_group_number==61:
             self.name='Pbca'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0],[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0]]
@@ -1226,7 +1324,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[8,4]
             self.snrep=1
-        elif sgtype==62:
+        elif space_group_number==62:
             self.name='Pnma'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0,0.5,0],[0.5,0.5,0.5],[0,0,0],[0.5,0,0.5],[0,0.5,0],[0.5,0.5,0.5]]
@@ -1241,7 +1339,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[8,4,4]
             self.snrep=2
-        elif sgtype==63:
+        elif space_group_number==63:
             self.name='Cmcm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0]]
@@ -1256,7 +1354,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,4,2,2]
             self.snrep=6
-        elif sgtype==64:
+        elif space_group_number==64:
             self.name='Cmce'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0.5,0.5],[0,0.5,0.5],[0,0,0],[0,0,0],[0,0.5,0.5],[0,0.5,0.5],[0,0,0]]
@@ -1271,7 +1369,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,4,2]
             self.snrep=4
-        elif sgtype==65:
+        elif space_group_number==65:
             self.name='Cmmm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1292,7 +1390,7 @@ class Sgroup():
             self.swycn=[1,2,1,1,1,2,2,2,2,4]
             self.swyc_mult=[8,4,4,4,4,2,2,2,2,1]
             self.snrep=8
-        elif sgtype==66:
+        elif space_group_number==66:
             self.name='Cccm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1308,7 +1406,7 @@ class Sgroup():
             self.swycn=[1,1,3,1,1,4,2]
             self.swyc_mult=[8,4,4,4,4,2,2]
             self.snrep=5
-        elif sgtype==67:
+        elif space_group_number==67:
             self.name='Cmm3'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0.5,0],[0,0.5,0],[0,0,0],[0,0,0],[0,0.5,0],[0,0.5,0],[0,0,0]]
@@ -1323,7 +1421,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2,2,1,2,2,2]
             self.swyc_mult=[8,4,4,4,4,4,2,2,2,2]
             self.snrep=7
-        elif sgtype==68:
+        elif space_group_number==68:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='Ccce_oc_1'
@@ -1348,7 +1446,7 @@ class Sgroup():
             self.swycn=[1,2,1,1,2,2]
             self.swyc_mult=[8,4,4,4,4,2]
             self.snrep=4
-        elif sgtype==69:
+        elif space_group_number==69:
             self.name="Fmmm"
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1365,7 +1463,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,4,4,4,2,2,2,2,2,2,2,1]
             self.snrep=10
-        elif sgtype==70:
+        elif space_group_number==70:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='Fddd_oc_1'
@@ -1390,7 +1488,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2,2]
             self.swyc_mult=[8,4,4,4,4,2]
             self.snrep=4
-        elif sgtype==71:
+        elif space_group_number==71:
             self.name='Immm'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1406,7 +1504,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,2,2,2,4]
             self.swyc_mult=[8,4,4,4,4,2,2,2,1]
             self.snrep=8
-        elif sgtype==72:
+        elif space_group_number==72:
             self.name='Ibam'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -1421,7 +1519,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,1,1,2,2]
             self.swyc_mult=[8,4,4,4,4,4,2,2]
             self.snrep=5
-        elif sgtype==73:
+        elif space_group_number==73:
             self.name='Ibca'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0],[0,0,0],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0]]
@@ -1436,7 +1534,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,4]
             self.snrep=4
-        elif sgtype==74:
+        elif space_group_number==74:
             self.name='Imma'
             self.pgsym=['+x+y+z','-x-y+z','-x+y-z','+x-y-z','-x-y-z','+x+y-z','+x-y+z','-x+y+z']
             self.trans=[[0,0,0],[0,0.5,0],[0,0.5,0],[0,0,0],[0,0,0],[0,0.5,0],[0,0.5,0],[0,0,0]]
@@ -1451,7 +1549,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,2,2]
             self.swyc_mult=[8,4,4,4,4,2,2,2]
             self.snrep=6
-        elif sgtype==75:
+        elif space_group_number==75:
             self.name='P4'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1466,7 +1564,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[4,2,1]
             self.snrep=3
-        elif sgtype==76:
+        elif space_group_number==76:
             self.name='P4_1'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.25],[0,0,0.75]]
@@ -1481,7 +1579,7 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[4]
             self.snrep=1
-        elif sgtype==77:
+        elif space_group_number==77:
             self.name='P4_2'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1496,7 +1594,7 @@ class Sgroup():
             self.swycn=[1,3]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==78:
+        elif space_group_number==78:
             self.name='P4_3'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.75],[0,0,0.25]]
@@ -1511,7 +1609,7 @@ class Sgroup():
             self.swycn=[1]
             self.swyc_mult=[4]
             self.snrep=1
-        elif sgtype==79:
+        elif space_group_number==79:
             self.name='I4'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1526,7 +1624,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[4,2,1]
             self.snrep=3
-        elif sgtype==80:
+        elif space_group_number==80:
             self.name='I4_1'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z']
             self.trans=[[0,0,0],[0.5,0.5,0.5],[0,0.5,0.25],[0.5,0,0.75]]
@@ -1541,7 +1639,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[4,2]
             self.snrep=2
-        elif sgtype==81:
+        elif space_group_number==81:
             self.name='P-4'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1556,7 +1654,7 @@ class Sgroup():
             self.swycn=[1,3,4]
             self.swyc_mult=[4,2,1]
             self.snrep=2
-        elif sgtype==82:
+        elif space_group_number==82:
             self.name='I-4'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1571,7 +1669,7 @@ class Sgroup():
             self.swycn=[1,2,4]
             self.swyc_mult=[4,2,1]
             self.snrep=2
-        elif sgtype==83:
+        elif space_group_number==83:
             self.name='P4/m'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x-y-z','+x+y-z','+y-x-z','-y+x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1587,7 +1685,7 @@ class Sgroup():
             self.swycn=[1,2,1,2,2,4]
             self.swyc_mult=[8,4,4,2,2,1]
             self.snrep=4
-        elif sgtype==84:
+        elif space_group_number==84:
             self.name='P4_2/m'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x-y-z','+x+y-z','+y-x-z','-y+x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1603,7 +1701,7 @@ class Sgroup():
             self.swycn=[1,1,3,2,4]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=3
-        elif sgtype==85:
+        elif space_group_number==85:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4/n_oc_2'
@@ -1628,7 +1726,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,2]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=4
-        elif sgtype==86:
+        elif space_group_number==86:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4_2/n_oc_1'
@@ -1653,7 +1751,7 @@ class Sgroup():
             self.swycn=[1,2,2,2]
             self.swyc_mult=[8,4,4,2]
             self.snrep=2
-        elif sgtype==87:
+        elif space_group_number==87:
             self.name='I4/m'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x-y-z','+x+y-z','+y-x-z','-y+x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1668,7 +1766,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,2,2,2,1]
             self.snrep=5
-        elif sgtype==88:
+        elif space_group_number==88:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='I4_1/a_oc_1'
@@ -1693,7 +1791,7 @@ class Sgroup():
             self.swycn=[1,1,2,2]
             self.swyc_mult=[8,4,4,2]
             self.snrep=2
-        elif sgtype==89:
+        elif space_group_number==89:
             self.name='P422'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1710,7 +1808,7 @@ class Sgroup():
             self.swycn=[1,4,2,1,2,2,4]
             self.swyc_mult=[8,4,4,4,2,2,1]
             self.snrep=5
-        elif sgtype==90:
+        elif space_group_number==90:
             self.name='P42_12'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0],[0,0,0],[0,0,0]]
@@ -1725,7 +1823,7 @@ class Sgroup():
             self.swycn=[1,2,1,1,2]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=4
-        elif sgtype==91:
+        elif space_group_number==91:
             self.name='P4_122'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.25],[0,0,0.75],[0,0,0],[0,0,0.5],[0,0,0.75],[0,0,0.25]]
@@ -1740,7 +1838,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[8,4,4]
             self.snrep=3
-        elif sgtype==92:
+        elif space_group_number==92:
             self.name='P4_12_12'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0.5],[0.5,0.5,0.25],[0.5,0.5,0.75],[0.5,0.5,0.25],[0.5,0.5,0.75],[0,0,0],[0,0,0.5]]
@@ -1755,7 +1853,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[8,4]
             self.snrep=2
-        elif sgtype==93:
+        elif space_group_number==93:
             self.name='P4_222'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1772,7 +1870,7 @@ class Sgroup():
             self.swycn=[1,2,4,3,2,4]
             self.swyc_mult=[8,4,4,4,2,2]
             self.snrep=4
-        elif sgtype==94:
+        elif space_group_number==94:
             self.name='P4_22_12'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0,0,0],[0,0,0]]
@@ -1787,7 +1885,7 @@ class Sgroup():
             self.swycn=[1,2,2,2]
             self.swyc_mult=[8,4,4,2]
             self.snrep=3
-        elif sgtype==95:
+        elif space_group_number==95:
             self.name='P4_322'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0.5],[0,0,0.75],[0,0,0.25],[0,0,0],[0,0,0.5],[0,0,0.25],[0,0,0.75]]
@@ -1802,7 +1900,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[8,4,4]
             self.snrep=3
-        elif sgtype==96:
+        elif space_group_number==96:
             self.name='P4_32_12'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0.5],[0.5,0.5,0.75],[0.5,0.5,0.25],[0.5,0.5,0.75],[0.5,0.5,0.25],[0,0,0],[0,0,0.5]]
@@ -1817,7 +1915,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[8,4]
             self.snrep=2
-        elif sgtype==97:
+        elif space_group_number==97:
             self.name='I422'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1832,7 +1930,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,1,1,1,1,2]
             self.swyc_mult=[8,4,4,4,4,2,2,2,1]
             self.snrep=6
-        elif sgtype==98:
+        elif space_group_number==98:
             self.name='I4_122'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0.5,0.5,0.5],[0,0.5,0.25],[0.5,0,0.75],[0.5,0,0.75],[0,0.5,0.25],[0.5,0.5,0.5],[0,0,0]]
@@ -1847,7 +1945,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,2]
             self.swyc_mult=[8,4,4,4,2]
             self.snrep=4
-        elif sgtype==99:
+        elif space_group_number==99:
             self.name='P4mm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1862,7 +1960,7 @@ class Sgroup():
             self.swycn=[1,2,1,1,2]
             self.swyc_mult=[8,4,4,2,1]
             self.snrep=5
-        elif sgtype==100:
+        elif space_group_number==100:
             self.name='P4bm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -1877,7 +1975,7 @@ class Sgroup():
             self.swycn=[1,1,1,1]
             self.swyc_mult=[8,4,2,2]
             self.snrep=4
-        elif sgtype==101:
+        elif space_group_number==101:
             self.name="P4_2cm"
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0]]
@@ -1892,7 +1990,7 @@ class Sgroup():
             self.swycn=[1,1,1,2]
             self.swyc_mult=[8,4,4,2]
             self.snrep=4
-        elif sgtype==102:
+        elif space_group_number==102:
             self.name='P4_2nm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0,0,0],[0,0,0]]
@@ -1907,7 +2005,7 @@ class Sgroup():
             self.swycn=[1,1,1,1]
             self.swyc_mult=[8,4,4,2]
             self.snrep=4
-        elif sgtype==103:
+        elif space_group_number==103:
             self.name='P4cc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5]]
@@ -1922,7 +2020,7 @@ class Sgroup():
             self.swycn=[1,1,2]
             self.swyc_mult=[8,4,2]
             self.snrep=3
-        elif sgtype==104:
+        elif space_group_number==104:
             self.name='P4nc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -1937,7 +2035,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[8,4,2]
             self.snrep=3
-        elif sgtype==105:
+        elif space_group_number==105:
             self.name='P4_2mc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5]]
@@ -1952,7 +2050,7 @@ class Sgroup():
             self.swycn=[1,2,3]
             self.swyc_mult=[8,4,2]
             self.snrep=3
-        elif sgtype==106:
+        elif space_group_number==106:
             self.name='P4_2bc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -1967,7 +2065,7 @@ class Sgroup():
             self.swycn=[1,2]
             self.swyc_mult=[8,4]
             self.snrep=2
-        elif sgtype==107:
+        elif space_group_number==107:
             self.name='I4mm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -1982,7 +2080,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1]
             self.swyc_mult=[8,4,4,2,1]
             self.snrep=5
-        elif sgtype==108:
+        elif space_group_number==108:
             self.name='I4cm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5]]
@@ -1997,7 +2095,7 @@ class Sgroup():
             self.swycn=[1,1,1,1]
             self.swyc_mult=[8,4,2,2]
             self.snrep=4
-        elif sgtype==109:
+        elif space_group_number==109:
             self.name='I4_1md'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0.5,0.5,0.5,],[0,0.5,0.25],[0.5,0,0.75],[0,0,0],[0.5,0.5,0.5],[0,0.5,0.25],[0.5,0,0.75]]
@@ -2012,7 +2110,7 @@ class Sgroup():
             self.swycn=[1,1,1]
             self.swyc_mult=[8,4,2]
             self.snrep=3
-        elif sgtype==110:
+        elif space_group_number==110:
             self.name='I4_1cd'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0.5,0.5,0.5],[0,0.5,0.25],[0.5,0,0.75],[0,0,0.5],[0.5,0.5,0],[0,0.5,0.75],[0.5,0,0.25]]
@@ -2027,7 +2125,7 @@ class Sgroup():
             self.swycn=[1,1]
             self.swyc_mult=[8,4]
             self.snrep=2
-        elif sgtype==111:
+        elif space_group_number==111:
             self.name='P-42m'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -2044,7 +2142,7 @@ class Sgroup():
             self.swycn=[1,1,1,4,2,2,4]
             self.swyc_mult=[8,4,4,4,2,2,1]
             self.snrep=5
-        elif sgtype==112:
+        elif space_group_number==112:
             self.name='P-42c'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5]]
@@ -2061,7 +2159,7 @@ class Sgroup():
             self.swycn=[1,3,4,2,4]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=3
-        elif sgtype==113:
+        elif space_group_number==113:
             self.name='P-42_1m'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -2076,7 +2174,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=4
-        elif sgtype==114:
+        elif space_group_number==114:
             self.name='P-42_1c'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -2091,7 +2189,7 @@ class Sgroup():
             self.swycn=[1,2,2]
             self.swyc_mult=[8,4,2]
             self.snrep=2
-        elif sgtype==115:
+        elif space_group_number==115:
             self.name='P-4m2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -2106,7 +2204,7 @@ class Sgroup():
             self.swycn=[1,2,2,3,4]
             self.swyc_mult=[8,4,4,2,1]
             self.snrep=4
-        elif sgtype==116:
+        elif space_group_number==116:
             self.name='P-4c2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5]]
@@ -2121,7 +2219,7 @@ class Sgroup():
             self.swycn=[1,3,2,2,2]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=3
-        elif sgtype==117:
+        elif space_group_number==117:
             self.name='P-4b2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0],[0.5,0.5,0]]
@@ -2136,7 +2234,7 @@ class Sgroup():
             self.swycn=[1,2,2,2,2]
             self.swyc_mult=[8,4,4,2,2]
             self.snrep=3
-        elif sgtype==118:
+        elif space_group_number==118:
             self.name='P-4n2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5],[0.5,0.5,0.5]]
@@ -2151,7 +2249,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,2,2]
             self.swyc_mult=[8,4,4,4,2,2]
             self.snrep=4
-        elif sgtype==119:
+        elif space_group_number==119:
             self.name='I-4m2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -2166,7 +2264,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,4]
             self.swyc_mult=[8,4,4,2,1]
             self.snrep=4
-        elif sgtype==120:
+        elif space_group_number==120:
             self.name='I-4c2'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','+y+x-z','-y-x-z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0.5],[0,0,0.5],[0,0,0.5],[0,0,0.5]]
@@ -2181,7 +2279,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,1,2,1]
             self.swyc_mult=[8,4,4,4,2,2,2]
             self.snrep=4
-        elif sgtype==121:
+        elif space_group_number==121:
             self.name='I-42m'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
@@ -2196,7 +2294,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,1,1,1,2]
             self.swyc_mult=[8,4,4,4,2,2,2,1]
             self.snrep=5
-        elif sgtype==122:
+        elif space_group_number==122:
             self.name='I-42d'
             self.pgsym=['+x+y+z','-x-y+z','+y-x-z','-y+x-z','-x+y-z','+x-y-z','-y-x+z','+y+x+z']
             self.trans=[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0.5,0,0.75],[0.5,0,0.75],[0.5,0,0.75],[0.5,0,0.75]]
@@ -2211,7 +2309,7 @@ class Sgroup():
             self.swycn=[1,1,1,2]
             self.swyc_mult=[8,4,4,2]
             self.snrep=3
-        elif sgtype==123:
+        elif space_group_number==123:
             self.name='P4/mmm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2232,7 +2330,7 @@ class Sgroup():
             self.swycn=[1,2,1,2,4,2,1,2,2,4]
             self.swyc_mult=[16,8,8,8,4,4,4,2,2,1]
             self.snrep=8
-        elif sgtype==124:
+        elif space_group_number==124:
             self.name='P4/mcc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2251,7 +2349,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,1,2,1,1,1,1,1,1]
             self.swyc_mult=[16,8,8,8,8,4,4,4,2,2,2,2]
             self.snrep=6
-        elif sgtype==125:
+        elif space_group_number==125:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4/nbm_oc_1'
@@ -2284,7 +2382,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,1,1,2,2,2]
             self.swyc_mult=[16,8,8,8,4,4,4,2,2]
             self.snrep=6
-        elif sgtype==126:
+        elif space_group_number==126:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4/nnc_oc_1'
@@ -2313,7 +2411,7 @@ class Sgroup():
             self.swycn=[1,2,1,1,1,1,1,1,2]
             self.swyc_mult=[16,8,8,8,4,8,4,4,2]
             self.snrep=5
-        elif sgtype==127:
+        elif space_group_number==127:
             self.name='P4/mbm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2332,7 +2430,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,1,1,2,2]
             self.swyc_mult=[16,8,8,4,4,4,2,2]
             self.snrep=6
-        elif sgtype==128:
+        elif space_group_number==128:
             self.name='P4/mnc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2349,7 +2447,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,1,2]
             self.swyc_mult=[16,8,8,8,4,4,4,2]
             self.snrep=5
-        elif sgtype==129:
+        elif space_group_number==129:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4/nmm_oc_1'
@@ -2378,7 +2476,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,1,2,1,2]
             self.swyc_mult=[16,8,8,8,4,4,2,2]
             self.snrep=5
-        elif sgtype==130:
+        elif space_group_number==130:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4/ncc_oc_1'
@@ -2407,7 +2505,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,1]
             self.swyc_mult=[16,8,8,4,8,4,4]
             self.snrep=4
-        elif sgtype==131:
+        elif space_group_number==131:
             self.name='P4_2/mmc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2424,7 +2522,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,4,3,2,4]
             self.swyc_mult=[16,8,8,8,4,4,2,2]
             self.snrep=6
-        elif sgtype==132:
+        elif space_group_number==132:
             self.name='P4_2/mcm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2443,7 +2541,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,1,2,2,1,1,1,1,1,1]
             self.swyc_mult=[16,8,8,8,8,4,4,4,4,2,2,2,2]
             self.snrep=7
-        elif sgtype==133:
+        elif space_group_number==133:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4_2/nbc_oc_1'
@@ -2476,7 +2574,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,1,1,1,2]
             self.swyc_mult=[16,8,8,8,8,4,4,4]
             self.snrep=4
-        elif sgtype==134:
+        elif space_group_number==134:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4_2/nnm_oc_1'
@@ -2509,7 +2607,7 @@ class Sgroup():
             self.swycn=[1,1,2,2,1,1,2,1,1,2]
             self.swyc_mult=[16,8,8,8,8,4,4,4,4,2]
             self.snrep=6
-        elif sgtype==135:
+        elif space_group_number==135:
             self.name='P4_2/mbc'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2526,7 +2624,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,1,1,1,1]
             self.swyc_mult=[16,8,8,8,4,4,4,4]
             self.snrep=4
-        elif sgtype==136:
+        elif space_group_number==136:
             self.name='P4_2/mnm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2545,7 +2643,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,2,1,1,1,2]
             self.swyc_mult=[16,8,8,8,4,4,4,4,2]
             self.snrep=6
-        elif sgtype==137:
+        elif space_group_number==137:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4_2/nmc_oc_1'
@@ -2574,7 +2672,7 @@ class Sgroup():
             self.swycn=[1,1,1,2,1,2]
             self.swyc_mult=[16,8,8,4,8,2]
             self.snrep=4
-        elif sgtype==138:
+        elif space_group_number==138:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='P4_2/ncm_oc_1'
@@ -2603,7 +2701,7 @@ class Sgroup():
             self.swycn=[1,1,2,1,1,2,1,1]
             self.swyc_mult=[16,8,8,8,4,4,4,4]
             self.snrep=5
-        elif sgtype==139:
+        elif space_group_number==139:
             self.name='I4/mmm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2622,7 +2720,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,2,1,1,1,1,1,1,2]
             self.swyc_mult=[16,8,8,8,8,4,4,4,2,4,2,2,1]
             self.snrep=9
-        elif sgtype==140:
+        elif space_group_number==140:
             self.name='I4/mcm'
             self.pgsym=['+x+y+z','-x-y+z','-y+x+z','+y-x+z','-x+y-z','+x-y-z','+y+x-z','-y-x-z',
                         '-x-y-z','+x+y-z','+y-x-z','-y+x-z','+x-y+z','-x+y+z','-y-x+z','+y+x+z']
@@ -2641,7 +2739,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,1,1,1,1,1,1,1,1]
             self.swyc_mult=[16,8,8,8,8,4,4,4,4,2,2,2,2]
             self.snrep=8
-        elif sgtype==141:
+        elif space_group_number==141:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='I4_1/amd_oc_1'
@@ -2670,7 +2768,7 @@ class Sgroup():
             self.swycn=[1,1,1,1,1,2,2]
             self.swyc_mult=[16,8,8,8,4,4,2]
             self.snrep=5
-        elif sgtype==142:
+        elif space_group_number==142:
             l=setting[alternative_setting]
             if l<0.5:         
                 self.name='I4_1/acd_oc_1'
@@ -2731,7 +2829,6 @@ class Sgroup():
         Produces a position of wyckoff position no. wn
         '''
         v=[random.random(),random.random(),random.random()]
-#        print wn
         nxyz=[0,0,0]
         for i in range (0,3):
             for j in range (0,3):
@@ -2799,69 +2896,72 @@ class Sgroup():
         return wlist
 
     def wyckoff_counter (self,wyckoff_list):
-	'''
-	Count the sum of molecules required by the wyckoff list specified
-	'''
-	counter = 0
-	for wyc in wyckoff_list:
-		if wyc >= len(self.wmult): #Unsuitable list
-			return -1
-		counter += self.wmult[wyc]*self.bmult
-	return counter 
+        '''
+        Count the sum of molecules required by the wyckoff list specified
+        '''
+        counter = 0
+        for wyc in wyckoff_list:
+            if wyc >= len(self.wmult): #Unsuitable list
+                return -1
+            counter += self.wmult[wyc]*self.bmult
+        return counter
+
+    def get_bravais_system_type(self):
+        return self.blt
 
 def allowed_sg_wyckoff_list(nmpc,wyckoff_list):
-	'''
-	Given a list of Wyckoff position number
-	Returns a list of space group that gives the desirable nmpc
-	'''
-	result = []
-	for i in range (0,maximum):
-		sg = Sgroup(i)
-		if nmpc==sg.wyckoff_counter(wyckoff_list):
-			result.append(i)
-	return result
+    '''
+    Given a list of Wyckoff position number
+    Returns a list of space group that gives the desirable nmpc
+    '''
+    result = []
+    for i in range (0,MAX_AVAILABLE_SPACE_GROUP):
+        sg = Sgroup(i)
+        if nmpc==sg.wyckoff_counter(wyckoff_list):
+            result.append(i)
+    return result
 
 def allowed_sg_nmpc(nmpc):
-	'''
-	Given nmpc, returns the list of space group that can yield the number
-	'''
-	result = []
-	for i in range (0,maximum):
-		sg = Sgroup(i)
-		if sg.wyckoff_preparation(nmpc):
-			result.append(i)
-	return result
+    '''
+    Given nmpc, returns the list of space group that can yield the number
+    '''
+    result = []
+    for i in range (0,MAX_AVAILABLE_SPACE_GROUP):
+        sg = Sgroup(i)
+        if sg.wyckoff_preparation(nmpc):
+            result.append(i)
+    return result
 
 def select_chiral_sg (sg_list):
-	'''
-	Select and return the chiral space groups in the given sg_list
-	sg_list should be a list of integers
-	list of chiral space groups: 
-	http://www-chimie.u-strasbg.fr/csd.doc/ConQuest/PortableHTML/conquest_portable-3-325.html
-	'''
-	result = []
-	for sg in sg_list:
-		if sg in [1]+range(3,6)+range(16,25)+range(75,81)+range(89,99)\
-			+range(143,147)+range(149,156)+range(168,174)+range(177,183)\
-			+range(195,200)+range(207,215):
-			result.append(sg)
-	return result
+    '''
+    Select and return the chiral space groups in the given sg_list
+    sg_list should be a list of integers
+    list of chiral space groups: 
+    http://www-chimie.u-strasbg.fr/csd.doc/ConQuest/PortableHTML/conquest_portable-3-325.html
+    '''
+    result = []
+    for sg in sg_list:
+        if sg in [1]+range(3,6)+range(16,25)+range(75,81)+range(89,99)\
+            +range(143,147)+range(149,156)+range(168,174)+range(177,183)\
+            +range(195,200)+range(207,215):
+            result.append(sg)
+    return result
 
 def select_racemic_sg (sg_list):
 
-	'''
-	Select and return the racemic space groups in the given sg_list
-	sg_list should be a list of integers
-	list of chiral space groups: 
-	http://www-chimie.u-strasbg.fr/csd.doc/ConQuest/PortableHTML/conquest_portable-3-325.html
-	'''
-	result = []
-	for sg in sg_list:
-		if not sg in [1]+range(3,6)+range(16,25)+range(75,81)+range(89,99)\
-			+range(143,147)+range(149,156)+range(168,174)+range(177,183)\
-			+range(195,200)+range(207,215):
-			result.append(sg)
-	return result
+    '''
+    Select and return the racemic space groups in the given sg_list
+    sg_list should be a list of integers
+    list of chiral space groups: 
+    http://www-chimie.u-strasbg.fr/csd.doc/ConQuest/PortableHTML/conquest_portable-3-325.html
+    '''
+    result = []
+    for sg in sg_list:
+        if not sg in [1]+range(3,6)+range(16,25)+range(75,81)+range(89,99)\
+            +range(143,147)+range(149,156)+range(168,174)+range(177,183)\
+            +range(195,200)+range(207,215):
+            result.append(sg)
+    return result
 
 
 class symop():
