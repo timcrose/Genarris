@@ -234,11 +234,8 @@ def molecule_COM_move (molec,target=[0,0,0],create_duplicate=True):
 	if create_duplicate:
 		molec = copy.deepcopy(molec)
 	cm = cm_calculation(molec,range(0,len(molec.geometry)))
-#	print cm
 	trans_vec = [target[x]-cm[x] for x in range (3)]
 	cell_translation(molec,trans_vec,create_duplicate=False)
-#	cm = cm_calculation(molec,range(0,len(molec.geometry)))
-#	print cm
 	return molec
 
 def cm_calculation (struct,atom_list):
@@ -360,7 +357,7 @@ def atom_distance_check_1(struct,nmpc=None,lowerbound=None):
 
 	
 
-def specific_radius_check(struct,nmpc=None,proportion=None,custom_radius={},custom_radius_pairs={}):
+def specific_radius_check(struct,nmpc=None,proportion=None,custom_radii={},custom_radii_by_pairs={}):
 	'''
 	Check the closeness between atoms from different molecules
 	The two atoms are not allowed to be within proportion*(r1+r2),
@@ -387,17 +384,17 @@ def specific_radius_check(struct,nmpc=None,proportion=None,custom_radius={},cust
 	lv_mat = np.transpose(lv_mat)
 
 
-	for e in custom_radius:
-		ra[e] = custom_radius[e]
+	for e in custom_radii:
+		ra[e] = custom_radii[e]
 
-	for l in custom_radius_pairs:
+	for l in custom_radii_by_pairs:
 	#Add them so that the first atom loop will include them
 		if l[0] not in ra:
 			ra[l[0]] = 0.1
 		if l[1] not in ra:
 			ra[l[1]] = 0.1
 
-	ra_p = custom_radius_pairs
+	ra_p = custom_radii_by_pairs
 			
 
 	for a1 in [x for x in range (total_atoms) if struct.geometry[x][3] in ra]:

@@ -55,71 +55,71 @@ class Structure(object):
         # assign values
         self.geometry[size] = atom
 
-	def set_lattice_vectors(self, vectors):
-		if vectors is None or vectors is False: return False
-		for vector in vectors: 
-			self.add_lattice_vector(vector)
-	def add_lattice_vector(self, vector):
-		lattice_vector_name = 'lattice_vector_a'
-		if 'lattice_vector_a' in self.properties: lattice_vector_name = 'lattice_vector_b'
-		if 'lattice_vector_b' in self.properties: lattice_vector_name = 'lattice_vector_c'
-		if 'lattice_vector_c' in self.properties: raise Exception  # lattice vectors are full, 
-		self.set_property(lattice_vector_name, list(vector))
-		
-	def build_geo_whole(self, geometry): self.geometry = geometry
-	def build_geo_from_atom_file(self, filepath): self.build_geo_whole_atom_format(read_data(filepath))
-	def build_geo_from_json_file(self, filepath): self.loads(read_data(filepath))
-
-	def unpack_geometry(self, text): self.geometry = convert_array(text)    
-	def build_geo_whole_atom_format(self, atom_string):
-		'''
-		Takes an "aims format" string 
-		Returns the standard atom array. Returns Fasle if bad string format given.
-		If initial spin moment is specified, it is stored in geometry array
-		'''
-		def add_previous_atom(atom):
-			try: spin = atom.get('spin')
-			except: spin = None
-			try: charge = atom.get('charge')
-			except: charge = None
-			try: fixed = atom.get('fixed')
-			except: fixed = False
-			self.build_geo_by_atom(atom['x'], atom['y'], atom['z'],
-										 atom['element'], spin, charge, fixed)
-		lines_iter = iter(atom_string.split('\n'))
-		atom = {}
-                has_lattice = False 
-		while True:
-			try: line = lines_iter.next().split()  # read each line
-			except: 
-				try: line = lines_iter.__next__().split()
-				except: 
-                                    add_previous_atom(atom); 
-                                    if has_lattice: self.get_unit_cell_volume()
-                                    return self.geometry
-			if len(line) == 0: continue
-			if '#' in line[0]: continue  # skip commented lines
-			if line[0] == 'lattice_vector': 
-				self.add_lattice_vector([float(line[1]), float(line[2]), float(line[3])])
-                                has_lattice=True
-				continue
-			if line[0] == 'atom':
-				if not len(atom) == 0: add_previous_atom(atom)
-				atom = {}
-				atom['x'] = float(line[1])
-				atom['y'] = float(line[2])
-				atom['z'] = float(line[3])
-				atom['element'] = str(line[4])
-			# only affects previous atom
-			if 'initial_spin' in line[0]: atom['spin'] = float(line[1])
-			if 'initial_charge' in line[0]: atom['charge'] = float(line[1]) 
-			if any('constrain_relaxation' in s for s in line) and any('true' in s for s in line): 
-				atom['fixed'] = True
-
-                cell_vol = self.get_unit_cell_volume()
-                self.properties["cell_vol"] = cell_vol
-                print "This is cell_vol: " , cell_vol
+    def set_lattice_vectors(self, vectors):
+        if vectors is None or vectors is False: return False
+        for vector in vectors: 
+            self.add_lattice_vector(vector)
+    def add_lattice_vector(self, vector):
+        lattice_vector_name = 'lattice_vector_a'
+        if 'lattice_vector_a' in self.properties: lattice_vector_name = 'lattice_vector_b'
+        if 'lattice_vector_b' in self.properties: lattice_vector_name = 'lattice_vector_c'
+        if 'lattice_vector_c' in self.properties: raise Exception  # lattice vectors are full, 
+        self.set_property(lattice_vector_name, list(vector))
         
+    def build_geo_whole(self, geometry): self.geometry = geometry
+    def build_geo_from_atom_file(self, filepath): self.build_geo_whole_atom_format(read_data(filepath))
+    def build_geo_from_json_file(self, filepath): self.loads(read_data(filepath))
+
+    def unpack_geometry(self, text): self.geometry = convert_array(text)    
+    def build_geo_whole_atom_format(self, atom_string):
+        '''
+        Takes an "aims format" string 
+        Returns the standard atom array. Returns Fasle if bad string format given.
+        If initial spin moment is specified, it is stored in geometry array
+        '''
+        def add_previous_atom(atom):
+            try: spin = atom.get('spin')
+            except: spin = None
+            try: charge = atom.get('charge')
+            except: charge = None
+            try: fixed = atom.get('fixed')
+            except: fixed = False
+            self.build_geo_by_atom(atom['x'], atom['y'], atom['z'],
+                                         atom['element'], spin, charge, fixed)
+        lines_iter = iter(atom_string.split('\n'))
+        atom = {}
+        has_lattice = False 
+        while True:
+            try: line = lines_iter.next().split()  # read each line
+            except: 
+                try: line = lines_iter.__next__().split()
+                except: 
+                  add_previous_atom(atom); 
+                  if has_lattice: self.get_unit_cell_volume()
+                  return self.geometry
+            if len(line) == 0: continue
+            if '#' in line[0]: continue  # skip commented lines
+            if line[0] == 'lattice_vector': 
+                self.add_lattice_vector([float(line[1]), float(line[2]), float(line[3])])
+                has_lattice=True
+                continue
+            if line[0] == 'atom':
+                if not len(atom) == 0: add_previous_atom(atom)
+                atom = {}
+                atom['x'] = float(line[1])
+                atom['y'] = float(line[2])
+                atom['z'] = float(line[3])
+                atom['element'] = str(line[4])
+            # only affects previous atom
+            if 'initial_spin' in line[0]: atom['spin'] = float(line[1])
+            if 'initial_charge' in line[0]: atom['charge'] = float(line[1]) 
+            if any('constrain_relaxation' in s for s in line) and any('true' in s for s in line): 
+                atom['fixed'] = True
+
+        if has_lattice: self.get_unit_cell_volume()
+        return self.geometry
+
+
     def set_input_ref(self, input_ref): self.input_ref = input_ref    
     def set_property(self, key, value):
         try: self.properties[key] = ast.literal_eval(value)
