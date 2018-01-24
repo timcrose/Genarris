@@ -29,9 +29,7 @@ class Instruct(SafeConfigParser):
         self.add_section("structure_generation")
         self.add_section("Genarris_master")
         self.add_section("FHI-aims")
-        self.update_keywords([["structure_generation","bravais_system",-1],["structure_generation","p_tolerance",0.5],["structure_generation","angle_range",[60,120]],\
-        ["structure_generation","space_group","-1"],["structure_generation","lattice_variance",[0.6,2]],\
-        ["Genarris_master","processes_limit","1"],["FHI-aims","execute_style","safe_subprocess"],["FHI-aims","runjob_modes","4"],["FHI-aims","runjob_thres","4"],["FHI-aims","multiple_launches","1"],["Genarris_master","info_level","1"]])
+        self.update_keywords([["Genarris_master","processes_limit","1"],["FHI-aims","execute_style","safe_subprocess"],["FHI-aims","runjob_modes","4"],["FHI-aims","runjob_thres","4"],["FHI-aims","multiple_launches","1"],["Genarris_master","info_level","1"]])
 
     def check_keywords(self,clist=[]):
         '''
@@ -177,7 +175,7 @@ class Instruct(SafeConfigParser):
             self.set(section,option,value)
             return True
         return False
-        
+    
     def transfer_keywords(self,src_section,dst_section,klist):
         '''
         Transfer namesake options from one section to another
@@ -208,6 +206,11 @@ class Instruct(SafeConfigParser):
         '''
         return procedure in self.get_eval("Genarris_master","procedures")   
 
+    def set_procedures(self, procedures):
+        if not type(procedures) is list:
+            procedures = [procedures]
+        self.set("Genarris_master", "procedures", str(procedures))
+
     def get_info_level(self,procedure=None):
         if procedure!=None and not self.has_procedure(procedure):
             return self.get_eval("Genarris_master","info_level")-1
@@ -236,8 +239,11 @@ class Instruct(SafeConfigParser):
     def get_master_err_path(self):
         return self.get("Genarris_master","master_err_path")
 
-    def get_tmp_dir(self):
-        return self.get("Genarris_master","tmp_dir")
+    def get_tmp_dir(self, sname=None):
+        if sname is None or not self.has_option(sname, "tmp_dir"):
+            return os.path.abspath(self.get("Genarris_master","tmp_dir"))
+        else:
+            return os.path.abspath(self.get(sname, "tmp_dir"))
     
     def get_nodelist(self):
         return self.get_eval("parallel_settings","nodelist")
@@ -266,6 +272,11 @@ class Instruct(SafeConfigParser):
                 os.system("chmod -R g=u "+path)
             else:
                 raise ValueError("Not a file or directory: "+path)
+
+    def make_path_absolute(self, section, option):
+        if self.has_option(section, option):
+            path = self.get(section, option)
+            self.set(section, option, os.path.abspath(path))
 
     def write_to_file(self, file_path):
         f = open(file_path, "w")
