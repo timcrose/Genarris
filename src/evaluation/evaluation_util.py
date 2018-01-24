@@ -1,6 +1,7 @@
 from utilities import misc, write_log
 from core.structure import Structure
 import os, multiprocessing
+from utilities.misc import output_structure
 
 
 class BatchSingleStructureOperation(object):
@@ -50,7 +51,8 @@ class BatchSingleStructureOperation(object):
                 and output_format != "both"):
             raise ValueError("Unsupported output format: " + output_format +
                     "; select one from json, geometry or both")
-        misc.safe_make_dir(self._output_dir)
+        if not self._output_dir is None:
+            misc.safe_make_dir(self._output_dir)
 
     def run(self):
         if not self._disable_preload:
@@ -193,7 +195,7 @@ def _run_operation_with_arguments(op_args):
             _check_return_single(result)
             struct = result
 
-    _output_structure(struct, output_dir, output_format)
+    output_structure(struct, output_dir, output_format)
     return struct
 
 def _run_operation_with_arguments(op_args):
@@ -201,10 +203,10 @@ def _run_operation_with_arguments(op_args):
     result = operation(struct, *args, **kwargs)
     if type(result) is tuple:
         _check_return_tuple(result)
-        _output_structure(result[0], output_dir, output_format)
+        output_structure(result[0], output_dir, output_format)
     else:
         _check_return_single(result)
-        _output_structure(result, output_dir, output_format)
+        output_structure(result, output_dir, output_format)
     return result
 
 def _check_return_single(result):
@@ -218,16 +220,4 @@ def _check_return_tuple(result):
             "must contain only two elements: the updated "
                 "structure and additional result")
 
-def _output_structure(struct, output_dir, output_format):
-    if output_dir == None:
-        return
-    if output_format == "json" or output_format == "both":
-        path = os.path.join(output_dir, struct.struct_id + ".json")
-        f = open(path, "w")
-        f.write(struct.dumps())
-        f.close()
-    if output_format == "geometry" or output_format == "both":
-        path = os.path.join(output_dir, struct.struct_id + ".in")
-        f = open(path, "w")
-        f.write(struct.get_geometry_atom_format())
-        f.close()
+
