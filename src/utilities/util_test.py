@@ -7,6 +7,7 @@ from utilities.parallel_master import launch_parallel_run_single_inst
 
 def test_launch_parallel_run_single_inst_main(inst):
     sname = "test_launch_parallel_run_single_inst"
+    # TODO: Update to use get_parallel_run_args util
     parallel_run_command = inst.get_with_default(
             sname, "parallel_run_command",
             ["python", "$MASTER", "$CONF"], eval=True)
