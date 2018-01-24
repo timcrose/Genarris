@@ -59,15 +59,11 @@ class Genarris():
         self.inst.set_default(
             sname, "tmp_dir",
             os.path.join(self.working_dir, "tmp"))
-    
-        if not self.inst.has_option(sname,"master_log_path"):
-            self.inst.set(sname,"master_log_path",
-            os.path.join(self.working_dir,"Genarris.log"))
-
-        if not self.inst.has_option(sname,"master_err_path"):
-            self.inst.set(sname,"master_err_path",
-            os.path.join(self.working_dir,"Genarris.err"))
-        
+        self.inst.set_default(sname, "master_log_path",
+                os.path.join(self.working_dir,"Genarris.log"))
+        self.inst.set_default(sname, "master_err_path",
+                os.path.join(self.working_dir,"Genarris.err"))
+          
         sys.stdout = open(self.inst.get(sname,"master_log_path"),"a")
         sys.stderr = open(self.inst.get(sname,"master_err_path"),"a")
 
@@ -85,7 +81,7 @@ class Genarris():
 
         try:
             nodelist = parallel_run.get_nodelist(self.inst.get("parallel_settings","job_scheduler"))
-            self.inst.set_default("parllel_settings","nodes",str(nodelist))
+            self.inst.set_default("parallel_settings","nodes",str(nodelist))
             write_log.write_master_log("Genarris launched on nodes "+str(nodelist))
 
         except:
@@ -216,6 +212,10 @@ class Genarris():
         from generation import generation_modules
         generation_modules.structure_generation_batch(self.inst)
 
+    def _Structure_Generation_Batch(self):
+        from generation import generation_modules
+        generation_modules._structure_generation_batch(self.inst)
+
     def Vector_Distance_Calculation(self):
         from evaluation import pool_analysis
         pool_analysis.vector_distance_calculation(self.inst)
@@ -224,7 +224,6 @@ class Genarris():
     def Test_Launch_Parallel_Run_Single_Inst(self):
         from utilities import util_test
         util_test.test_launch_parallel_run_single_inst_main(self.inst)
-
     def _Test_Launch_Parallel_Run_Single_Inst(self):
         from utilities import util_test
         util_test._test_launch_parallel_run_single_inst(self.inst)

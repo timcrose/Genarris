@@ -10,7 +10,8 @@ from generation import sgroup
 from utilities import misc, write_log
 from utilities.misc import half_gaussian_sampling_upper, \
         half_gaussian_sampling_lower, random_rotation_matrix, \
-        frac_coor_adjust, output_structure
+        frac_coor_adjust, output_structure, \
+        retrieve_integer_and_subtract
 from utilities.check_type import *
 from utilities.write_log import print_time_log
 
@@ -71,6 +72,8 @@ def get_structure_generator_from_inst(inst, sname):
             ["struct_index","_","random_index"], eval=True)
     struct_index_length = inst.get_with_default(
             sname, "struct_index_length", 0, eval=True)
+    index_tracking_file = inst.get_or_none(sname, "index_tracking_file")
+    attempt_tracking_file = inst.get_or_none(sname, "attempt_tracking_file")
 
     check_float(ucv_target, "ucv_target")
     check_int(nmpc, "nmpc")
@@ -132,7 +135,9 @@ def get_structure_generator_from_inst(inst, sname):
             fill_molecule_attempt_limit=fill_molecule_attempt_limit,
             output_dir=output_dir, output_format=output_format,
             struct_id_scheme=struct_id_scheme,
-            struct_index_length=struct_index_length)
+            struct_index_length=struct_index_length,
+            index_tracking_file=index_tracking_file,
+            attempt_tracking_file=attempt_tracking_file)
 
 class StructureGenerator():
     '''
@@ -157,7 +162,8 @@ class StructureGenerator():
         fill_molecule_attempt_limit=5,
         output_dir=None, output_format="json",
         struct_id_scheme=["struct_index","_","random_index"],
-        struct_index_length=0):
+        struct_index_length=0, index_tracking_file=None,
+        attempt_tracking_file=None):
         '''
         ucv: unit cell volume target; actual ucv can be varied based on
             ucv_ratio_range and ucv_std
@@ -248,6 +254,8 @@ class StructureGenerator():
         self._output_format = output_format
         self._struct_id_scheme = struct_id_scheme
         self._struct_index_length = struct_index_length
+        self._index_tracking_file = index_tracking_file
+        self._attempt_tracking_file = attempt_tracking_file
 
         self._fill_molecule_attempt_limit = fill_molecule_attempt_limit
 
@@ -296,18 +304,32 @@ class StructureGenerator():
         self._structure = None
         self._structure_index = -1
 
+    def generate_structure_until_index_or_attempts_zero(self):
+        # First condition makes sure master attempts have not run out
+        # Second condition makes sure that structure index has not hit zero
+        while self._check_attempts() and self.generate_structure() != True:
+            pass
+
     def generate_structure(self):
         for i in range(self._attempt_limit):
             if self._generate_structure_single_attempt():
                 self._update_structure_index()
                 self._fill_generated_structure_info()
                 self._print_generated_structure_info()
+                if self._structure_index < 0:
+                    print_time_log("Generation success, but structure index "
+                            "found to be < 0; newly generated structure will "
+                            "not be outputed; this is expected if generation "
+                            "has just completed")
+                    return True
+            
                 print_time_log("Generation success! Outputing structure to "
                         + self._output_dir)
                 output_structure(
                         self._structure, self._output_dir,
                         self._output_format)
                 return self._structure
+
             self._update_generation_counters()
 
         print_time_log("Generation failed")
@@ -447,7 +469,18 @@ class StructureGenerator():
                             self._specific_radius_lower_bound)
 
     def _update_structure_index(self):
-        self._structure_index += 1
+        if self._index_tracking_file is None:
+            self._structure_index += 1
+        else:
+            self._structure_index = retrieve_integer_and_subtract(
+                    self._index_tracking_file, subtract=1)
+        print_time_log("Structure index updated to %i" % self._structure_index)
+
+    def _check_attempts(self):
+        return (self._attempt_tracking_file is None or
+                retrieve_integer_and_subtract(
+                    self._attempt_tracking_file, subtract=1) > 0)
+        
 
 class UnitCellGenerator(object):
     '''
@@ -851,4 +884,3 @@ def calc_p (alpha,beta,gamma):
     cb=np.cos(np.deg2rad(beta))
     cc=np.cos(np.deg2rad(gamma))
     return (1-ca*ca-cb*cb-cc*cc+2*ca*cb*cc)**0.5
-

@@ -6,10 +6,15 @@ This program contains different modules that calls upon shared.py to conduct str
 
 '''
 from generation import shared
-from utilities import misc, write_log, parallel_run
+from utilities import misc, parallel_run
 import multiprocessing, os, shutil, copy
 from generation.generation_util import \
         get_structure_generator_from_inst
+from utilities.parallel_master import get_parallel_run_args, \
+        launch_parallel_run_single_inst
+from utilities.write_log import print_time_log
+from utilities.write_log import write_master_log as wml
+from utilities.misc import safe_make_dir
 
 def structure_generation_single(inst):
     '''
@@ -32,153 +37,63 @@ def structure_generation_batch(inst):
     '''
     Generates a batch of structure
     '''
-    info_level = inst.get_eval("Genarris_master","info_level")
-    number_of_structures = inst.get_eval("structure_generation_batch","number_of_structures")
-    inst.set_default("structure_generation_batch","number_of_attempts",number_of_structures)
-    number_of_attempts = inst.get_eval("structure_generation_batch","number_of_attempts")
-
-    if info_level >= 1 and not inst.get_boolean("structure_generation_batch","im_not_master_process"):
-        write_log.write_master_log(inst,"generation.generation_modules.structure_generation_batch is called to generate %i structure; with " % (number_of_structures), additional_item = [["structure_generation","molecule_path"],["structure_generation","unit_cell_volume"],["structure_generation","space_group"],["structure_generation","wyckoff_list"]])
-
-    if info_level>=2 and inst.get_boolean("structure_generation_batch","im_not_master_process"):
-        write_log.write_master_log(inst,"structure_generation_batch process reporting from %s" % inst.get_master_node())
-
-
-    inst.set_default("structure_generation_batch","tmp_dir",os.path.join(inst.get_master_working_dir(),"gen_tmp_"+misc.get_random_index()))
-    tmp_dir = inst.get("structure_generation_batch","tmp_dir")
-    structure_index_dir = os.path.join(tmp_dir,"structure_index.info")
-    attempt_counter_dir = os.path.join(tmp_dir,"attempt_counter.info")
-
-    if not inst.get_boolean("structure_generation_batch","im_not_master_process"):      
-    #Generate a file that indicates the next structure inde
-    #This will be read by the other multiprocessing instances
-        misc.safe_make_dir(tmp_dir)
-        if not os.path.isfile(structure_index_dir) or misc.retrieve_integer_and_subtract(structure_index_dir,0)<0:
-            f = open(structure_index_dir,"w")
-            f.write(str(number_of_structures-1))
-            f.close()
-
-        if not os.path.isfile(attempt_counter_dir) or misc.retrieve_integer_and_subtract(attempt_counter_dir,0)<0:
-            f = open(attempt_counter_dir,"w")
-            f.write(str(number_of_attempts-1))
-            f.close()
-
-    
-    if inst.has_option("structure_generation_batch","processes_limit"):
-        processes_limit = inst.get_eval("structure_generation_batch","processes_limit")
+    sname = "structure_generation_batch"
+    print_time_log("Structure generation batch begins.")
+    if inst.has_option(sname, "index_tracking_file"):
+        print_time_log("Using existing index tracking file: " +
+                inst.get(sname, "index_tracking_file"))
     else:
-        processes_limit = inst.get_eval("Genarris_master","processes_limit")
+        _set_up_index_and_attempt_tracking_files(inst, sname)
 
-    spread_processes_enabled = inst.get_boolean("structure_generation_batch","spread_processes_across_nodes")
-    if spread_processes_enabled:
-        nodelist = inst.get_nodelist()
-    if spread_processes_enabled and len(nodelist)>1:
-        #Launch similar python modules through ssh
-        nodes_and_insts = []
-        sample_inst = copy.deepcopy(inst)
-        sample_inst.set("Genarris_master","procedures",str(["Structure_Generation_Batch"]))
-        sample_inst.set("structure_generation_batch","processes_limit",str(int(processes_limit/len(nodelist))))
-        processes_limit = int(processes_limit/len(nodelist)) #This will influence the rest of the running on this node
-        sample_inst.set("structure_generation_batch","im_not_master_process","TRUE")
-        sample_inst.set("structure_generation_batch","tmp_dir",tmp_dir)
-        sample_inst.remove_option("structure_generation_batch","spread_processes_across_nodes")
-        inst.remove_option("structure_generation_batch","spread_processes_across_nodes")
-        nodelist.remove(inst.get_master_node())
-        for node in nodelist:
-            new_inst = copy.deepcopy(sample_inst)
-            new_inst.set("Genarris_master","master_node",node)
-            nodes_and_insts.append([node,new_inst])
-        subp = parallel_run.ssh_spawn_python_subprocess(nodes_and_insts,inst.get_keywords([["parallel_settings","modules_launch",[]]],eval=True)[0])    
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch ssh spawned additional python subprocesses at "+str(nodelist))
-    
-    if processes_limit > 1:
-        new_inst = copy.deepcopy(inst)
-        new_inst.set("structure_generation_batch","processes_limit","1")
-        new_inst.set("structure_generation_batch","im_not_master_process","TRUE")
-        inst_list = []
-        for i in range (processes_limit-1):
-            inst_list.append(copy.deepcopy(new_inst))
+    _make_path_absolute(inst, sname)
+    _inst = copy.deepcopy(inst)
+    _inst.set_procedures(["_Structure_Generation_Batch"])
+    args = get_parallel_run_args(inst, sname)
+    launch_parallel_run_single_inst(_inst, *args)
+    _clean_up_index_and_attempt_tracking_files(inst, sname)
 
-        mulp = multiprocessing.Pool(processes=processes_limit-1)
-        mulp_result = mulp.map_async(structure_generation_batch,inst_list)
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch multiprocessed additional %i processes at node %s " % (processes_limit-1,inst.get_master_node()))
+def _structure_generation_batch(inst):
+    sname = "structure_generation_batch"
+    generator = get_structure_generator_from_inst(inst, sname)
+    generator.generate_structure_until_index_or_attempts_zero()
 
-    ################## Parallalization completed #####################      
-    molecule = misc.load_structure_with_inst(inst,"structure_generation","molecule_format",inst.get("structure_generation","molecule_path")) 
-    #Load the molecule so structure_generation_single does not have to load it every time
-    
-    attempt_counter = misc.retrieve_integer_and_subtract(attempt_counter_dir)
-    structure_index = misc.retrieve_integer_and_subtract(structure_index_dir,subtract=0)
-    sample_inst = copy.deepcopy(inst)
-    sample_inst.remove_section("structure_generation_single")
-    sample_inst.add_section("structure_generation_single")
-    sample_inst.transfer_keywords("structure_generation_batch","structure_generation_single",["output_format","output_suffix"])
+def _set_up_index_and_attempt_tracking_files(inst, sname):
+    number_of_structures = inst.get_eval(sname, "number_of_structures")
+    number_of_attempts = inst.get_or_none(sname, "number_of_attempts", None)
 
-    result = []
-    while attempt_counter >= 0 and structure_index >= 0 :
-        
-        struct = structure_generation_single(sample_inst,molecule)
-        if struct == False: #Generation failure
-            attempt_counter = misc.retrieve_integer_and_subtract(attempt_counter_dir)
-            structure_index = misc.retrieve_integer_and_subtract(structure_index_dir,subtract=0)
-            continue
-    
-        #Post-process generated structure   
-        structure_index = misc.retrieve_integer_and_subtract(structure_index_dir)
-        if structure_index < 0:
-            break
-        struct_id_scheme = inst.get_with_default("structure_generation_batch","struct_id_scheme",["struct_index","_","random_index"],eval=True)
-        misc.struct_id_assign(struct,struct_id_scheme,str(structure_index).zfill(len(str(number_of_structures))))
-        
+    tmp_dir = inst.get_tmp_dir(sname)
+    safe_make_dir(tmp_dir)
 
-        if inst.has_option("structure_generation_batch","output_folder"):
-            output_folder = inst.get("structure_generation_batch","output_folder")
-            if inst.has_option("structure_generation_batch","output_folder_split"):
-                output_folder_split = inst.get_eval("structure_generation_batch","output_folder_split")
-                if number_of_structures%output_folder_split==0:
-                    folder_index = structure_index/(number_of_structures/output_folder_split)
-                else:
-                    folder_index = structure_index/(number_of_structures/output_folder_split+1)
-                output_folder = os.path.join(output_folder,str(folder_index))
-            sample_inst.set("structure_generation_single","output_folder",output_folder)
-            misc.dump_structure_with_inst(sample_inst,"structure_generation_single",struct)
-            sample_inst.remove_option("structure_generation_single","output_folder")
-            
-        attempt_counter = misc.retrieve_integer_and_subtract(attempt_counter_dir)
+    index_tracker = os.path.join(tmp_dir, "_structure_generation_index")
+    f = open(index_tracker, "w")
+    f.write(str(number_of_structures))
+    f.close()
+    inst.set(sname, "index_tracking_file", index_tracker)
 
-    ########################## Collecting results #########3###############
-    coll = [x for x in result if x!=False]
-    if processes_limit > 1:
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch beginning to join multiprocesses")
-        mulp_result = mulp_result.get()
-        mulp.close()
-        for l in mulp_result:
-            coll += l
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch multiprocesses joined")
+    if number_of_attempts is None:
+        return
+    attempt_tracker = os.path.join(tmp_dir, "_structure_generation_attempt")
+    f = open(os.path.join(tmp_dir, "_structure_generation_attempt"), "w")
+    f.write(str(number_of_attempts))
+    f.close()
+    inst.set(sname, "attempt_tracking_file", attempt_tracker)
 
-    if spread_processes_enabled and (len(nodelist)>1 or nodelist[0]!=inst.get_master_node()):
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch beginning to join ssh subprocesses")
-        for sp in subp:
-            sp.wait()
-        if info_level >= 1:
-            write_log.write_master_log(inst,"structure_generation_batch ssh subprocesses joined")
+def _clean_up_index_and_attempt_tracking_files(inst, sname):
+    tmp_dir = inst.get_tmp_dir(sname)
+    index_tracker = os.path.join(tmp_dir, "_structure_generation_index")
+    if os.path.isfile(index_tracker):
+        os.remove(index_tracker)
+    attempt_tracker = os.path.join(tmp_dir, "_structure_generation_attempt")
+    if os.path.isfile(attempt_tracker):
+        os.remove(attempt_tracker)
 
-    structure_index = misc.retrieve_integer_and_subtract(structure_index_dir,0)
+def _make_path_absolute(inst, sname):
+    inst.make_path_absolute(sname, "molecule_path")
+    inst.make_path_absolute(sname, "output_dir")
+    inst.make_path_absolute(sname, "index_tracking_file")
+    inst.make_path_absolute(sname, "attempt_tracking_file")
 
-    if not inst.get_boolean("structure_generation_batch","im_not_master_process"):
-        if misc.retrieve_integer_and_subtract(structure_index_dir,subtract=0)<0:
-            shutil.rmtree(tmp_dir)
-#       if info_level >= 1:
-#           write_log.write_master_log(inst,"structure_generation_batch master processes collected %i structures" % len(coll))
-
-
-    return coll, number_of_structures-max(-1,structure_index)-1
-
+# TODO: Deprecate estimate_unit_cell_volume
 def estimate_unit_cell_volume(inst):
     '''
     Module for estimating the unit cell of a given molecule
