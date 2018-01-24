@@ -1,0 +1,79 @@
+2018-01-24 05:23:42 Structure generator initialized from section: structure_generation_batch
+2018-01-24 05:23:42 Loaded molecule from: ../molecule.in; napm = 15
+2018-01-24 05:23:42 Space group range from input: 14 29 33
+2018-01-24 05:23:42 Updated unit cell volume to: 1027.85677168
+2018-01-24 05:23:42 Lattice vector generation success; a = [9.090564394233908, 0, 0], b = [4.0212330021991772e-16, 6.567171865388317, 0], c = [1.5097149956690827e-17, 1.5097149956690827e-17, 17.21723359472611]
+2018-01-24 05:23:42 Updated space group to: 33
+2018-01-24 05:23:44 Updated unit cell volume to: 977.903573734
+2018-01-24 05:23:44 Lattice vector generation success; a = [18.771290567115326, 0, 0], b = [4.0527121207325229e-16, 6.618581167327884, 0], c = [1.0089090276078229e-17, 1.0089090276078229e-17, 7.871128484961282]
+2018-01-24 05:23:46 Structure index updated to 5
+2018-01-24 05:23:46 Structure generation success with space group 33, wyckoff position list [0], unit cell volume 977.903574, and sr minimum: 0.479739732316
+2018-01-24 05:23:46 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:23:46 Updated unit cell volume to: 927.771188019
+2018-01-24 05:23:46 Lattice vector generation success; a = [13.37666817250263, 0, 0], b = [3.490516281397891e-16, 5.70044568577344, 0], c = [0.28702644857139387, 9.5185990881644045e-18, 12.167017015458887]
+2018-01-24 05:23:46 Updated space group to: 14
+2018-01-24 05:23:46 Updated unit cell volume to: 1048.9001811
+2018-01-24 05:23:46 Lattice vector generation success; a = [14.098122595913278, 0, 0], b = [6.5689845268819388e-16, 10.727965861594578, 0], c = [-0.031231904250063062, 7.1940118025737325e-18, 6.93514418550611]
+2018-01-24 05:23:47 Updated unit cell volume to: 937.102416894
+2018-01-24 05:23:47 Lattice vector generation success; a = [6.261638558794845, 0, 0], b = [1.1676897473914812e-15, 19.069820754922517, 0], c = [0.049178718620843338, 1.2011860696233716e-18, 7.847881772897644]
+2018-01-24 05:23:47 Updated space group to: 14
+2018-01-24 05:23:49 Structure index updated to 4
+2018-01-24 05:23:49 Structure generation success with space group 14, wyckoff position list [0], unit cell volume 937.102417, and sr minimum: 0.482404416017
+2018-01-24 05:23:49 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:23:49 Updated unit cell volume to: 1004.40308954
+2018-01-24 05:23:49 Lattice vector generation success; a = [15.319652328098991, 0, 0], b = [3.5515104157061839e-16, 5.800056666426408, 0], c = [1.1795935539172038, 7.7440664773639095e-18, 11.303863225338901]
+2018-01-24 05:23:50 Updated unit cell volume to: 946.804937748
+2018-01-24 05:23:50 Lattice vector generation success; a = [14.906433936835196, 0, 0], b = [3.8928890024698654e-16, 6.357570207475733, 0], c = [1.2073742341837383e-17, 1.2073742341837383e-17, 9.990692441546438]
+2018-01-24 05:23:50 Updated space group to: 29
+2018-01-24 05:23:52 Structure index updated to 3
+2018-01-24 05:23:52 Structure generation success with space group 29, wyckoff position list [0], unit cell volume 946.804938, and sr minimum: 0.489818755565
+2018-01-24 05:23:52 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:23:56 Updated unit cell volume to: 929.747115592
+2018-01-24 05:23:56 Lattice vector generation success; a = [10.29289805424298, 0, 0], b = [3.6600308358625374e-16, 5.977283962054681, 0], c = [1.6288708962693593e-17, 1.6288708962693593e-17, 15.11204645879812]
+2018-01-24 05:23:58 Updated unit cell volume to: 1029.06977925
+2018-01-24 05:23:58 Lattice vector generation success; a = [15.222454884143257, 0, 0], b = [7.0566276126745878e-16, 11.524347456895631, 0], c = [0.026049538209214018, 2.7775626037824197e-18, 5.866023319980213]
+2018-01-24 05:23:58 Updated space group to: 14
+2018-01-24 05:23:59 Updated unit cell volume to: 933.563127434
+2018-01-24 05:23:59 Lattice vector generation success; a = [11.879827419770745, 0, 0], b = [4.0946288316812414e-16, 6.687036351268107, 0], c = [0.83178952801576589, 6.429828009774863e-18, 11.751677767437155]
+2018-01-24 05:23:59 Updated unit cell volume to: 966.416043965
+2018-01-24 05:23:59 Lattice vector generation success; a = [6.205382202139193, 0, 0], b = [8.129930190064904e-16, 13.277183585871907, 0], c = [4.3347767278948652e-18, 4.3347767278948645e-18, 11.729773746803867]
+2018-01-24 05:23:59 Updated space group to: 29
+2018-01-24 05:24:01 Updated unit cell volume to: 973.846927897
+2018-01-24 05:24:01 Lattice vector generation success; a = [18.071286371257298, 0, 0], b = [6.3212115954708536e-16, 10.323321956782848, 0], c = [4.2178655043375297e-18, 4.2178655043375297e-18, 5.220140094101769]
+2018-01-24 05:24:02 Structure index updated to 2
+2018-01-24 05:24:02 Structure generation success with space group 29, wyckoff position list [0], unit cell volume 973.846928, and sr minimum: 0.485970839443
+2018-01-24 05:24:02 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:24:03 Updated unit cell volume to: 1081.74672927
+2018-01-24 05:24:03 Lattice vector generation success; a = [8.759053882086576, 0, 0], b = [6.8465191241235888e-16, 11.181214255229184, 0], c = [0.005110924364542118, 5.1479655703290441e-18, 11.045348502507299]
+2018-01-24 05:24:03 Updated space group to: 14
+2018-01-24 05:24:05 Structure index updated to 1
+2018-01-24 05:24:05 Structure generation success with space group 14, wyckoff position list [0], unit cell volume 1081.746729, and sr minimum: 0.491267826078
+2018-01-24 05:24:05 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:24:06 Updated unit cell volume to: 1000.43482798
+2018-01-24 05:24:06 Lattice vector generation success; a = [12.631308495543713, 0, 0], b = [7.0866857411176135e-16, 11.573436105906847, 0], c = [-0.10207622456502945, 1.4857637809322089e-17, 6.843497956574567]
+2018-01-24 05:24:07 Updated unit cell volume to: 923.197923698
+2018-01-24 05:24:07 Lattice vector generation success; a = [10.436265345041958, 0, 0], b = [4.0505892747119012e-16, 6.615114296680609, 0], c = [1.31607610646953e-17, 1.3160761064695302e-17, 13.372492225079704]
+2018-01-24 05:24:07 Updated space group to: 29
+2018-01-24 05:24:09 Updated unit cell volume to: 958.628556054
+2018-01-24 05:24:09 Lattice vector generation success; a = [11.706219773651902, 0, 0], b = [5.420188278320068e-16, 8.851839211262895, 0], c = [7.0718113548450846e-18, 7.0718113548450846e-18, 9.251244773389029]
+2018-01-24 05:24:11 Updated unit cell volume to: 922.696650058
+2018-01-24 05:24:11 Lattice vector generation success; a = [6.6556558705982125, 0, 0], b = [6.931487857538876e-16, 11.319978727523475, 0], c = [5.6263102564014852e-18, 5.6263102564014852e-18, 12.246795737963593]
+2018-01-24 05:24:11 Updated space group to: 29
+2018-01-24 05:24:11 Updated unit cell volume to: 1046.26851975
+2018-01-24 05:24:11 Lattice vector generation success; a = [5.896823393581198, 0, 0], b = [8.0558516102490843e-16, 13.156204084080214, 0], c = [4.7122917522674179e-18, 4.7122917522674171e-18, 13.48635028351879]
+2018-01-24 05:24:12 Updated unit cell volume to: 900.819144917
+2018-01-24 05:24:12 Lattice vector generation success; a = [8.526682905642273, 0, 0], b = [5.3229259420069561e-16, 8.692997761824854, 0], c = [-0.044104049589645936, 1.1828192891527167e-17, 12.153123947948078]
+2018-01-24 05:24:12 Updated space group to: 14
+2018-01-24 05:24:12 Updated unit cell volume to: 903.28442264
+2018-01-24 05:24:12 Lattice vector generation success; a = [17.065675959568523, 0, 0], b = [4.0861271728892853e-16, 6.673152088805043, 0], c = [-0.082443289842502307, 1.7156746484420629e-17, 7.931767997344701]
+2018-01-24 05:24:12 Updated unit cell volume to: 931.679453716
+2018-01-24 05:24:12 Lattice vector generation success; a = [10.102179929809733, 0, 0], b = [5.000678520646287e-16, 8.166727784905744, 0], c = [8.8167881507922508e-18, 8.8167881507922508e-18, 11.29284426033416]
+2018-01-24 05:24:12 Updated space group to: 33
+2018-01-24 05:24:16 Structure index updated to 0
+2018-01-24 05:24:16 Structure generation success with space group 33, wyckoff position list [0], unit cell volume 931.679454, and sr minimum: 0.496657249937
+2018-01-24 05:24:16 Generation success! Outputing structure to ./structures_generated
+2018-01-24 05:24:16 Updated unit cell volume to: 1011.48111023
+2018-01-24 05:24:16 Lattice vector generation success; a = [11.883913764550215, 0, 0], b = [4.9100469779709402e-16, 8.018715243267701, 0], c = [8.7855795589447905e-18, 8.7855795589447905e-18, 10.614352188300513]
+2018-01-24 05:24:18 Structure index updated to -1
+2018-01-24 05:24:18 Structure generation success with space group 33, wyckoff position list [0], unit cell volume 1011.481110, and sr minimum: 0.487802486507
+2018-01-24 05:24:18 Generation success, but structure index found to be < 0; newly generated structure will not be outputed; this is expected if generation has just completed
