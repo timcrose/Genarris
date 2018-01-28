@@ -66,6 +66,7 @@ class Genarris():
           
         sys.stdout = open(self.inst.get(sname,"master_log_path"),"a")
         sys.stderr = open(self.inst.get(sname,"master_err_path"),"a")
+        write_log.set_global_output(sys.stdout, sys.stderr)
 
         self.inst.set_default(sname,"script_path",
                       os.path.realpath(__file__))
@@ -120,6 +121,10 @@ class Genarris():
     def FHI_Aims_Batch_Run(self):
         from evaluation import FHI_aims
         FHI_aims.fhi_aims_batch_run(self.inst)
+
+    def FHI_Aims_Extract(self):
+        from evaluation import fhi_aims_modules
+        fhi_aims_modules.fhi_aims_extract(self.inst)
 
     def FHI_Aims_Scavenge(self):
         from evaluation import FHI_aims
