@@ -13,10 +13,11 @@ def get_fhi_aims_extractor(inst, section, omit_output=False):
             section, "original_structure_file", "original_structure.json")
     original_structure_dir = inst.get_or_none(
             section, "original_structure_dir")
-    extract_energy = inst.get_boolean(section, "extract_energy")
     energy_property_name = inst.get_with_default(
             section, "energy_property_name", "energy")
-    update_geometry = inst.get_boolean(section, "update_geometry")
+    fail_if_no_energy = inst.get_boolean(section, "fail_if_no_energy")
+    fail_if_no_geometry_next_step = inst.get_boolean(
+            section, "fail_if_no_geometry_next_step")
     check_execution_complete = inst.get_boolean(
             section, "check_execution_complete")
     strict_success = inst.get_boolean(section, "strict_success")
@@ -32,9 +33,9 @@ def get_fhi_aims_extractor(inst, section, omit_output=False):
             aims_output_file=aims_output_file,
             original_structure_file=original_structure_file,
             original_structure_dir=original_structure_dir,
-            extract_energy=extract_energy,
             energy_property_name=energy_property_name,
-            update_geometry=update_geometry,
+            fail_if_no_energy=fail_if_no_energy,
+            fail_if_no_geometry_next_step=fail_if_no_geometry_next_step,
             check_execution_complete=check_execution_complete,
             strict_success=strict_success,
             clean_up=clean_up,
@@ -45,8 +46,9 @@ class FhiAimsExtractor(object):
     def __init__(self, aims_output_file="aims.out",
             original_structure_file="original_structure.json",
             original_structure_dir=None,
-            extract_energy=False, energy_property_name="energy",
-            update_geometry=False,
+            energy_property_name="energy",
+            fail_if_no_energy=False,
+            fail_if_no_geometry_next_step=False,
             check_execution_complete=False,
             strict_success=False,
             output_dir=None, output_format="json",
@@ -59,9 +61,9 @@ class FhiAimsExtractor(object):
         original_structure_dir: Directory where additional original structures 
             are stored outside of calculation folder. Structures are matched 
             according to struct_id and calc folder's basename.
-        extract_energy: Whether or not to extract energy from aims output
+        fail_if_no_energy: Whether or not to extract energy from aims output
         energy_property_name: Property name to store the structure
-        update_geometry: Whether or not to update the geometry from aims output
+        fail_if_no_geometry_next_step: Whether or not to update the geometry from aims output
         check_execution_complete: Whether or not to look for
             _exeuction_complete file that indicates execution complete
         strict_success: Whether or not to look for "Have a nice day" to 
@@ -74,9 +76,9 @@ class FhiAimsExtractor(object):
             the folder as well
         '''
         self._aims_output_file = aims_output_file
-        self._extract_energy = extract_energy
+        self._fail_if_no_energy = fail_if_no_energy
         self._energy_property_name = energy_property_name
-        self._update_geometry = update_geometry
+        self._fail_if_no_geometry_next_step = fail_if_no_geometry_next_step
         self._check_execution_complete = check_execution_complete
         self._strict_success = strict_success
         self._output_dir = output_dir
@@ -135,24 +137,35 @@ class FhiAimsExtractor(object):
                 print_time_log("Loaded original geometry file from "
                         "geometry.in in dir: " + calculation_dir)
 
-        extracted_something = False
-        if self._update_geometry:
-            success = self._extract_geometry(struct, calculation_dir)
-            if success:
-                extracted_something = True
-                found_geometry = True
+        energy_extraction_success = \
+                self._extract_energy_do(struct, calculation_dir)
+        if self._fail_if_no_energy and not energy_extraction_success:
+            print_time_error("Extraction failed as no energy is extracted. "
+                    "Remove fail_if_no_energy flag to disable this check. "
+                    + calculation_dir)
+            return False
+        elif not energy_extraction_success:
+            print_time_warning("Energy extraction failed for directory: "
+                    + calculation_dir)
 
-        if self._extract_energy:
-            success = self._extract_energy_do(struct, calculation_dir)
-            if success:
-                extracted_something = True
+        geometry_extraction_success = \
+                self._extract_geometry(struct, calculation_dir)
+        if self._fail_if_no_geometry_next_step and \
+                not geometry_extraction_success:
+            print_time_error("Extraction failed as no geometry.in.next_step "
+                    "is extracted. Remove fail_if_no_geometry_next_step flag "
+                    "to disable this check. " + calculation_dir)
+            return False
+        elif not geometry_extraction_success:
+            print_time_warning("geometry.in.next_step extraction failed "
+                    "for directory: " + calculation_dir)
 
-        if not found_geometry:
+        if not found_geometry and not geometry_extraction_success:
             print_time_error("Extraction failure as no geometry is found. "
                     "Directory: " + calculation_dir)
             return False
 
-        if not extracted_something:
+        if not energy_extraction_success and not geometry_extraction_success:
             print_time_error("Extraction failure as nothing is extracted. "
                     "Directory: " + calculation_dir)
             return False
@@ -281,13 +294,9 @@ class FhiAimsExtractor(object):
         next_step_file = os.path.join(
                 calculation_dir, "geometry.in.next_step")
         if not os.path.isfile(next_step_file):
-            print_time_error("Failed to find geometry.in.next_step "
-                    "in dir: " + calculation_dir)
             return False
         test_struct = Structure()
         if not self._load_geometry_file(test_struct, next_step_file):
-            print_time_error("Failed to extract geometry.in.next_step "
-                    "from dir: " + calculation_dir)
             return False
         struct.clear_geometry()
         self._load_geometry_file(struct, next_step_file)
@@ -304,8 +313,6 @@ class FhiAimsExtractor(object):
         while True:
             line = aims_out.readline()
             if not line:
-                print_time_error("Failed to extract converged energy from file: "
-                    + os.path.join(calculation_dir, self._aims_output_file))
                 return False # energy not converged
             if s in line:
                 tokens = line.split()
@@ -313,6 +320,8 @@ class FhiAimsExtractor(object):
                 struct.set_property(self._energy_property_name, energy)
                 aims_out.close()
                 return True
+        print_time_log("Extracted energy from aims output in dir: "
+                + calculation_dir)
 
         return False
 
