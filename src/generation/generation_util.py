@@ -266,10 +266,7 @@ class StructureGenerator():
             raise ValueError("Must specify one of molecule or molecule_path")
         elif self._molecule is None:
             self._molecule = Structure()
-#            self._molecule.loads_try_both(self._molecule_path)
-            self._molecule.build_geo_from_atom_file(self._molecule_path)
-            print_time_log("Loaded molecule from: " + self._molecule_path + 
-                    "; napm = " + str(self._molecule.get_n_atoms()))
+            self._molecule.loads_try_both(self._molecule_path)
         self._molecule = structure_handling.molecule_COM_move(
                 self._molecule)
         self._napm = self._molecule.get_n_atoms()
