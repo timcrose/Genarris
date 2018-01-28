@@ -25,14 +25,6 @@ def structure_generation_single(inst):
     generator = get_structure_generator_from_inst(inst, sname)
     generator.generate_structure()
 
-def single_structure_generation_call(info):
-    '''
-    Call the single structure generation with inst and molecul
-    info[0] should be inst, and info[1] should be the molecule
-    Used so that multiprocessing.map can send multiple arguments
-    '''
-    return structure_generation_single(info[0],info[1])
-
 def structure_generation_batch(inst):
     '''
     Generates a batch of structure
