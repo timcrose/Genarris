@@ -32,7 +32,26 @@ class Structure(object):
                                       ('element', numpy.str_,16), ('spin', 'float32'), ('charge', 'float32'), ('fixed', 'bool')])
             
     # setters
-        
+
+    def clear_geometry(self):
+        self.geometry = numpy.zeros(0, dtype=[('x', 'float32'), ('y', 'float32'), ('z', 'float32'), \
+                                                      ('element', numpy.str_,16), ('spin', 'float32'), ('charge', 'float32'), ('fixed', 'bool')])
+        self.safe_delete_property("lattice_vector_a")
+        self.safe_delete_property("lattice_vector_b")
+        self.safe_delete_property("lattice_vector_c")
+        self.safe_delete_property("alpha")
+        self.safe_delete_property("beta")
+        self.safe_delete_property("gamma")
+        self.safe_delete_property("a")
+        self.safe_delete_property("b")
+        self.safe_delete_property("c")
+        self.safe_delete_property("cell_vol")
+        self.safe_delete_property("unit_cell_volume")
+
+    def safe_delete_property(self, property_name):
+        if property_name in self.properties:
+            del(self.properties[property_name])
+      
     def build_geo_by_atom(self, x, y, z, element, spin=None, charge=None, fixed=False):
         # increase the size of the array
         size = self.geometry.size
@@ -116,7 +135,10 @@ class Structure(object):
             if any('constrain_relaxation' in s for s in line) and any('true' in s for s in line): 
                 atom['fixed'] = True
 
-        if has_lattice: self.get_unit_cell_volume()
+        if has_lattice:
+            self.get_unit_cell_volume()
+            self.get_lattice_magnitudes()
+            self.get_lattice_angles()
         return self.geometry
 
 
@@ -219,6 +241,9 @@ class Structure(object):
         alpha = self.angle(B,C)
         beta = self.angle(A,C)
         gamma = self.angle(A,B)
+        self.set_property("alpha", alpha)
+        self.set_property("beta", beta)
+        self.set_property("gamma", gamma)
         return alpha, beta, gamma
 
     def get_lattice_magnitudes(self):
