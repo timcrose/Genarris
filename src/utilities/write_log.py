@@ -4,6 +4,13 @@ Handles all kinds of log writing
 
 import os,time
 from external_libs.filelock import FileLock
+
+def set_global_output(stdout, stderr):
+    global STDOUT
+    STDOUT = stdout
+    global STDERR
+    STDERR = stderr
+
 def write_log(log_path,message,time_stamp=True):
 	dirname = os.path.dirname(log_path)
 	filename = log_path[len(dirname)+1:]
@@ -16,7 +23,20 @@ def write_log(log_path,message,time_stamp=True):
 		#os.system("chmod g=u "+log_path)
 
 def print_time_log(message):
-    print(time.strftime("%Y-%m-%d %H:%M:%S") + " " + message)
+    STDOUT.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + message + "\n")
+
+def print_time_warning(message):
+    message = time.strftime("%Y-%m-%d %H:%M:%S") + \
+            " WARNING: " + message + "\n"
+    STDOUT.write(message)
+    STDERR.write(message)
+
+def print_time_error(message):
+    message = time.strftime("%Y-%m-%d %H:%M:%S") + \
+            " ERROR: " + message + "\n"
+    STDOUT.write(message)
+    STDERR.write(message)
+
 
 def write_master_log(inst,message,time_stamp=True,additional_item=None):
 	'''
