@@ -19,8 +19,9 @@ def affinity_propagation_distance_matrix(inst):
     Main AP distance matrix module
     '''
     sname = "affinity_propagation_distance_matrix"
+    preference = inst.get_eval(sname, "preference")
     executor = get_affinity_propagation_executor(inst, sname)
-    executor.run_single()
+    executor.run_single(preference)
 
 def affinity_propagation_analyze_preference(inst):
     '''
@@ -84,7 +85,6 @@ def get_affinity_propagation_executor(inst, section):
             section, "convergence_iter", 15, eval=True)
     max_iter = inst.get_with_default(
             section, "max_iter", 200, eval=True)
-    preference = inst.get_or_none(section, "preference", eval=True)
     property_key = inst.get_with_default(
             section, "property_key", "AP_cluster")
     output_file = inst.get_with_default(
@@ -99,8 +99,8 @@ def get_affinity_propagation_executor(inst, section):
     return AffinityPropagationExecutor(
             dist_mat_input_file, affinity_type=affinity_type,
             damping=damping, convergence_iter=convergence_iter,
-            max_iter=max_iter, preference=preference,
-            property_key=property_key, output_file=output_file,
+            max_iter=max_iter, property_key=property_key,
+            output_file=output_file,
             exemplars_output_dir=exemplars_output_dir,
             exemplars_output_format=exemplars_output_format,
             **pool_operation_keywords)
@@ -109,7 +109,6 @@ class AffinityPropagationExecutor(PoolOperation):
     def __init__(self, dist_mat_input_file,
             affinity_type=["exponential",1], damping=0.5,
             convergence_iter=15, max_iter=200,
-            preference=None,
             property_key="AP_cluster",
             output_file="./AP_cluster.info",
             exemplars_output_dir=None, exemplars_output_format="json",
@@ -123,7 +122,6 @@ class AffinityPropagationExecutor(PoolOperation):
         self._damping = damping
         self._convergence_iter = convergence_iter
         self._max_iter = max_iter
-        self._preference = preference
         self._property_key = property_key
         self._output_file = output_file
         self._exemplars_output_dir = exemplars_output_dir
@@ -171,12 +169,12 @@ class AffinityPropagationExecutor(PoolOperation):
                     self._affinity_matrix[i][j] = \
                             -dist_mat[i][j] ** self._affinity_type[1]
     
-    def run_single(self):
+    def run_single(self, preference):
         print_time_log("Running Affinity Propagation with preference: "
-                + str(preference_list))
+                + str(preference))
         # No need of subdir if only one run
         self._enable_subdir_output = False
-        result = self._run(self._preference, enable_output=True)
+        result = self._run(preference, enable_output=True)
         self._print_result_verbose(result)
         print_time_log("Affinity Propagation calculation complete!")
 
