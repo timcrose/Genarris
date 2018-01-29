@@ -1,0 +1,60 @@
+Preference: -1000.000000. Number of clusters: 2.
+Silhouette score: 0.371808
+Mean distance to exemplar: 3.129802
+STD of distance to exemplar: 1.644446
+Max distance to exemplar: 5.261326
+
+Preference: -900.000000. Number of clusters: 2.
+Silhouette score: 0.371808
+Mean distance to exemplar: 3.129802
+STD of distance to exemplar: 1.644446
+Max distance to exemplar: 5.261326
+
+Preference: -800.000000. Number of clusters: 2.
+Silhouette score: 0.371808
+Mean distance to exemplar: 3.129802
+STD of distance to exemplar: 1.644446
+Max distance to exemplar: 5.261326
+
+Preference: -700.000000. Number of clusters: 2.
+Silhouette score: 0.371808
+Mean distance to exemplar: 3.129802
+STD of distance to exemplar: 1.644446
+Max distance to exemplar: 5.261326
+
+Preference: -600.000000. Number of clusters: 2.
+Silhouette score: 0.358385
+Mean distance to exemplar: 3.079422
+STD of distance to exemplar: 1.677658
+Max distance to exemplar: 5.265270
+
+Preference: -500.000000. Number of clusters: 2.
+Silhouette score: 0.358385
+Mean distance to exemplar: 3.079422
+STD of distance to exemplar: 1.677658
+Max distance to exemplar: 5.265270
+
+Preference: -400.000000. Number of clusters: 2.
+Silhouette score: 0.358385
+Mean distance to exemplar: 3.079422
+STD of distance to exemplar: 1.677658
+Max distance to exemplar: 5.265270
+
+Preference: -300.000000. Number of clusters: 3.
+Silhouette score: 0.454086
+Mean distance to exemplar: 2.135699
+STD of distance to exemplar: 1.804603
+Max distance to exemplar: 5.261326
+
+Preference: -200.000000. Number of clusters: 5.
+Silhouette score: 0.610134
+Mean distance to exemplar: 1.049276
+STD of distance to exemplar: 1.260331
+Max distance to exemplar: 3.706670
+
+Preference: -100.000000. Number of clusters: 5.
+Silhouette score: 0.448846
+Mean distance to exemplar: 1.270127
+STD of distance to exemplar: 1.295140
+Max distance to exemplar: 3.706670
+
