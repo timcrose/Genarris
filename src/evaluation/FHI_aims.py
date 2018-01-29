@@ -241,7 +241,7 @@ def _submit_job(struct, struct_path, binary, control_path, tmp_folder,
     else:
         name = misc.get_random_index()
 
-    calc_path = os.path.join(tmp_folder,name)
+    calc_path = os.path.abspath(os.path.join(tmp_folder,name))
     print "This is calc_path: " + calc_path
     misc.safe_make_dir(calc_path)
     
