@@ -2,9 +2,8 @@ from utilities import misc, write_log
 from core.structure import Structure
 import os, multiprocessing, shutil, time
 from utilities.misc import output_structure, list_subdirectories, \
-       retrieve_float
-from write_log import print_time_log
-
+       retrieve_float, input_structure, input_pool, output_pool
+from utilities.write_log import print_time_log
 
 class BatchSingleStructureOperation(object):
     def __init__(self, operation, name="SingleStructureOperation",
@@ -129,28 +128,14 @@ class BatchSingleStructureOperation(object):
 
     def _load_structure(self, path):
         struct = Structure()
-        try:
-            struct.build_geo_from_json_file(path)
-        except:
-            try:
-                struct.build_geo_from_atom_file(path)
-                struct_id = os.path.basename(path)[:-self._structure_suffix]
-                struct.struct_id = struct_id
-            except:
-                print_time_log(
-                        "WARNING: Failed to load structure file: "
-                        + path)
-                return
-                
-        self._structure_list.append(struct)
+        self._structure_list.append(
+                input_structure(path, self._structure_suffix))
 
     def _preload_structure_list(self):
-        # TODO: Merge with general load structure directory util
-        for path in misc.list_directory_file(
+        self._structure_list = input_pool(
                 self._structure_dir,
-                depth=self._structure_dir_depth,
-                suffix=self._structure_suffix):
-            self._load_structure(path)
+                self._structure_dir_depth,
+                self._structure_suffix)
 
     def _add_structure_to_queue(self):
         path = misc.get_and_lock_file(
@@ -175,7 +160,7 @@ def load_batch_single_structure_operation_keywords(inst, section):
     kwargs["processes_limit"] = inst.get_processes_limit(section)
     return kwargs
 
-def _run_operation_with_arguments(op_args):
+def _run_operations_with_arguments(op_args):
     (operation_list, struct, args_list, kwargs_list,
             output_dir, output_format) = op_args
     if len(operation_list) != len(args_list):
@@ -364,6 +349,7 @@ class BatchSingleStrucutreExternalEvaluation(object):
         self._structure_list.append(struct)
 
     def _load_structure_list(self):
+
         # TODO: Merge with general load structure directory util
         for path in misc.list_directory_file(
                 self._structure_dir,
@@ -452,3 +438,104 @@ class BatchSingleStrucutreExternalEvaluation(object):
             f = open(os.path.join(subdir, "_evaluation_complete"), "w")
             f.write("Evaluation complete at " + str(time.time()))
             f.close()
+
+def load_pool_operation_keywords(inst, section):
+    kwargs = inst.get_kv_single_section(
+            section, ["structure_dir",
+                "structure_suffix", "output_dir", "output_format"],
+            eval=False)
+    kwargs.update(inst.get_kv_single_section(section,
+        ["structure_dir_depth"], eval=True))
+    kwargs["processes_limit"] = inst.get_processes_limit(section)
+    return kwargs
+
+class PoolOperation(object):
+    def __init__(self,
+            structure_list=None, structure_dir=None,
+            structure_dir_depth=0, structure_suffix="",
+            output_dir=None, output_format="json", enable_subdir_output=False,
+            processes_limit=1,
+            ):
+        self._structure_list = []
+        self.set_structure_list(structure_list, append=True)
+        self.set_structure_list_by_dir(structure_dir,
+                structure_dir_depth, structure_suffix)
+
+        self._output_dir = output_dir
+        self._output_format = output_format
+        self._enable_subdir_output = enable_subdir_output
+        self._processes_limit = processes_limit
+        self._processes_pool = multiprocessing.Pool(self._processes_limit)
+        self._results = []
+
+    def set_structure_list(self, structure_list, append=False):
+        if structure_list is None: return
+
+        if not append:
+            self._structure_list = []
+        self._structure_list += structure_list
+
+    def set_structure_list_by_dir(self, structure_dir,
+            structure_dir_depth, structure_suffix, append=False):
+        if structure_dir is None:
+            return
+        if not append:
+            self._structure_list = []
+        self._structure_list += input_pool(
+                structure_dir, structure_dir_depth, structure_suffix)
+
+    def set_output_dir(self, output_dir):
+        self._output_dir = output_dir
+
+    def run_operation(self, operation, name="PoolOperation", args=(),
+            kwargs={}, enable_output=True):
+        print_time_log("Running %s with kwargs=%s"
+                % (name, str(kwargs)))
+
+        output_dir = self._get_output_dir(name, enable_output)
+
+        result = _run_pool_operation_with_arguments(
+                (operation, self._structure_list, args, kwargs,
+                    output_dir, self._output_format))
+
+        print_time_log("Completed: %s with kwargs=%s"
+                % (name, str(kwargs)))
+        return result
+
+    def run_operation_async(self, operation, name="PoolOperation",
+            args=(), kwargs={}, enable_output=True):
+        print_time_log("Running %s async with kwargs=%s"
+                % (name, str(kwargs)))
+
+        output_dir = self._get_output_dir(name, enable_output)
+
+        self._results.append(
+                self._processes_pool.apply_async(
+                    _run_pool_operation_with_arguments,
+                    (operation, self._structure_list, args, kwargs,
+                        output_dir, self._output_format)))
+
+    def wait_for_all(self):
+        self._processes_pool.join()
+        return [result.get() for result in self._results]
+
+    def _get_output_dir(self, name, enable_output=True):
+        if enable_output and not self._output_dir is None:
+            if self._enable_subdir_output:
+                output_dir = os.path.join(self._output_dir, name)
+            else:
+                output_dir = self._output_dir
+            print_time_log("Output directory set as: " + output_dir)
+        else:
+            output_dir = None
+        return output_dir
+
+def _run_pool_operation_with_arguments(op_args):
+    operation, pool, args, kwargs, output_dir, output_format = op_args
+    result = operation(pool, *args, **kwargs)
+    if type(result) is tuple:
+        output_pool(result[0], output_dir, output_format)
+    else:
+        output_pool(result, output_dir, output_format)
+    return result
+
