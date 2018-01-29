@@ -4,6 +4,7 @@ Created by Patrick Kilecdi on 12/31/2016
 Conducts Affinity Propagation for a given collection
 '''
 
+import os
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
@@ -12,7 +13,6 @@ from utilities.misc import output_pool
 from utilities.write_log import print_time_log, write_log
 from evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
-
 
 def affinity_propagation_distance_matrix(inst):
     '''
@@ -24,51 +24,13 @@ def affinity_propagation_distance_matrix(inst):
 
 def affinity_propagation_analyze_preference(inst):
     '''
-    Analyze the effect of affinity preference
+    Run AP with a list of preferences
     '''
     sname = "affinity_propagation_analyze_preference"
-    dist_mat_path = inst.get(sname,"dist_mat_input_file")
-    affinity_type = inst.get_with_default(sname,"affinity_type",["exponential",1],eval=True)
-    damping = inst.get_with_default(sname,"damping",0.5,eval=True)
-    convergence_iter = inst.get_with_default(sname,"convergence_iter",15,eval=True)
-    max_iter = inst.get_with_default(sname,"max_iter",200,eval=True)
-    pref_list = inst.get_eval(sname,"preference_list")
-    stored_property_key = inst.get_with_default(sname,"stored_property_key","AP_cluster")
-    cluster_output_file = inst.get_with_default(sname,"cluster_output_file",
-                                                      "./AP_analyze_preference.info")
-    
-    coll = misc.load_collection_with_inst(inst,sname)
-    coll.sort(key=lambda struct: struct.struct_id)
-
-    f = open(dist_mat_path,"r")
-    lines = f.read().split("\n")
-    while lines[-1]=="":
-        lines.pop()
-    dist_mat = [[float(x) for x in y.split()] for y in lines]
-    f.close()
-
-
-    for pref in pref_list:
-        preference = _generate_preference_array(coll,pref)
-        f = open(cluster_output_file,"a")
-    
-        coll, centers = AP_distance_matrix(coll, dist_mat, affinity_type=affinity_type,
-                                           damping=damping, convergence_iter=convergence_iter,
-                                           max_iter=max_iter, preference=preference,
-                                           stored_property_key=stored_property_key)
-
-        dists = [dist_mat[i][coll.index(centers[coll[i].properties[stored_property_key]])]
-                    for i in range(len(coll))]
-        
-        labels = np.array([struct.properties[stored_property_key] for struct in coll])
-  
-        try:
-            sil_score = silhouette_score(np.array(dist_mat),labels,metric="precomputed") 
-        except:
-            sil_score = 1.0
-        f.write(" ".join(map(str,pref))+" clusters: %i; mean distance: %f std distance: %f; max distance: %f; silhouette score: %f\n" 
-                % (len(centers), np.mean(dists), np.std(dists), max(dists), sil_score))
-        f.close()
+    preference_list = inst.get_eval(sname,"preference_list")
+    verbose_output = inst.get_boolean(sname, "verbose_output")
+    executor = get_affinity_propagation_executor(inst, sname)
+    executor.run_batch(preference_list, verbose_output=verbose_output)
 
 def affinity_propagation_fixed_clusters(inst):
     '''
@@ -554,8 +516,17 @@ class AffinityPropagationExecutor(PoolOperation):
         result = self._run(self._preference, enable_output=True)
         self._print_result_verbose(result)
 
-    def run_batch(self, preference_list):
-        pass
+    def run_batch(self, preference_list, verbose_output=False):
+        enable_output = False
+        if not self._output_dir is None:
+            self._enable_subdir_output = True
+            enable_output = True
+
+        for preference in preference_list:
+            self._run_async(preference, enable_output)
+
+        results = self.wait_for_all()
+        self._print_results(results, verbose_output)
 
     def run_fixed_num_of_clusters(self, num_of_clusters):
         pass
@@ -576,8 +547,18 @@ class AffinityPropagationExecutor(PoolOperation):
                 kwargs=self._get_kwargs(preference, exemplars_output_dir),
                 enable_output=enable_output)
 
-    def _run_async(self):
-        pass
+    def _run_async(self, preference, enable_output=True):
+        name = "AffinityPropagationWithPreference" + str(preference)
+
+        exemplars_output_dir = self._get_exemplars_output_dir(
+                name, enable_output)
+
+        return self.run_operation_async(
+                _affinity_propagation,
+                name=name,
+                args=self._get_args(),
+                kwargs=self._get_kwargs(preference, exemplars_output_dir),
+                enable_output=enable_output)
   
     def _get_args(self):
         return (self._distance_matrix, self._affinity_matrix)
@@ -602,6 +583,14 @@ class AffinityPropagationExecutor(PoolOperation):
         else:
             output_dir = None
         return output_dir
+
+    def _print_results(self, results, verbose=False):
+        results.sort(key=lambda result: result[1]["preference"])
+        for result in results:
+            if verbose:
+                self._print_result_verbose(result)
+            else:
+                self._print_result_summary(result)
 
     def _print_result_verbose(self, result):
         if self._output_file is None: return

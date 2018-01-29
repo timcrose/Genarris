@@ -495,8 +495,8 @@ class PoolOperation(object):
         output_dir = self._get_output_dir(name, enable_output)
 
         result = _run_pool_operation_with_arguments(
-                (operation, self._structure_list, args, kwargs,
-                    output_dir, self._output_format))
+                operation, self._structure_list, args, kwargs,
+                    output_dir, self._output_format)
 
         print_time_log("Completed: %s with kwargs=%s"
                 % (name, str(kwargs)))
@@ -516,8 +516,12 @@ class PoolOperation(object):
                         output_dir, self._output_format)))
 
     def wait_for_all(self):
+        self._processes_pool.close()
         self._processes_pool.join()
-        return [result.get() for result in self._results]
+        results = [result.get() for result in self._results]
+        # Reset multiprocessing pools
+        self._processes_pool = multiprocessing.Pool(self._processes_limit)
+        return results
 
     def _get_output_dir(self, name, enable_output=True):
         if enable_output and not self._output_dir is None:
@@ -530,8 +534,11 @@ class PoolOperation(object):
             output_dir = None
         return output_dir
 
-def _run_pool_operation_with_arguments(op_args):
-    operation, pool, args, kwargs, output_dir, output_format = op_args
+# def _run_pool_operation_with_argument_tuple(op_args):
+#    _run_pool_operation_with_argument_tuple(*op_args)
+
+def _run_pool_operation_with_arguments(operation, pool, args,
+        kwargs, output_dir, output_format):
     result = operation(pool, *args, **kwargs)
     if type(result) is tuple:
         output_pool(result[0], output_dir, output_format)
