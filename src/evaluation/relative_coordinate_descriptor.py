@@ -172,13 +172,14 @@ def rcd_difference_calculation(inst):
     Main module of rcd difference
     '''
     sname = "rcd_difference_calculation"
-    key = inst.get_with_default(sname,"stored_property_key","RCD_vector")
+    key = inst.get_with_default(sname,"stored_property_key","rcd")
     ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
     pairs = inst.get_with_default(sname,"select_pairs",4,eval=True)
     dis_en = inst.get_boolean(sname,"disable_enantiomer")
     diff_list_output = inst.get_with_default(sname,"diff_list_output",
                                              "./rcd_difference_list.info")
-    diff_matrix_output = inst.get_with_default(sname,"diff_matrix_output","")
+    diff_matrix_output = inst.get_with_default(
+            sname, "diff_matrix_output", "./rcd_difference_matrix.info")
     processes = inst.get_processes_limit(sname)
 
     coll = misc.load_collection_with_inst(inst,sname)
@@ -395,8 +396,8 @@ def calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4,
                       sign flip under mirror reflection  
     '''
 
-    v1 = copy.deepcopy(v1)
-    v2 = copy.deepcopy(v2)
+    v1 = deepcopy(v1)
+    v2 = deepcopy(v2)
     result = _calculate_rcd_difference_2(v1, v2, ratio=ratio,
                                                 select_pairs=select_pairs)
     if not allow_enantiomer:
