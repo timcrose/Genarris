@@ -19,7 +19,7 @@ def affinity_propagation_distance_matrix(inst):
     Main AP distance matrix module
     '''
     sname = "affinity_propagation_distance_matrix"
-    preference = inst.get_eval(sname, "preference")
+    preference = inst.get_or_none(sname, "preference", eval=True)
     executor = get_affinity_propagation_executor(inst, sname)
     executor.run_single(preference)
 
