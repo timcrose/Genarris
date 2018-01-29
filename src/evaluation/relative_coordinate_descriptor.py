@@ -320,7 +320,6 @@ def calculate_collection_rcd_difference(coll, key="RCD_vector",
         else:
             result += [_calculate_rcd_difference_multiprocess_wrapper(args) 
                                                     for args in arglist]
-        print "Here is i: ", i
 
     diff_mat = [[0]*len(coll) for x in range(len(coll))]
     for k in result: 
