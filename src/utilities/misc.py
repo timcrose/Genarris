@@ -2,7 +2,7 @@
 Miscellaneous utilities functions
 '''
 
-from core import structure
+from core.structure import Structure
 from utilities import write_log
 from external_libs.filelock import FileLock
 from external_libs import matrix_op
@@ -97,7 +97,7 @@ def load_structure_with_inst(inst,section,option="structure_format",structure_pa
     f = open(structure_path,"r")
     st = f.read()
     f.close()
-    struct = structure.Structure()
+    struct = Structure()
     if not inst.has_option(section,option):
         try:
             struct.loads(st)
@@ -212,9 +212,33 @@ def dump_structure(struct, output_folder, output_formats, output_suffixs=None):
             f.write(struct.dumps())
         f.close()
 
+def input_structure(path, structure_suffix=""):
+    struct = Structure()
+    try:
+        struct.build_geo_from_json_file(path)
+    except:
+        try:
+            struct.build_geo_from_atom_file(path)
+            struct_id = os.path.basename(path)[:len(structure_suffix)]
+            struct.struct_id = struct_id
+        except:
+            print_time_error("Failed to load structure file: " + path)
+            return
+    return struct
+
+def input_pool(structure_dir, structure_dir_depth, structure_suffix=""):
+    struct_list = []
+    for path in list_directory_file(structure_dir, suffix=structure_suffix,
+            depth=structure_dir_depth):
+        struct = input_structure(path, structure_suffix)
+        if not struct is None:
+            struct_list.append(struct)
+    return struct_list
+
 def output_structure(struct, output_dir, output_format):
     if output_dir == None:
         return
+    safe_make_dir(output_dir)
     if output_format == "json" or output_format == "both":
         path = os.path.join(output_dir, struct.struct_id + ".json")
         f = open(path, "w")
@@ -225,6 +249,11 @@ def output_structure(struct, output_dir, output_format):
         f = open(path, "w")
         f.write(struct.get_geometry_atom_format())
         f.close()
+
+def output_pool(pool, output_dir, output_format):
+    for struct in pool:
+        if type(struct) is Structure:
+            output_structure(struct, output_dir, output_format)
 
 def safe_copy_folder(src,dst):
     '''
