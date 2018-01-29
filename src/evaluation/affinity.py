@@ -56,98 +56,22 @@ def affinity_propagation_fixed_clusters(inst):
 
 def affinity_propagation_fixed_silhouette(inst):
     '''
-    AP that explores the setting of preference in order to generate desired number of clusters
+    Run AP on the given preference list and return the one within
+    the tolerance of the target_silhouette
     '''
-    sname = "affinity_propagation_fixed_clusters"
-    dist_mat_path = inst.get(sname,"dist_mat_input_file")
-    desire_sil = inst.get_eval(sname,"desired_silhouette")
-    pref_range = inst.get_eval(sname,"preference_range")
-    pref_iter = inst.get_with_default(sname,"pref_test_max_iters",10,eval=True)
-    affinity_type = inst.get_with_default(sname,"affinity_type",["exponential",1],eval=True)
-    damping = inst.get_with_default(sname,"damping",0.5,eval=True)
-    convergence_iter = inst.get_with_default(sname,"convergence_iter",15,eval=True)
-    max_iter = inst.get_with_default(sname,"max_iter",200,eval=True)
-#    preference = inst.get_with_default(sname,"preference",None,eval=True)
-    stored_property_key = inst.get_with_default(sname,"stored_property_key","AP_cluster")
-    cluster_output_file = inst.get_with_default(sname,"cluster_output_file","./AP_cluster.info")
-    
-    coll = misc.load_collection_with_inst(inst,sname)
-    coll.sort(key=lambda struct: struct.struct_id)
-    
-    f = open(dist_mat_path,"r")
-    lines = f.read().split("\n")
-    while lines[-1]=="":
-        lines.pop()
-    dist_mat = [[float(x) for x in y.split()] for y in lines]
+    sname = "affinity_propagation_fixed_silhouette"
+    target_silhouette = inst.get_eval(sname, "target_silhouette")
+    preference_list = inst.get_eval(sname, "preference_list")
+    silhouette_tolerance = inst.get_with_default(
+            sname, "silhouette_tolerance", 0.01, eval=True)
+    output_without_success = inst.get_boolean(
+            sname, "output_without_success")
 
-    pref_l, pref_u = pref_range
-
-    iter_n = 0
-    while pref_iter > iter_n: #Iterate to search for the good preference that gives the amount of clusters
-        pref = (pref_l + pref_u) / 2.0
-        preference = _generate_preference_array(coll,["constant",pref])
-    
-        coll, centers = AP_distance_matrix(coll, dist_mat, affinity_type=affinity_type,
-                                           damping=damping, convergence_iter=convergence_iter,
-                                           max_iter=max_iter, preference=preference,
-                                           stored_property_key=stored_property_key)
-
-        labels = np.array([struct.properties[stored_property_key] for struct in coll])
-     
-        sil_score = silhouette_score(np.array(dist_mat),labels,metric="precomputed")
-        f = open(cluster_output_file,"a")
-
-        if sil_score < len(coll):
-             f.write("Iteration %i; preference used: %f; clusters generated %i; silhouette score: %f\n" 
-                    % (iter_n, pref, len(centers), 
-                       silhouette_score(np.array(dist_mat),labels,metric="precomputed")))
-        else:
-             f.write("Iteration %i; preference used: %f; clusters generated %i\n" 
-                    % (iter_n, pref, len(centers)))
-
-        f.close()
-           
-        iter_n += 1
-
-
-        if len(centers) == n_clusters:
-            break
-
-        if len(centers) > n_clusters:
-            pref_u = pref
-        elif len(centers) < n_clusters:
-            pref_l = pref   
-
-
-    dists = [dist_mat[i][coll.index(centers[coll[i].properties[stored_property_key]])]
-                for i in range(len(coll))]
-
-    f = open(cluster_output_file,"a")
-  
-    f.write("\nFinal iteration clustering result:\n")
-    f.write("Number of clusters generated: %i\n" % len(centers))
-    f.write("Average distance to centers: %f\n" % np.mean(dists))
-    f.write("STD of distance to centers: %f\n" % np.std(dists))
-    f.write("List of cluster centers:\n" + 
-            "\n".join(map(str,[struct.struct_id for struct in centers])) + "\n")
-    f.write("Assigned cluster labels:\n")
-    f.write("\n".join(map(str,[struct.struct_id + " " + 
-                               str(struct.properties[stored_property_key])+" "+
-                               str(dist_mat[coll.index(struct)]
-                               [coll.index(centers[struct.properties[stored_property_key]])])
-                               for struct in coll])))
-    f.write("\n")
-    f.close()
-
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,coll)
-
-    if inst.has_option(sname,"exemplar_output_folder"):
-        op = inst.get(sname,"output_folder")
-        inst.set(sname,"output_folder",inst.get(sname,"exemplar_output_folder"))
-        misc.dump_collection_with_inst(inst,sname,centers)
-        inst.set(sname,"output_folder",op) 
-
+    executor = get_affinity_propagation_executor(inst, sname)
+    executor.run_with_fixed_silhouette(
+            target_silhouette, preference_list,
+            silhouette_tolerance=silhouette_tolerance,
+            output_without_success=output_without_success)
 
 
 def AP_distance_matrix(coll, dist_mat, affinity_type=["exponential",1],
@@ -397,6 +321,8 @@ class AffinityPropagationExecutor(PoolOperation):
         if num_of_clusters > len(self._structure_list):
             raise ValueError("Cannot cluster pool into more clusters "
                     "than number of structures in it")
+        if max_sampled_preferences < 1:
+            raise ValueError("max_sampled_preferences must be >= 1")
 
         print_time_log("Running Affinity Propagation with fixed number "
                 "of clusters " + str(num_of_clusters))
@@ -441,17 +367,46 @@ class AffinityPropagationExecutor(PoolOperation):
                         "fixed clustering failed.")
 
         if success or output_with_success:
-            if not self._output_file is None:
-                write_log(self._output_file, "Outputted iteration info:\n")
-            self._print_result_verbose(closest_result)
-            output_pool(closest_result[0],
-                    self._output_dir, self._output_format)
-            output_pool(closest_result[1]["exemplars"],
-                    self._exemplars_output_dir,
-                    self._exemplars_output_format)
+            self._output_closest_result(closest_result)
 
-    def run_with_target_silhouette_score(self, target_silhouette_score):
-        pass
+    def run_with_fixed_silhouette(self, target_silhouette,
+            preference_list, silhouette_tolerance=0.01,
+            output_without_success=False):
+        if len(preference_list) == 0:
+            raise ValueError("Cannot run fixed silhouette with empty "
+                    "preference_list")
+
+        print_time_log("Running Affinity Propagation to reach target "
+                "silhouette: " + str(target_silhouette))
+        self._enable_subdir_output = False
+        
+        for preference in preference_list:
+            self._run_async(preference, enable_output=False)
+
+        results = self.wait_for_all()
+        results.sort(key=lambda x: x[1]["preference"])
+        closest_result = None
+        for result in results:
+            closest_result = self._closer(
+                    closest_result, result, "silhouette_score",
+                    target_silhouette)
+            self._print_result_summary(result)
+
+        if abs(closest_result[1]["silhouette_score"] - target_silhouette) \
+                <= silhouette_tolerance:
+            print_time_log("Affinity Propagation with fixed silhouette score "
+                    "succeeded!")
+            success = True
+        else:
+            print_time_log("Failed to cluster to silhouette score %f "
+                    "with tolerance %f"
+                    % (target_silhouette, silhouette_tolerance))
+            if output_without_success:
+                print_time_warning("Outputing clustered collection although "
+                        "fixed clustering failed.")
+
+        if success or output_with_success:
+            self._output_closest_result(closest_result)
 
     def _run(self, preference, enable_output=True):
         name = "AffinityPropagationWithPreference" + str(preference)
@@ -554,6 +509,17 @@ class AffinityPropagationExecutor(PoolOperation):
             return result_1
         else:
             return result_2
+
+    def _output_closest_result(self, closest_result):
+        if not self._output_file is None:
+            write_log(self._output_file, "Outputted iteration info:\n")
+        self._print_result_verbose(closest_result)
+        output_pool(closest_result[0],
+                self._output_dir, self._output_format)
+        output_pool(closest_result[1]["exemplars"],
+                self._exemplars_output_dir,
+                self._exemplars_output_format)
+
 
 def _affinity_propagation(coll, distance_matrix, affinity_matrix,
         damping=0.5, convergence_iter=15, max_iter=20, preference=None,

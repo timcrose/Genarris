@@ -106,6 +106,10 @@ class Genarris():
         from evaluation import affinity
         affinity.affinity_propagation_fixed_clusters(self.inst)
 
+    def Affinity_Propagation_Fixed_Silhouette(self):
+        from evaluation import affinity
+        affinity.affinity_propagation_fixed_silhouette(self.inst)
+
     def Cluster_Based_Selection(self):
         from evaluation import selection
         selection.cluster_based_selection(self.inst)
