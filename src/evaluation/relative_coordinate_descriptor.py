@@ -174,7 +174,7 @@ def rcd_difference_calculation(inst):
     sname = "rcd_difference_calculation"
     key = inst.get_with_default(sname,"stored_property_key","rcd")
     ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
-    pairs = inst.get_with_default(sname,"select_pairs",4,eval=True)
+    pairs = inst.get_with_default(sname,"select_pairs",8,eval=True)
     dis_en = inst.get_boolean(sname,"disable_enantiomer")
     diff_list_output = inst.get_with_default(sname,"diff_list_output",
                                              "./rcd_difference_list.info")
