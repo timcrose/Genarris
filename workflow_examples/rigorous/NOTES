@@ -1,0 +1,6 @@
+Steps:
+1. Run generation.exe. (number of structures set low for demo)
+2. Run evaluation_and_cluster.exe. Check fixed silhouette clustering succeeded. Adjust preference list / silhouette tolerance if needed
+3. Update number of structures selected in selection.conf to the number of clusters generated with the fixed silhouette. Run selection.exe.
+4. Repeat 2-3 until pool < 5% of original size
+5. Select desired numbers of structures
