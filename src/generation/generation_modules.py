@@ -58,7 +58,7 @@ def _set_up_index_and_attempt_tracking_files(inst, sname):
 
     index_tracker = os.path.join(tmp_dir, "_structure_generation_index")
     f = open(index_tracker, "w")
-    f.write(str(number_of_structures))
+    f.write(str(number_of_structures-1))
     f.close()
     inst.set(sname, "index_tracking_file", index_tracker)
 
@@ -66,7 +66,7 @@ def _set_up_index_and_attempt_tracking_files(inst, sname):
         return
     attempt_tracker = os.path.join(tmp_dir, "_structure_generation_attempt")
     f = open(os.path.join(tmp_dir, "_structure_generation_attempt"), "w")
-    f.write(str(number_of_attempts))
+    f.write(str(number_of_attempts-1))
     f.close()
     inst.set(sname, "attempt_tracking_file", attempt_tracker)
 
