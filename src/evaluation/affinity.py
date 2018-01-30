@@ -244,7 +244,7 @@ class AffinityPropagationExecutor(PoolOperation):
                 print_time_warning("Outputing clustered collection although "
                         "fixed clustering failed.")
 
-        if success or output_with_success:
+        if success or output_without_success:
             self._output_closest_result(closest_result)
 
     def run_with_fixed_silhouette(self, target_silhouette,
@@ -270,6 +270,7 @@ class AffinityPropagationExecutor(PoolOperation):
                     target_silhouette)
             self._print_result_summary(result)
 
+        success = False
         if abs(closest_result[1]["silhouette_score"] - target_silhouette) \
                 <= silhouette_tolerance:
             print_time_log("Affinity Propagation with fixed silhouette score "
@@ -283,7 +284,7 @@ class AffinityPropagationExecutor(PoolOperation):
                 print_time_warning("Outputing clustered collection although "
                         "fixed clustering failed.")
 
-        if success or output_with_success:
+        if success or output_without_success:
             self._output_closest_result(closest_result)
 
     def _run(self, preference, enable_output=True):
