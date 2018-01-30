@@ -16,7 +16,7 @@ def cluster_based_selection(inst):
     select_max = inst.get_boolean(sname, "select_max")
     preference_property_name = inst.get_or_none(
             sname, "preference_property_name")
-    cluster_property_name = inst.get_or_none(sname, "cluster_property_key")
+    cluster_property_name = inst.get_or_none(sname, "cluster_property_name")
 
     kwargs = load_pool_operation_keywords(inst, sname)
     kwargs["processes_limit"] = 1
