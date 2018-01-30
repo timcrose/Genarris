@@ -361,11 +361,9 @@ def calculate_collection_rcd_difference_2(coll, key="RCD_vector",
     Calculates the rcd difference between each pairs of structures
     Outputs: a tuple of difference list and difference matrix
     '''
-    print "This is before arglist"
     arglist = [(i, j, coll[i].properties[key], coll[j].properties[key],
                 ratio, select_pairs, allow_enantiomer)
                 for i in range(len(coll)) for j in range(i,len(coll))]
-    print "This is after arglist"
 
     if processes > 1:
         p = multiprocessing.Pool(processes)
