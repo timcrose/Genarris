@@ -34,7 +34,8 @@ def cluster_based_selection(inst):
 def _cluster_based_selection(coll, number_selected, select_max,
         preference_property_name=None, cluster_property_name=None):
     if not cluster_property_name is None:
-        labels = [struct.properties[cluster_property] for struct in coll]
+        labels = [struct.properties[cluster_property_name]
+                  for struct in coll]
     else:
         labels = [0 for struct in coll]
 
