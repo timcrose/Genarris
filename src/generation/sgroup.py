@@ -49,7 +49,7 @@ class SpaceGroupManager():
         self._space_group = None
         self._space_group_selected_counter = {}
         self._space_group_user_counter = {}
-        for sg in self._space_groups_allowed:
+        for sg in range(1, MAX_AVAILABLE_SPACE_GROUP + 1):
             self._space_group_selected_counter[sg] = 0
             self._space_group_user_counter[sg] = 0
 
