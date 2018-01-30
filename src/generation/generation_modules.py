@@ -51,7 +51,8 @@ def _structure_generation_batch(inst):
 
 def _set_up_index_and_attempt_tracking_files(inst, sname):
     number_of_structures = inst.get_eval(sname, "number_of_structures")
-    number_of_attempts = inst.get_or_none(sname, "number_of_attempts", None)
+    number_of_attempts = inst.get_or_none(
+            sname, "number_of_attempts", eval=True)
 
     tmp_dir = inst.get_tmp_dir(sname)
     safe_make_dir(tmp_dir)
