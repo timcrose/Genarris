@@ -51,6 +51,29 @@ def _specific_radius_calculation(struct, napm, property_name="sr"):
             structure_handling.specific_radius_check(struct, nmpc)
     return struct
 
+def random_value_assignment(inst):
+    '''
+    Randomly assigns a value to a structure and stores it within 
+    the property list
+    '''
+    sname = "random_value_assignment"
+    property_name = inst.get(sname, "property_name")
+    value_range = inst.get_with_default(
+            sname, "value_range", [0, 1], eval=True)
+    kwargs = load_batch_single_structure_operation_keywords(
+            inst, sname)
+    op = BatchSingleStructureOperation(
+            _random_value_assignment,
+            name=sname, args=(property_name,),
+            kwargs={"value_range" : value_range},
+            **kwargs)
+
+    return op.run()
+
+def _random_value_assignment(struct, property_name, value_range=[0, 1]):
+    struct.set_property(property_name, random.uniform(*value_range))
+    return struct
+
 def pool_single_structure_analysis(inst):
     '''
     A module that conducts batch operation on pools
