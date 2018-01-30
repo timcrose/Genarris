@@ -4,36 +4,48 @@ Created by Patrick Kilecdi on 01/24/2017
 Module for selection based on clusters
 
 '''
-from utilities import misc
+from evaluation.evaluation_util import load_pool_operation_keywords, \
+        PoolOperation
 def cluster_based_selection(inst):
     '''
     Main module for selection
     '''
     sname = "cluster_based_selection"
 
-    preference_property = inst.get(sname, "preference_property_key")
-    cluster_property = inst.get_with_default(
-            sname, "cluster_property_key", "None")
-    n_selected = inst.get_eval(sname, "number_selected")
+    number_selected = inst.get_eval(sname, "number_selected")
     select_max = inst.get_boolean(sname, "select_max")
-     
-    coll = misc.load_collection_with_inst(inst, sname)
-    if cluster_property != "None":
+    preference_property_name = inst.get_or_none(
+            sname, "preference_property_name")
+    cluster_property_name = inst.get_or_none(sname, "cluster_property_key")
+
+    kwargs = load_pool_operation_keywords(inst, sname)
+    kwargs["processes_limit"] = 1
+    kwargs["enable_subdir_output"] = False
+
+    executor = PoolOperation(**kwargs)
+
+    return executor.run_operation(_cluster_based_selection,
+            name="ClusterBasedSelection",
+            args=(number_selected, select_max),
+            kwargs={"preference_property_name": preference_property_name,
+                    "cluster_property_name": cluster_property_name},
+            enable_output=True)
+
+def _cluster_based_selection(coll, number_selected, select_max,
+        preference_property_name=None, cluster_property_name=None):
+    if not cluster_property_name is None:
         labels = [struct.properties[cluster_property] for struct in coll]
     else:
-        # Assign all structures to the same cluster
         labels = [0 for struct in coll]
 
-    preferences = [struct.properties[preference_property] for struct in coll]
+    if not preference_property_name is None:
+        preferences = [struct.properties[preference_property_name]
+                       for struct in coll]
+    else:
+        preferences = [random.random() for struct in coll]
 
-    selected = select_by_clusters(coll, labels, preferences,
-                                 n_selected, select_max)
-
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst, sname, selected)
-
-    return selected
-
+    return select_by_clusters(coll, labels, preferences, number_selected,
+            select_max=select_max)
 
 def select_by_clusters(coll, labels, preferences, n_selected,
                        select_max = False):
