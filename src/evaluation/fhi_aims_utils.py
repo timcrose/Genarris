@@ -51,7 +51,7 @@ class FhiAimsExtractor(object):
             fail_if_no_geometry_next_step=False,
             check_execution_complete=False,
             strict_success=False,
-            output_dir=None, output_format="json",
+            output_dir=None, output_format="both",
             clean_up=False):
         '''
         aims_output_file: File to look for in each execution folder as 
