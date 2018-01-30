@@ -174,6 +174,10 @@ class Genarris():
         from evaluation import pool_analysis
         pool_analysis.pool_single_structure_analysis(self.inst)
 
+    def Random_Value_Assignment(self):
+        from evaluation.pool_analysis import random_value_assignment
+        random_value_assignment(self.inst)
+
     def RDF_Descriptor_By_Bin(self):
         from evaluation import radial_distribution_function
         radial_distribution_function.rdf_descriptor_by_bin(self.inst)
