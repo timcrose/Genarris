@@ -11,9 +11,18 @@ def k_mean_clustering(inst):
     '''
     Conducts simple k-mean clustering and post-clustering selection
     '''
+    # TODO: Refact to use the util class, PoolOperation
     sname = "k_mean_clustering"
     info_level = inst.get_info_level(procedure="K_Mean_Clustering")
-	
+    structure_dir = inst.get(sname, "structure_dir")
+    structure_dir_depth = inst.get_with_default(
+            sname, "structure_dir_depth", 0, eval=True)
+    structure_suffix = inst.get_with_default(sname, "structure_suffix", "")
+    coll = misc.input_pool(structure_dir,
+            structure_dir_depth=structure_dir_depth,
+            structure_suffix=structure_suffix)
+
+    
     coll = misc.load_collection_with_inst(inst,sname)
     n_clusters = inst.get_eval(sname,"n_clusters")
     #The number of clusters to form as well as the number of centroids to generate.
@@ -36,8 +45,8 @@ def k_mean_clustering(inst):
     #Relative tolerance with regards to inertia to declare convergence
 
     n_jobs = inst.get_processes_limit(sname)
-    #Relative tolerance with regards to inertia to declare convergence
-        
+    # Number of parallel instances to run K-means
+
     vector_property_name = inst.get(sname,"vector_property_name")
     #Property name of the vector used for k-mean
 
@@ -48,12 +57,10 @@ def k_mean_clustering(inst):
     distance_property_name = inst.get_with_default(sname,"distance_property_name",None)
     #The key under which the distance from centroid will be stored
 
-    output_info_file = inst.get_with_default(sname,"output_info_file",None)
+    output_info_file = inst.get_with_default(sname,"output_info_file", None)
 
-    if inst.has_option(sname,"output_folder"): #Only outputs json
-        inst.set(sname,"output_format","['json']")
-    if inst.has_option(sname,"output_suffix"): #Need to put it into the list format
-        inst.set(sname,"output_suffix","['"+inst.get(sname,"output_suffix")+"']")
+    output_dir = inst.get_or_none(sname, "output_dir")
+    output_format = inst.get_with_default(sname, "output_format", "both")
 
     if info_level >= 1:
         print("K-Mean clustering called to cluster %i structures into %i groups" 
@@ -79,13 +86,13 @@ def k_mean_clustering(inst):
     if info_level >= 1:
         print("K-Mean clustering completed")
 
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,coll)
-	
-	pcs_enabled = inst.get_boolean(sname,"pcs_enabled")
-	if not pcs_enabled:
-		return coll
-	
+    if not output_dir is None:
+        misc.output_pool(coll, output_dir, output_format)
+    
+    pcs_enabled = inst.get_boolean(sname,"pcs_enabled")
+    if not pcs_enabled:
+        return coll
+    
     ################## Begins Post-Clustering Selection ##################
     pcs_method = inst.get(sname,"pcs_method")
     n = inst.get_eval(sname,"pcs_number")
@@ -94,12 +101,11 @@ def k_mean_clustering(inst):
                                          cluster_property_name, pcs_method,
                                          reserved_variable=pcs_reserved_variable)
 
-    if inst.has_option(sname,"pcs_output_folder"): #Rig the optiosn to use the function in misc
-        inst.set(sname,"output_folder",inst.get(sname,"pcs_output_folder"))
-        inst.set(sname,"output_format","['json']")
-	if inst.has_option(sname,"pcs_output_suffix"): #Need to put it into the list forma
-            inst.set(sname,"output_suffix","['"+inst.get(sname,"pcs_output_suffix")+"']")
-        misc.dump_collection_with_inst(inst,sname,selected)
+    pcs_output_dir = inst.get_or_none(sname, "pcs_output_dir")
+    pcs_output_format = inst.get_with_default(
+            sname, "pcs_output_format", "both")
+    if not pcs_output_dir is None:
+        misc.output_pool(selected, pcs_output_dir, pcs_output_format)
 
     if inst.has_option(sname,"pcs_output_info_file"):
         outs = "Diversity information for selected pool from directory %s\n" \
@@ -117,8 +123,8 @@ def k_mean_clustering(inst):
             property_list = [struct.properties[pcs_reserved_variable] for struct in selected]
             outs += "struct.properties[%s] mean: %f\n" % (pcs_reserved_variable,numpy.mean(property_list))
             outs += "struct.properties[%s] std: %f\n" % (pcs_reserved_variable,numpy.std(property_list))
-	outs += "\n"
-	write_log.write_log(inst.get(sname,"pcs_output_info_file"),outs)
+    outs += "\n"
+    write_log.write_log(inst.get(sname,"pcs_output_info_file"),outs)
 
 
     return coll, selected
@@ -204,86 +210,86 @@ def _calculate_distance(v1, v2):
  
 
 def post_clustering_selection(coll,n,cluster_property_name,method,reserved_variable=None):
-	'''
-	Selects a number of structures from the collection
-	coll: collection
-	n: number of structures to be selected
-	cluster_property_name: the name (key) used for storing the clustering results
-	methods:
-	(1) property_min: Takes the min of the property within each cluster
-	    reserved_varaible should be set to the property name. 
-	(2) property_max: Takes the max of the property within each cluster
-	    reserved_variable should be set to the property name.	
-	
-	'''
-	def select_max(coll,property_name):
-		p = [struct.properties[property_name] for struct in coll]
-		return p.index(max(p))
+    '''
+    Selects a number of structures from the collection
+    coll: collection
+    n: number of structures to be selected
+    cluster_property_name: the name (key) used for storing the clustering results
+    methods:
+    (1) property_min: Takes the min of the property within each cluster
+        reserved_varaible should be set to the property name. 
+    (2) property_max: Takes the max of the property within each cluster
+        reserved_variable should be set to the property name.   
+    
+    '''
+    def select_max(coll,property_name):
+        p = [struct.properties[property_name] for struct in coll]
+        return p.index(max(p))
 
-	def select_min(coll,property_name):
-		p = [struct.properties[property_name] for struct in coll]
-		return p.index(min(p))
-	
-	def get_c(struct):
-		return struct.properties[cluster_property_name]
+    def select_min(coll,property_name):
+        p = [struct.properties[property_name] for struct in coll]
+        return p.index(min(p))
+    
+    def get_c(struct):
+        return struct.properties[cluster_property_name]
 
-	if n > len(coll):
-		raise ValueError("Not enough structures in the collection to select %i structures" % n)
+    if n > len(coll):
+        raise ValueError("Not enough structures in the collection to select %i structures" % n)
 
-	selected = []
-	cluster_indices = []
-	cluster_struct_num = []
-	struct_in_clusters = []
-	original_n = n
-	for struct in coll:
-	#Puts all strctures into their clusters
-		c = get_c(struct)
-		if c not in cluster_indices:
-			cluster_indices.append(c)
-			struct_in_clusters.append([struct])
-			cluster_struct_num.append(1)
-		else:
-			struct_in_clusters[cluster_indices.index(c)].append(struct)
-			cluster_struct_num[cluster_indices.index(c)] += 1
+    selected = []
+    cluster_indices = []
+    cluster_struct_num = []
+    struct_in_clusters = []
+    original_n = n
+    for struct in coll:
+    #Puts all strctures into their clusters
+        c = get_c(struct)
+        if c not in cluster_indices:
+            cluster_indices.append(c)
+            struct_in_clusters.append([struct])
+            cluster_struct_num.append(1)
+        else:
+            struct_in_clusters[cluster_indices.index(c)].append(struct)
+            cluster_struct_num[cluster_indices.index(c)] += 1
 
-	while math.ceil(float(n)/len(cluster_indices)) >= min(cluster_struct_num):
-	#If certain clusters do not have enough structures within
-	#to meet the average structure per cluster,
-	#then the entire cluster will be selected
-		c = cluster_struct_num.index(min(cluster_struct_num))
-		selected += struct_in_clusters[c]
-		n -= cluster_struct_num[c]
-		cluster_indices.pop(c)
-		struct_in_clusters.pop(c)
-		cluster_struct_num.pop(c)
-	m = int(math.ceil(float(n)/len(cluster_indices))+0.0001)
-	#Now selects m from each cluster leftover
-	for i in range(len(cluster_indices)):
-		for j in range (m):
-			if method == "property_min":
-				l = select_min(struct_in_clusters[i],reserved_variable)
-			elif method == "property_max":
-				l = select_max(struct_in_clusters[i],reserved_variable)
-			elif method == "random":
-				l = random.randint(0,len(struct_in_clusters[i])-1)
-			else:
-				raise ValueError("Unsupported method of selection within cluster: %s" % method)
-			selected.append(struct_in_clusters[i][l])
-			struct_in_clusters[i].pop(l)
+    while math.ceil(float(n)/len(cluster_indices)) >= min(cluster_struct_num):
+    #If certain clusters do not have enough structures within
+    #to meet the average structure per cluster,
+    #then the entire cluster will be selected
+        c = cluster_struct_num.index(min(cluster_struct_num))
+        selected += struct_in_clusters[c]
+        n -= cluster_struct_num[c]
+        cluster_indices.pop(c)
+        struct_in_clusters.pop(c)
+        cluster_struct_num.pop(c)
+    m = int(math.ceil(float(n)/len(cluster_indices))+0.0001)
+    #Now selects m from each cluster leftover
+    for i in range(len(cluster_indices)):
+        for j in range (m):
+            if method == "property_min":
+                l = select_min(struct_in_clusters[i],reserved_variable)
+            elif method == "property_max":
+                l = select_max(struct_in_clusters[i],reserved_variable)
+            elif method == "random":
+                l = random.randint(0,len(struct_in_clusters[i])-1)
+            else:
+                raise ValueError("Unsupported method of selection within cluster: %s" % method)
+            selected.append(struct_in_clusters[i][l])
+            struct_in_clusters[i].pop(l)
 
-	if len(selected) >= original_n:
-	#Selecting an average number of structures from each cluster may result in over selection
-	#This part removes the additional structure from selected list
-		if method == "property_min":
-			pool_management.collection_sort(coll,keyword=reserved_variable)
-		elif method == "property_max":
-			pool_management.collection_sort(coll,keyword=reserved_variable,reverse=True)
-		elif method == "random":
-			selected = random.sample(selected,original_n)
-		else:
-			raise ValueError("Unsupported method of selection within Cluster")
-		selected = selected[:original_n]
+    if len(selected) >= original_n:
+    #Selecting an average number of structures from each cluster may result in over selection
+    #This part removes the additional structure from selected list
+        if method == "property_min":
+            pool_management.collection_sort(coll,keyword=reserved_variable)
+        elif method == "property_max":
+            pool_management.collection_sort(coll,keyword=reserved_variable,reverse=True)
+        elif method == "random":
+            selected = random.sample(selected,original_n)
+        else:
+            raise ValueError("Unsupported method of selection within Cluster")
+        selected = selected[:original_n]
 
-	return selected
+    return selected
 
 
