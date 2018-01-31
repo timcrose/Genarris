@@ -92,7 +92,7 @@ def get_affinity_propagation_executor(inst, section):
     exemplars_output_dir = inst.get_or_none(
             section, "exemplars_output_dir")
     exemplars_output_format = inst.get_with_default(
-            section, "exemplars_output_format", "json")
+            section, "exemplars_output_format", "both")
     pool_operation_keywords = load_pool_operation_keywords(
             inst, section)
 
