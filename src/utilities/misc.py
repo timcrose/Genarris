@@ -226,7 +226,7 @@ def input_structure(path, structure_suffix=""):
             return
     return struct
 
-def input_pool(structure_dir, structure_dir_depth, structure_suffix=""):
+def input_pool(structure_dir, structure_dir_depth=0, structure_suffix=""):
     struct_list = []
     for path in list_directory_file(structure_dir, suffix=structure_suffix,
             depth=structure_dir_depth):
@@ -250,7 +250,7 @@ def output_structure(struct, output_dir, output_format):
         f.write(struct.get_geometry_atom_format())
         f.close()
 
-def output_pool(pool, output_dir, output_format):
+def output_pool(pool, output_dir, output_format="both"):
     for struct in pool:
         if type(struct) is Structure:
             output_structure(struct, output_dir, output_format)
