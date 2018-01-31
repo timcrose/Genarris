@@ -398,7 +398,7 @@
         ]
     ], 
     "input_ref": null, 
-    "struct_id": null, 
+    "struct_id": "target_2_experimental", 
     "properties": {
         "lattice_vector_a": [
             7.516, 
