@@ -14,7 +14,14 @@ def find_duplicates(inst):
     Module wrapper
     '''
     sname = "find_duplicates"
-    coll = misc.load_collection_with_inst(inst,sname)
+    structure_dir = inst.get(sname, "structure_dir")
+    structure_dir_depth = inst.get_with_default(
+            sname, "structure_dir_depth", 0, eval=True)
+    structure_suffix = inst.get_with_default(sname, "structure_suffix", "")
+    coll = misc.input_pool(structure_dir,
+            structure_dir_depth=structure_dir_depth,
+            structure_suffix=structure_suffix)
+
     ltol = inst.get_with_default(sname,"ltol",0.2,eval=True)
     stol = inst.get_with_default(sname,"stol",0.3,eval=True)
     angle_tol = inst.get_with_default(sname,"angle_tol",3,eval=True)
@@ -34,8 +41,10 @@ def find_duplicates(inst):
     f.write("\n".join(map(str,[x.struct_id for x in coll])))
     f.write("\n") 
 
-    if inst.has_option(sname,"output_folder"):
-        misc.dump_collection_with_inst(inst,sname,coll)
+    output_dir = inst.get_or_none(sname, "output_dir")
+    output_format = inst.get_with_default(sname, "output_format", "both")
+    if not output_dir is None:
+        misc.output_pool(coll, output_dir, output_format)
 
 
 def find_duplicates_distance_matrix(inst):
