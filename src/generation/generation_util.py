@@ -582,7 +582,7 @@ class UnitCellGenerator(object):
             self._bravais_system_used)
 
     def _generate_triclinic_unit_cell(self):
-        if not self._generate_triclinic_angles():
+        if not self._set_triclinic_angles():
             return False
         if not self._set_principal_components_abc():
             return False
@@ -616,7 +616,7 @@ class UnitCellGenerator(object):
             [random.uniform(self._angle_range[0],
                             self._angle_range[1])
                 for x in range(3)]
-        return self._check_valid_angles()
+        retueln self._check_valid_angles()
 
     def _set_monoclinic_angles(self):
         self._alpha = self._gamma = 90

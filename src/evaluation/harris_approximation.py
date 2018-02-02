@@ -7,8 +7,8 @@ Carries out Harris Approximation calculation on a list of structuree
 from core import structure, structure_handling, structure_comparison
 from external_libs import matrix_op
 #from external_libs.aimsrotate import rotate
-#from aimsutils.rotate import rotate2
-from aimsrotate import rotate
+from aimsutils.rotate import rotate2
+#from aimsrotate import rotate
 import shutil, os, copy, numpy
 from evaluation import run_aims, utility
 from utilities import write_log, misc, parallel_run
@@ -328,7 +328,7 @@ def harris_approximation_single(inst):
 			inst.grant_permission(working_dir)
 			if info_level >= 2 or (info_level>=1 and inst.procedure_exist("Harris_Approximation_Single")):
 				write_log.write_master_log(inst,"Successfully conducted first molecule preparation for structure: "+structure_path)
-		else:
+		elif not success:
 			write_log.write_master_log(inst,"Harris Approximation failed on structure: %s; not enough information provided" % structure_path)
 			write_log.write_master_err(inst,"Harris Approximation failed on structure: %s; not enough information provided" % structure_path)
 			return False
@@ -383,7 +383,7 @@ def harris_approximation_single(inst):
 
 	#Now initiate clean up of harris folders
 
-	clean_up = inst.get_keywords([["harris_approximation_single","clean_up",1]],eval=True)[0]
+	clean_up = inst.get_keywords([["harris_approximation_single","clean_up",3]],eval=True)[0]
 	if clean_up not in [0,1,2,3,4]:
 		write_log.write_master_err(inst,"Unknown clean up type for harris_approximation_single")
 	else:
@@ -405,6 +405,10 @@ def harris_approximation_single(inst):
 
 	return True	
 	
+
+def mkdir_if_dne(directory):
+        if not os.path.exists(directory):
+                os.makedirs(directory)
 	
 def harris_single_run(inst):
 	'''
@@ -416,14 +420,14 @@ def harris_single_run(inst):
 	working_dir, control_path = inst.get_keywords_single_section("harris_single_run",["working_dir","control_path"])
 	current_dir = os.getcwd()
 	os.chdir(working_dir)
-
-	#First create the harris folder with the rotated geometry
+	
+        #First create the harris folder with the rotated geometry
 	rotated_dir = os.path.join(working_dir,"harris")
-#	r = rotate2.Rotations()
-#	r.load_rotations("rotations.in")
-#	r.write_restartfile("harris")
-	R = rotate.RotateMixed(working_dir+"/")
-	R.write_files(folder=rotated_dir)
+	r = rotate2.Rotations()
+	r.load_rotations("rotations.in")
+	r.write_restartfile("harris")
+#	R = rotate.RotateMixed(working_dir+"/")
+#	R.write_files(folder=rotated_dir)
 
 	os.chdir(current_dir)
 
@@ -433,6 +437,7 @@ def harris_single_run(inst):
 
 	# Now calls aims_single_run to run in the folder created
 	if os.path.abspath(os.path.join(rotated_dir,"control.in"))!=os.path.abspath(control_path):
+                mkdir_if_dne(rotated_dir)
 		shutil.copyfile(control_path,os.path.join(rotated_dir,"control.in"))
 	inst = copy.deepcopy(inst)
 	inst.remove_section("aims_single_run")
