@@ -1,4 +1,4 @@
-#Place this script in any of the example folder to run ISGEP
+"""Place this script in any of the example folder to run ISGEP"""
 
 import os
 
