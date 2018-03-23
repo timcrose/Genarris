@@ -1,3 +1,11 @@
+"""
+If any part of this module is used for a publication please cite:
+
+X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
+H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
+Structures and Fast Screening with a Harris Approximation, ",
+J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
+"""
 '''
 This set of utilities functions contain the necessary functions that carry out parallelization of the code
 '''
@@ -5,6 +13,19 @@ import os,socket,time
 from utilities import misc
 from utilities.write_log import print_time_log
 import subprocess, math, inspect
+
+
+__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
+__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
+                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
+__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
+               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
+               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
+__license__ = "BSD-3"
+__version__ = "1.0"
+__maintainer__ = "Timothy Rose"
+__email__ = "trose@andrew.cmu.edu"
+__url__ = "http://www.noamarom.com"
 
 def get_parallel_run_args(inst, section):
     parallel_run_command = inst.get_with_default(

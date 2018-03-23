@@ -1,9 +1,30 @@
+"""
+If any part of this module is used for a publication please cite:
+
+X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
+H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
+Structures and Fast Screening with a Harris Approximation, ",
+J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
+"""
 from utilities import misc, write_log
 from core.structure import Structure
 import os, multiprocessing, shutil, time
 from utilities.misc import output_structure, list_subdirectories, \
        retrieve_float, input_structure, input_pool, output_pool
 from utilities.write_log import print_time_log
+
+
+__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
+__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
+                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
+__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
+               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
+               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
+__license__ = "BSD-3"
+__version__ = "1.0"
+__maintainer__ = "Timothy Rose"
+__email__ = "trose@andrew.cmu.edu"
+__url__ = "http://www.noamarom.com"
 
 class BatchSingleStructureOperation(object):
     def __init__(self, operation, name="SingleStructureOperation",

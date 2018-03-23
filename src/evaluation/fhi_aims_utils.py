@@ -1,3 +1,11 @@
+"""
+If any part of this module is used for a publication please cite:
+
+X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
+H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
+Structures and Fast Screening with a Harris Approximation, ",
+J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
+"""
 import os, copy
 from core.structure import Structure
 from utilities.misc import list_subdirectories, list_directory_file, \
@@ -5,6 +13,19 @@ from utilities.misc import list_subdirectories, list_directory_file, \
 from utilities.write_log import print_time_log, print_time_warning, \
         print_time_error
 from copy import deepcopy
+
+__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
+__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
+                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
+__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
+               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
+               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
+__license__ = "BSD-3"
+__version__ = "1.0"
+__maintainer__ = "Timothy Rose"
+__email__ = "trose@andrew.cmu.edu"
+__url__ = "http://www.noamarom.com"
+
 
 def get_fhi_aims_extractor(inst, section, omit_output=False):
     aims_output_file = inst.get_with_default(

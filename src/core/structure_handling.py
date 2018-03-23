@@ -1,4 +1,12 @@
 """
+If any part of this module is used for a publication please cite:
+
+X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
+H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
+Structures and Fast Screening with a Harris Approximation, ",
+J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
+"""
+"""
 Created on Fri May 29 16:09:38 2015
 
 @author: Patrick Kilecdi
@@ -16,6 +24,19 @@ import structure
 
 import copy
 #import parameters
+
+__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
+__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
+                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
+__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
+               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
+               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
+__license__ = "BSD-3"
+__version__ = "1.0"
+__maintainer__ = "Timothy Rose"
+__email__ = "trose@andrew.cmu.edu"
+__url__ = "http://www.noamarom.com"
+
 molar_mass={"H":1,"C":12,"N":14,"O":16,"S":32, b'H':1, b'C':12, b'N':14, b'O':16,b'S':32,b'Cl':35.5,b'Br':80,b'F':19}
 lat_interp={0:'lattice_vector_a',1:'lattice_vector_b',2:'lattice_vector_c'}
 def cell_translation(struct,trans_vec,create_duplicate=True):

@@ -1,4 +1,12 @@
 """
+If any part of this module is used for a publication please cite:
+
+X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
+H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
+Structures and Fast Screening with a Harris Approximation, ",
+J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
+"""
+"""
 Created on Wed Apr 01 14:55:55 2015
 
 @author: Patrick Kilecdi
@@ -8,6 +16,19 @@ sgroup.wycarr produces a list of Wyckoff position arrangements that add up to nm
 """
 import random
 from utilities.write_log import print_time_log
+
+__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
+__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
+                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
+__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
+               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
+               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
+__license__ = "BSD-3"
+__version__ = "1.0"
+__maintainer__ = "Timothy Rose"
+__email__ = "trose@andrew.cmu.edu"
+__url__ = "http://www.noamarom.com"
+
 
 setting={0:random.random(),1:0.25,2:0.75}
 enantiomorphic=set([3,4,5,6,7,8,9,10,11,12,13,14,15])
