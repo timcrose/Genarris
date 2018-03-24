@@ -637,7 +637,7 @@ class UnitCellGenerator(object):
             [random.uniform(self._angle_range[0],
                             self._angle_range[1])
                 for x in range(3)]
-        retueln self._check_valid_angles()
+        return self._check_valid_angles()
 
     def _set_monoclinic_angles(self):
         self._alpha = self._gamma = 90
