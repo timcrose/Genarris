@@ -148,14 +148,15 @@ class Genarris():
                     continue
                 getattr(self, procedure)(active_comm)
             else:
+                #If num_cores requested is all of them then don't need to split
                 getattr(self, procedure)(comm)
 
-        '''
+        
         comm.barrier()
         end_time = time.time()
         if rank == 0:
             print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time)
-        '''
+        
 
     def Affinity_Propagation_Analyze_Preference(self, comm):
         from evaluation import affinity
