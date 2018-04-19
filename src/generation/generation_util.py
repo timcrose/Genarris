@@ -22,6 +22,8 @@ from utilities.misc import half_gaussian_sampling_upper, \
         retrieve_integer_and_subtract
 from utilities.check_type import *
 from utilities.write_log import print_time_log
+from glob import glob
+import os
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -31,12 +33,12 @@ __credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
                "Christoph Schober", "Alvaro Vazquez-Mayagoita",
                "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
 __license__ = "BSD-3"
-__version__ = "1.0"
+__version__ = "180324"
 __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-def get_structure_generator_from_inst(inst, sname):
+def get_structure_generator_from_inst(inst, sname):#, number_of_structures, number_of_attempts):
     ucv_target = inst.get_eval(sname, "ucv_target")
     nmpc = inst.get_eval(sname, "NMPC")
     is_chiral = inst.get_boolean(sname, "is_chiral")
@@ -93,8 +95,14 @@ def get_structure_generator_from_inst(inst, sname):
             ["struct_index","_","random_index"], eval=True)
     struct_index_length = inst.get_with_default(
             sname, "struct_index_length", 0, eval=True)
+    number_of_structures = inst.get_with_default(
+            sname, 'number_of_structures', 100, eval=True)
+    number_of_attempts = inst.get_with_default(
+            sname, 'number_of_attempts', None)
+    '''
     index_tracking_file = inst.get_or_none(sname, "index_tracking_file")
     attempt_tracking_file = inst.get_or_none(sname, "attempt_tracking_file")
+    '''
 
     check_float(ucv_target, "ucv_target")
     check_int(nmpc, "nmpc")
@@ -126,6 +134,11 @@ def get_structure_generator_from_inst(inst, sname):
               "attempts_per_closeness_criteria_change")
     check_int(fill_molecule_attempt_limit,
               "fill_molecule_attempt_limit")
+    check_int(number_of_structures, 'number_of_structures')
+    if number_of_attempts is not None and type(number_of_attempts) == str:
+        number_of_attempts = eval(number_of_attempts)
+        if type(number_of_attempts) != int:
+            raise TypeError('number_of_attempts must evaluate to an int or None')
     check_list(struct_id_scheme, "struct_id_scheme")
     check_int(struct_index_length, "struct_index_length")
 
@@ -157,8 +170,9 @@ def get_structure_generator_from_inst(inst, sname):
             output_dir=output_dir, output_format=output_format,
             struct_id_scheme=struct_id_scheme,
             struct_index_length=struct_index_length,
-            index_tracking_file=index_tracking_file,
-            attempt_tracking_file=attempt_tracking_file)
+            number_of_structures=number_of_structures, number_of_attempts=number_of_attempts)#,
+            #index_tracking_file=index_tracking_file,
+            #attempt_tracking_file=attempt_tracking_file)
 
 class StructureGenerator():
     '''
@@ -183,8 +197,9 @@ class StructureGenerator():
         fill_molecule_attempt_limit=5,
         output_dir=None, output_format="json",
         struct_id_scheme=["struct_index","_","random_index"],
-        struct_index_length=0, index_tracking_file=None,
-        attempt_tracking_file=None):
+        struct_index_length=0,
+        number_of_structures=100, number_of_attempts=None):#, index_tracking_file=None,
+        #attempt_tracking_file=None):
         '''
         ucv: unit cell volume target; actual ucv can be varied based on
             ucv_ratio_range and ucv_std
@@ -228,6 +243,7 @@ class StructureGenerator():
         custom_radii_by_pairs: A dict mapping pairs of atom species to custom
             specific radii
         attempt_limit: Number of max attempts per structure generation try
+        num_attempts_used: Number of attempts used so far for a structure generation
         attempts_per_space_group_change: Number of attempts before the space group
             is refreshed
         attempts_per_unit_cell_change: Number of attempts before the 
@@ -238,6 +254,9 @@ class StructureGenerator():
             the closeness criteria is refreshed
         fill_molecule_attempt_limit: Number of attempts to fill molecule into
             an existing structure
+        number_of_structures: number of structures to generate
+        number_of_attempts: number of attempts to generate number_of_structures
+            structures
         '''
         self._ucv_target = ucv_target
         self._nmpc = nmpc
@@ -263,6 +282,7 @@ class StructureGenerator():
         self._custom_radii = custom_radii
         self._custom_radii_by_pairs = custom_radii_by_pairs
         self._attempt_limit = attempt_limit
+        self.num_attempts_used = 0
         self._attempts_per_space_group_change = \
                 attempts_per_space_group_change
         self._attempts_per_unit_cell_change = \
@@ -275,8 +295,12 @@ class StructureGenerator():
         self._output_format = output_format
         self._struct_id_scheme = struct_id_scheme
         self._struct_index_length = struct_index_length
+        self._number_of_structures = number_of_structures
+        self._number_of_attempts = number_of_attempts
+        '''
         self._index_tracking_file = index_tracking_file
         self._attempt_tracking_file = attempt_tracking_file
+        '''
 
         self._fill_molecule_attempt_limit = fill_molecule_attempt_limit
 
@@ -323,22 +347,37 @@ class StructureGenerator():
         self._structure_index = -1
 
     def generate_structure_until_index_or_attempts_zero(self):
-        # First condition makes sure master attempts have not run out
-        # Second condition makes sure that structure index has not hit zero
-        while self._check_attempts() and self.generate_structure() != True:
-            pass
+        
+        #Loops until the number of structures desired are outputted
+        # or global stop condition reached
+        
+        if self._number_of_attempts is not None:
+            while self._structure_index < self._number_of_structures\
+                        and self.num_attempts_used < self._number_of_attempts:
+                self.generate_structure()
+        else:
+            while self._structure_index < self._number_of_structures:
+                self.generate_structure()
 
     def generate_structure(self):
+        #Makes sure attempts have not run out
         for i in range(self._attempt_limit):
             if self._generate_structure_single_attempt():
                 self._update_structure_index()
                 self._fill_generated_structure_info()
                 self._print_generated_structure_info()
                 if self._structure_index < 0:
-                    print_time_log("Generation success, but structure index "
-                            "found to be < 0; newly generated structure will "
-                            "not be outputed; this is expected if generation "
+                    print_time_log("Generation success, but structure index "+
+                            "found to be < 0; newly generated structure will "+
+                            "not be outputed; this is expected if generation "+
                             "has just completed")
+                    return True
+                
+                if self._structure_index >= self._number_of_structures:
+                    print_time_log("Generation success, but structure index "+
+                            "found to be > noumber of structs desired "+
+                            "newly generated structure will "+
+                            "not be outputed")
                     return True
             
                 print_time_log("Generation success! Outputing structure to "
@@ -351,6 +390,7 @@ class StructureGenerator():
             self._update_generation_counters()
 
         print_time_log("Generation failed")
+        self.num_attempts_used += 1
         return False
 
     def get_latest_generated_structure(self):
@@ -384,7 +424,7 @@ class StructureGenerator():
                     return True
                 else: #Move on to the next
                     self._current_wyckoff_position += 1
-                    if self._fill_moelcule_by_wyckoff_list():
+                    if self._fill_molecule_by_wyckoff_list():
                         # Recurisvely exit successful generation
                         return True
                     self._current_wyckoff_position -= 1
@@ -487,17 +527,25 @@ class StructureGenerator():
                             self._specific_radius_lower_bound)
 
     def _update_structure_index(self):
+        num_jsons = len(glob(os.path.join(self._output_dir, '*.json')))
+        num_geos = len(glob(os.path.join(self._output_dir, '*.in')))
+        self._structure_index = max([num_jsons, num_geos])
+        '''
         if self._index_tracking_file is None:
             self._structure_index += 1
         else:
             self._structure_index = retrieve_integer_and_subtract(
                     self._index_tracking_file, subtract=1)
+        '''
         print_time_log("Structure index updated to %i" % self._structure_index)
 
     def _check_attempts(self):
+        return self.num_attempts_used < self._attempt_limit
+        '''
         return (self._attempt_tracking_file is None or
                 retrieve_integer_and_subtract(
                     self._attempt_tracking_file, subtract=1) > 0)
+        '''
         
 
 class UnitCellGenerator(object):

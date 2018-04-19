@@ -16,6 +16,7 @@ import numpy
 
 
 
+
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
                 "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
@@ -23,7 +24,7 @@ __credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
                "Christoph Schober", "Alvaro Vazquez-Mayagoita",
                "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
 __license__ = "BSD-3"
-__version__ = "1.0"
+__version__ = "180324"
 __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"

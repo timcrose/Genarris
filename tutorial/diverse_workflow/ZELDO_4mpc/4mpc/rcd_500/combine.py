@@ -15,10 +15,11 @@ __credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
                "Christoph Schober", "Alvaro Vazquez-Mayagoita",
                "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
 __license__ = "BSD-3"
-__version__ = "1.0"
+__version__ = "180324"
 __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
+
 
 structure_suffix = ".json"
 structure_dir = "ZELDO_4_500_he_rcd"

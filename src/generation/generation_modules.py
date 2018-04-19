@@ -23,6 +23,8 @@ from utilities.parallel_master import get_parallel_run_args, \
 from utilities.write_log import print_time_log
 from utilities.write_log import write_master_log as wml
 from utilities.misc import safe_make_dir
+from mpi4py import MPI
+
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -32,7 +34,7 @@ __credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
                "Christoph Schober", "Alvaro Vazquez-Mayagoita",
                "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
 __license__ = "BSD-3"
-__version__ = "1.0"
+__version__ = "180324"
 __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
@@ -50,34 +52,46 @@ def structure_generation_batch(inst):
     '''
     Generates a batch of structure
     '''
+    
     sname = "structure_generation_batch"
     print_time_log("Structure generation batch begins.")
+    '''
     if inst.has_option(sname, "index_tracking_file"):
         print_time_log("Using existing index tracking file: " +
                 inst.get(sname, "index_tracking_file"))
     else:
         _set_up_index_and_attempt_tracking_files(inst, sname)
-
+    '''
+    #number_of_structures, number_of_attempts = \
+    _set_up_index_and_attempt_tracking_files(inst, sname)
     _make_path_absolute(inst, sname)
+    '''
     _inst = copy.deepcopy(inst)
     _inst.set_procedures(["_Structure_Generation_Batch"])
     args = get_parallel_run_args(inst, sname)
     launch_parallel_run_single_inst(_inst, *args)
+    '''
+    _structure_generation_batch(inst)#, number_of_structures, number_of_attempts)
+    '''
     _clean_up_index_and_attempt_tracking_files(inst, sname)
+    '''
 
-def _structure_generation_batch(inst):
+def _structure_generation_batch(inst):#, number_of_structures, number_of_attempts):
     sname = "structure_generation_batch"
-    generator = get_structure_generator_from_inst(inst, sname)
+    generator = get_structure_generator_from_inst(inst, sname)#, \
+                                    #number_of_structures, number_of_attempts)
     generator.generate_structure_until_index_or_attempts_zero()
 
 def _set_up_index_and_attempt_tracking_files(inst, sname):
-    number_of_structures = inst.get_eval(sname, "number_of_structures")
-    number_of_attempts = inst.get_or_none(
-            sname, "number_of_attempts", eval=True)
+    #number_of_structures = inst.get_eval(sname, "number_of_structures")
+    #number_of_attempts = inst.get_or_none(
+    #        sname, "number_of_attempts", eval=True)
 
     tmp_dir = inst.get_tmp_dir(sname)
     safe_make_dir(tmp_dir)
-
+    
+    #return number_of_structures, number_of_attempts
+    '''
     index_tracker = os.path.join(tmp_dir, "_structure_generation_index")
     f = open(index_tracker, "w")
     f.write(str(number_of_structures-1))
@@ -91,6 +105,7 @@ def _set_up_index_and_attempt_tracking_files(inst, sname):
     f.write(str(number_of_attempts-1))
     f.close()
     inst.set(sname, "attempt_tracking_file", attempt_tracker)
+    '''
 
 def _clean_up_index_and_attempt_tracking_files(inst, sname):
     tmp_dir = inst.get_tmp_dir(sname)
