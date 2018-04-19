@@ -154,7 +154,7 @@ class Genarris():
         
         comm.barrier()
         end_time = time.time()
-        if rank == 0:
+        if world_rank == 0:
             print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time)
         
 
