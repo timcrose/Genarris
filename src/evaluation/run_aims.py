@@ -34,7 +34,7 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-def aims_single_run (inst):
+def aims_single_run (inst, comm):
 	'''
 	Calls and run one fhi-aims instance
 	Returns True if the **execution** is successful, False if not
@@ -42,8 +42,13 @@ def aims_single_run (inst):
 	'''
 	info_level = inst.get_info_level()
 	working_dir = inst.get("aims_single_run","working_dir")
+    aims_lib_path = inst.get("aims_single_run", "aims_lib_path")
+    sys.path.append(aims_lib_path)
+    import aims_w
+    
+    '''
 	bin = inst.get("FHI-aims","aims_bin_path")
-    #aims_lib_path = inst.get("aims_single_run","aims_lib_path")
+    
     execute_command = inst.get("FHI-aims","execute_command")
     execute_style = inst.get_with_default("FHI-aims","execute_style","safe_subprocess")
     multiple_launches = int(inst.get("FHI-aims","multiple_launches"))
@@ -51,32 +56,37 @@ def aims_single_run (inst):
     if execute_style == "safe_subprocess" or execute_style == "safe_system":
         update_poll_interval = int(inst.get("aims_single_run","update_poll_interval"))
         update_poll_times = int(inst.get("aims_single_run","update_poll_times"))
-
-    if inst.has_option("aims_single_run","structure_path") and inst.get("aims_single_run","structure_path")!="": #Meaning a structure needs to be copied into inst
-        structure_path = inst.get("aims_single_run","structure_path")
-        structure_format = inst.get("aims_single_run","structure_format")
+    '''
+    
+    if inst.has_option("aims_single_run","structure_path") and inst.get("aims_single_run", "structure_path") != "": #Meaning a structure needs to be copied into inst
+        structure_path = inst.get("aims_single_run", "structure_path")
+        structure_format = inst.get("aims_single_run", "structure_format")
         if structure_format == "geometry":
-            if structure_path!=os.path.join(working_dir,"geometry.in"):
-                shutil.copyfile(structure_path,os.path.join(working_dir,"geometry.in"))
+            if os.path.abspath(structure_path) != os.path.abspath(os.path.join(working_dir, "geometry.in")):
+                shutil.copyfile(structure_path, os.path.join(working_dir, "geometry.in"))
         elif molecule_format == "json":
             struct = structure.Structure()
-            f=open(structure_path,"r")
+            f = open(structure_path, "r")
             struct.load(f.read())
             f.close()
-            f=open(os.path.join(output_dir,"geometry.in"))
+            f = open(os.path.join(working_dir, "geometry.in"))
             f.write(struct.get_geometry_atom_format())
             f.close()
 
-    if inst.has_option("aims_single_run","control_path"): #Move the control.in to working_dir
-        control_path=inst.get("aims_single_run","control_path")
-        if control_path!=os.path.join(working_dir,"control.in"):
-            shutil.copyfile(control_path,os.path.join(working_dir,"control.in"))
+    if inst.has_option("aims_single_run", "control_path"): #Move the control.in to working_dir
+        control_path = inst.get("aims_single_run", "control_path")
+        if os.path.abspath(control_path) != os.path.abspath(os.path.join(working_dir, "control.in")):
+            shutil.copyfile(control_path, os.path.join(working_dir, "control.in"))
 
+    commf = comm.py2f()
+    aims_w.aims_w(commf)
+    
+    """
     if inst.has_option("aims_single_run","output_name"): #Allowing alternative output file name
         aimsout = os.path.join(working_dir,inst.get("aims_single_run","output_name"))
     else:
         aimsout = os.path.join(working_dir,"aims.out")
-
+    
     if inst.has_option("aims_single_run","write_active_enabled"):
         if inst.get("aims_single_run","write_active_enabled")!="TRUE":
             raise ValueError("write_active_enabled set to an unknown value; for security, if present, it should be TRUE")
@@ -354,3 +364,4 @@ def get_execute_clearance(execute_info_path,write_active_path="",buffer=3,max_wa
         if write_active_path!="":
             write_active(write_active_path)
         time.sleep(buffer)
+    """
