@@ -186,7 +186,7 @@ class Genarris():
 
     def FHI_Aims_Single_Run(self, comm):
         from evaluation import run_aims
-        run_aims.aims_single_run(self.inst)
+        run_aims.aims_single_run(self.inst, comm)
 
     def FHI_Aims_Batch_Run(self, comm):
         from evaluation import FHI_aims

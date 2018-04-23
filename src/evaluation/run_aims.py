@@ -35,13 +35,13 @@ __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
 def aims_single_run (inst, comm):
-	'''
-	Calls and run one fhi-aims instance
-	Returns True if the **execution** is successful, False if not
-	Will not check the output file to see if the job is produces the desired result
-	'''
-	info_level = inst.get_info_level()
-	working_dir = inst.get("aims_single_run","working_dir")
+    '''
+    Calls and run one fhi-aims instance
+    Returns True if the **execution** is successful, False if not
+    Will not check the output file to see if the job is produces the desired result
+    '''
+    info_level = inst.get_info_level()
+    working_dir = inst.get("aims_single_run","working_dir")
     aims_lib_path = inst.get("aims_single_run", "aims_lib_path")
     sys.path.append(aims_lib_path)
     import aims_w
