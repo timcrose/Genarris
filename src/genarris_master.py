@@ -123,7 +123,7 @@ class Genarris():
         active_comm = None
         for procedure in procedures:
             comm.barrier()
-
+            
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure
             if active_comm is not None:
@@ -131,27 +131,27 @@ class Genarris():
             #See if splitting the communicator is necessary. It will be necessary
             # if num_cores != world_size
             num_cores = int(self.inst.get(procedure.lower(), 'num_cores'))
-            #if num_cores != world_size:
-            if world_rank < num_cores:
-                #This rank will be used in the procedure
-                color = 0
+            if num_cores != world_size:
+                if world_rank < num_cores:
+                    #This rank will be used in the procedure
+                    color = 0
+                else:
+                    color = MPI.UNDEFINED
+                #get the communicator corresponding to the non-communicating
+                # processes only
+                active_comm = comm.Split(color)
+                #Only run with however many ranks desired
+                try:
+                    #rank belongs to the set of active ranks
+                    world_rank = active_comm.Get_rank()
+                except:
+                    #rank doesn't belong to the set of active ranks
+                    continue
+                getattr(self, procedure)(active_comm)
             else:
-                color = MPI.UNDEFINED
-            #get the communicator corresponding to the non-communicating
-            # processes only
-            active_comm = comm.Split(color)
-            #Only run with however many ranks desired
-            try:
-                #rank belongs to the set of active ranks
-                world_rank = active_comm.Get_rank()
-            except:
-                #rank doesn't belong to the set of active ranks
-                continue
-            getattr(self, procedure)(active_comm)
-            '''else:
                 #If num_cores requested is all of them then don't need to split
                 getattr(self, procedure)(comm)
-            '''
+            
 
         
         comm.barrier()
