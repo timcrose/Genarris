@@ -42,8 +42,8 @@ def fhi_aims_single_run (inst, comm):
     '''
     info_level = inst.get_info_level()
     working_dir = inst.get("fhi_aims_single_run","working_dir")
-    aims_lib_path = inst.get("fhi_aims_single_run", "aims_lib_path")
-    sys.path.append(aims_lib_path)
+    aims_lib_dir = inst.get("fhi_aims_single_run", "aims_lib_dir")
+    sys.path.append(aims_lib_dir)
     import aims_w
     
     '''
