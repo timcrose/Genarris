@@ -34,7 +34,7 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-def aims_single_run (inst, comm):
+def fhi_aims_single_run (inst, comm):
     '''
     Calls and run one fhi-aims instance
     Returns True if the **execution** is successful, False if not
