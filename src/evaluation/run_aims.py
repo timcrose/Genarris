@@ -41,8 +41,8 @@ def fhi_aims_single_run (inst, comm):
     Will not check the output file to see if the job is produces the desired result
     '''
     info_level = inst.get_info_level()
-    working_dir = inst.get("aims_single_run","working_dir")
-    aims_lib_path = inst.get("aims_single_run", "aims_lib_path")
+    working_dir = inst.get("fhi_aims_single_run","working_dir")
+    aims_lib_path = inst.get("fhi_aims_single_run", "aims_lib_path")
     sys.path.append(aims_lib_path)
     import aims_w
     
@@ -54,13 +54,13 @@ def fhi_aims_single_run (inst, comm):
     multiple_launches = int(inst.get("FHI-aims","multiple_launches"))
 
     if execute_style == "safe_subprocess" or execute_style == "safe_system":
-        update_poll_interval = int(inst.get("aims_single_run","update_poll_interval"))
-        update_poll_times = int(inst.get("aims_single_run","update_poll_times"))
+        update_poll_interval = int(inst.get("fhi_aims_single_run","update_poll_interval"))
+        update_poll_times = int(inst.get("fhi_aims_single_run","update_poll_times"))
     '''
     
-    if inst.has_option("aims_single_run","structure_path") and inst.get("aims_single_run", "structure_path") != "": #Meaning a structure needs to be copied into inst
-        structure_path = inst.get("aims_single_run", "structure_path")
-        structure_format = inst.get("aims_single_run", "structure_format")
+    if inst.has_option("fhi_aims_single_run","structure_path") and inst.get("fhi_aims_single_run", "structure_path") != "": #Meaning a structure needs to be copied into inst
+        structure_path = inst.get("fhi_aims_single_run", "structure_path")
+        structure_format = inst.get("fhi_aims_single_run", "structure_format")
         if structure_format == "geometry":
             if os.path.abspath(structure_path) != os.path.abspath(os.path.join(working_dir, "geometry.in")):
                 shutil.copyfile(structure_path, os.path.join(working_dir, "geometry.in"))
@@ -73,8 +73,8 @@ def fhi_aims_single_run (inst, comm):
             f.write(struct.get_geometry_atom_format())
             f.close()
 
-    if inst.has_option("aims_single_run", "control_path"): #Move the control.in to working_dir
-        control_path = inst.get("aims_single_run", "control_path")
+    if inst.has_option("fhi_aims_single_run", "control_path"): #Move the control.in to working_dir
+        control_path = inst.get("fhi_aims_single_run", "control_path")
         if os.path.abspath(control_path) != os.path.abspath(os.path.join(working_dir, "control.in")):
             shutil.copyfile(control_path, os.path.join(working_dir, "control.in"))
 
@@ -82,28 +82,28 @@ def fhi_aims_single_run (inst, comm):
     aims_w.aims_w(commf)
     
     """
-    if inst.has_option("aims_single_run","output_name"): #Allowing alternative output file name
-        aimsout = os.path.join(working_dir,inst.get("aims_single_run","output_name"))
+    if inst.has_option("fhi_aims_single_run","output_name"): #Allowing alternative output file name
+        aimsout = os.path.join(working_dir,inst.get("fhi_aims_single_run","output_name"))
     else:
         aimsout = os.path.join(working_dir,"aims.out")
     
-    if inst.has_option("aims_single_run","write_active_enabled"):
-        if inst.get("aims_single_run","write_active_enabled")!="TRUE":
+    if inst.has_option("fhi_aims_single_run","write_active_enabled"):
+        if inst.get("fhi_aims_single_run","write_active_enabled")!="TRUE":
             raise ValueError("write_active_enabled set to an unknown value; for security, if present, it should be TRUE")
         write_active_enabled = True
-        if inst.has_option("aims_single_run","write_active_path"):
-            write_active_path = inst.get("aims_single_run","write_active_path")
+        if inst.has_option("fhi_aims_single_run","write_active_path"):
+            write_active_path = inst.get("fhi_aims_single_run","write_active_path")
         else:
             write_active_path = os.path.join(working_dir,"active.info")
     else:
         write_active_enabled = False
         write_active_path = ""
 
-    if inst.has_option("aims_single_run","write_log_path"):
+    if inst.has_option("fhi_aims_single_run","write_log_path"):
         write_log_enabled = True
-        write_log_path = inst.get("aims_single_run","write_log_path")
-        if inst.has_option("aims_single_run","write_log_name"):
-            write_log_name = inst.get("aims_single_run","write_log_name")
+        write_log_path = inst.get("fhi_aims_single_run","write_log_path")
+        if inst.has_option("fhi_aims_single_run","write_log_name"):
+            write_log_name = inst.get("fhi_aims_single_run","write_log_name")
         else:
             write_log_name = working_dir
     else:
@@ -125,35 +125,35 @@ def fhi_aims_single_run (inst, comm):
 
     if execute_command == "mpirun":
         arglist += ["-wdir",working_dir]
-        if inst.has_option("aims_single_run","mpirun_processes"):
-            arglist += ["-n",inst.get("aims_single_run","mpirun_processes")]
-        if inst.has_option("aims_single_run","mpirun_hosts"):
-            hostlist = inst.get_eval("aims_single_run","mpirun_hosts")
+        if inst.has_option("fhi_aims_single_run","mpirun_processes"):
+            arglist += ["-n",inst.get("fhi_aims_single_run","mpirun_processes")]
+        if inst.has_option("fhi_aims_single_run","mpirun_hosts"):
+            hostlist = inst.get_eval("fhi_aims_single_run","mpirun_hosts")
             hoststring = hostlist[0]
             for i in range (1,len(hostlist)):
                 hoststring += ","+hostlist[i]
             arglist += ["--host",hoststring]
         arglist.append(bin)
         if info_level>=3:
-            wl.write_master_log(inst,"This is arglist in aims_single_run "+str(arglist))
+            wl.write_master_log(inst,"This is arglist in fhi_aims_single_run "+str(arglist))
 
     elif execute_command == "runjob":
-        block = inst.get("aims_single_run","runjob_block")
-        nodes = int(inst.get("aims_single_run","runjob_nodes"))
+        block = inst.get("fhi_aims_single_run","runjob_block")
+        nodes = int(inst.get("fhi_aims_single_run","runjob_nodes"))
         modes = int(inst.get("FHI-aims","runjob_modes"))
         thres = int(inst.get("FHI-aims","runjob_thres"))
 
     arglist += ["--np",str(modes*nodes),"-p",str(modes),"--envs","OMP_NUM_THREADS="+str(thres),"--verbose","INFO","--block",block,"--cwd",working_dir,"--exe",bin]
 
-        if inst.has_option("aims_single_run","runjob_corner"):
-            corner = inst.get("aims_single_run","runjob_corner")
-            shape = inst.get("aims_single_run","runjob_shape")
+        if inst.has_option("fhi_aims_single_run","runjob_corner"):
+            corner = inst.get("fhi_aims_single_run","runjob_corner")
+            shape = inst.get("fhi_aims_single_run","runjob_shape")
             arglist += ["--corner",corner,"--shape",shape]
     else:
         raise ValueError("Unknown type of execute_command")
 
-    if inst.has_option("aims_single_run","additional_arguments"):
-        addi = inst.get_eval("aims_single_run","additional_arguments")
+    if inst.has_option("fhi_aims_single_run","additional_arguments"):
+        addi = inst.get_eval("fhi_aims_single_run","additional_arguments")
         arglist += [str(x) for x in addi]
 
     inst.grant_permission(working_dir)
@@ -190,7 +190,7 @@ def fhi_aims_single_run (inst, comm):
             if call_interval!=0:
                 get_execute_clearance(execute_info_path,write_active_path,call_interval)
             if info_level>=3:
-                wl.write_master_log(inst,"aims_single_run about to submit mpirun command in Popen")		
+                wl.write_master_log(inst,"fhi_aims_single_run about to submit mpirun command in Popen")		
 
             p = subprocess.Popen(arglist,stdout=outfile,stderr=errfile)
             if write_log_enabled:
@@ -198,8 +198,8 @@ def fhi_aims_single_run (inst, comm):
                 inst.grant_permission(write_log_path)
             time.sleep(1)
 
-            if inst.has_option("aims_single_run","launch_time_out"):
-                time_limit = int(inst.get("aims_single_run","launch_time_out"))
+            if inst.has_option("fhi_aims_single_run","launch_time_out"):
+                time_limit = int(inst.get("fhi_aims_single_run","launch_time_out"))
             else:
                 time_limit = 60
 
