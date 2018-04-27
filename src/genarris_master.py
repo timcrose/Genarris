@@ -253,8 +253,8 @@ class Genarris():
         radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
     def RCD_Calculation(self, comm):
-        from evaluation import relative_coordinate_descriptor
-        relative_coordinate_descriptor.rcd_calculation(self.inst)
+        from evaluation import relative_coordinate_descriptor as rcd
+        rcd.rcd_calculation(self.inst, comm)
 
     def RCD_Difference_Compare_Single(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd

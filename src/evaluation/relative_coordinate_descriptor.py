@@ -16,7 +16,7 @@ and conducts Affinity Propagation for pools
 '''
 
 import multiprocessing
-from core.structure import Structure
+from core.structure import Structure, StoicDict, get_struct_coll
 import numpy as np
 from copy import deepcopy
 from utilities import misc, write_log
@@ -41,20 +41,64 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-def rcd_calculation(inst):
+def rcd_calculation(inst, comm):
     '''
     Main RCD calculation module
     '''
     sname = "rcd_calculation"
-    kwargs = load_batch_single_structure_operation_keywords(inst, sname)
+    #kwargs = load_batch_single_structure_operation_keywords(inst, sname)
 
     napm = inst.get_eval(sname, "NAPM")
+    if napm is None:
+        raise ValueError('NAPM is None but shouldve been set in ui.conf')
     axes = inst.get_eval(sname,"axes")
     close_picks = inst.get_with_default(sname, "close_picks", 16, eval=True)
     property_name = inst.get_with_default(
             sname, "property_name", "rcd")
-    output_info_file = inst.get_or_none(sname, "output_info_file")
-
+    
+    stoic = StoicDict(int)
+    jsons_dir = inst.get(sname, 'structure_dir')
+    output_folder = inst.get(sname, 'output_folder')
+    
+    struct_coll, struct_ids = get_struct_coll(jsons_dir, stoic)
+    
+    comm_rank = comm.Get_rank()
+    comm_size = comm.Get_size()
+    incr = int(float(len(struct_coll)) / float(comm_size))
+    start_i = incr * comm_rank
+    
+    if comm_rank == comm_size - 1:
+        #The last rank gets the remainder
+        end_i = len(struct_coll)
+    else:
+        end_i = incr * (comm_rank + 1)
+        
+    my_struct_coll = struct_coll[start_i : end_i]
+    
+    i = 0
+    while i < len(my_struct_coll):
+        struct = my_struct_coll[i][1]
+        my_struct_coll[i][1], descriptor = _rcd_calculation(struct, napm, axes, close_picks, property_name)
+        struct = my_struct_coll[i][1]
+        #write output json
+        misc.dump_structure(struct, output_folder, ['json'])
+        i += 1
+    
+    my_structs = [s[1] for s in my_struct_coll]
+    
+    
+    comm.barrier()
+    structs = comm.gather(my_structs, root=0)
+    if comm_rank == 0:
+        #Flatten one level only
+        structs = sum(structs, [])
+    
+        output_info_file = inst.get_or_none(sname, "output_info_file")
+        if output_info_file != None:
+            _rcd_calculation_callback(
+                structs, output_info_file)
+        
+    '''
     op_args = (napm, axes)
     op_kwargs = {"close_picks"   : close_picks,
                  "property_name" : property_name}
@@ -70,28 +114,29 @@ def rcd_calculation(inst):
                 result, output_info_file)
 
     return result
+    '''
 
 def _rcd_calculation(struct, napm, axes, close_picks=16, property_name="rcd"):
     '''
     Generates and stores the rcd for the given structure
     '''
-    if struct.get_n_atoms() %napm != 0:
+    if struct.get_n_atoms() % napm != 0:
         raise ValueError("Specified NAPM does not divide %s's atom list length"
                                  % struct.struct_id)
-    nmpc = len(struct.geometry)/napm
+    nmpc = len(struct.geometry) / napm
  
     ref_struct = _create_ref_struct(struct,nmpc,napm,close_picks)
 
     axes_list = [
-            _calculate_molecule_axes(ref_struct.geometry[x*napm:(x+1)*napm],
+            _calculate_molecule_axes(ref_struct.geometry[x * napm:(x + 1) * napm],
                                      axes)
-            for x in range(close_picks+1)]
+            for x in range(close_picks + 1)]
 
-    COM = [cm_calculation(ref_struct,range(x*napm,(x+1)*napm))
-           for x in range(close_picks+1)]
+    COM = [cm_calculation(ref_struct,range(x * napm,(x + 1) * napm))
+           for x in range(close_picks + 1)]
 
     # Calculates Cartesian relative coordinate
-    diff = [np.subtract(COM[x], COM[0]) for x in range(1, close_picks+1)]
+    diff = [np.subtract(COM[x], COM[0]) for x in range(1, close_picks + 1)]
     
     # Calculates relative coordinate in axes basis of reference molecule
     axes_i = np.linalg.inv(axes_list[0].T)
@@ -119,31 +164,31 @@ def _create_ref_struct(struct, nmpc, napm, close_picks=16):
     ref_struct = cell_modification(struct, nmpc, napm)
 
     COM = [cm_calculation(ref_struct,
-                          range(x*napm,(x+1)*napm))
+                          range(x * napm,(x + 1) * napm))
            for x in range(nmpc)]
 
 
     lat_mat = np.transpose(ref_struct.get_lattice_vectors())
     COMt = [(k, x, y, z, 
-            np.linalg.norm(np.subtract(np.add(COM[k],np.dot(lat_mat,[x,y,z])),
+            np.linalg.norm(np.subtract(np.add(COM[k], np.dot(lat_mat, [x, y, z])),
                                        COM[0]))) 
-            for z in range(-2,3)
-            for y in range(-2,3)
-            for x in range(-2,3)
+            for z in range(-2, 3)
+            for y in range(-2, 3)
+            for x in range(-2, 3)
             for k in range(nmpc)] #Calculate the distance between the COM's
     COMt.sort(key=lambda com: com[4])
 
     all_geo = deepcopy(ref_struct.geometry)
     ref_struct.geometry = np.delete(ref_struct.geometry,
-                                    range(napm,nmpc*napm))
+                                    range(napm, nmpc * napm))
 
-    for i in range(1, close_picks+1): #Skip the 1st original molecule
+    for i in range(1, close_picks + 1): #Skip the 1st original molecule
         k, x, y, z, dist = COMt[i]
         ref_struct.geometry = np.concatenate((ref_struct.geometry,
-                                              all_geo[k*napm:(k+1)*napm]))
+                                              all_geo[k * napm : (k + 1) * napm]))
 
         mole_translation(
-                ref_struct, i, napm, frac=[x,y,z], create_duplicate=False)
+                ref_struct, i, napm, frac=[x, y, z], create_duplicate=False)
 
     return ref_struct
 
@@ -155,10 +200,10 @@ def _calculate_molecule_axes(geo, axes):
     The first 2 axes will be established as the 2 vectors formed by the
     pairs of atoms. The third will be their cross product
     '''
-    a1 = [geo[axes[0][0]][x]-geo[axes[0][1]][x] for x in range(3)]
-    a2 = [geo[axes[1][0]][x]-geo[axes[1][1]][x] for x in range(3)]
-    a3 = list(np.cross(a1,a2))
-    X = np.array([a1,a2,a3])
+    a1 = [geo[axes[0][0]][x] - geo[axes[0][1]][x] for x in range(3)]
+    a2 = [geo[axes[1][0]][x] - geo[axes[1][1]][x] for x in range(3)]
+    a3 = list(np.cross(a1, a2))
+    X = np.array([a1, a2, a3])
     X = _gram_schmidt(X)
     return X
 
@@ -265,13 +310,13 @@ def rcd_difference_compare_single(inst):
 
 def rcd_difference_folder_inner(inst):
     sname = "rcd_difference_folder_inner"
-    folder = inst.get(sname,"structure_dir")
-    suffix = inst.get_with_default(sname,"structure_suffix","")
+    folder = inst.get(sname, "structure_dir")
+    suffix = inst.get_with_default(sname, "structure_suffix", "")
 
-    key = inst.get_with_default(sname,"stored_property_key","RCD_vector")
-    ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
-    pairs = inst.get_with_default(sname,"select_pairs",4,eval=True)
-    dis_en = inst.get_boolean(sname,"disable_enantiomer")
+    key = inst.get_with_default(sname, "stored_property_key", "RCD_vector")
+    ratio = inst.get_with_default(sname, "contribution_ratio", 1, eval=True)
+    pairs = inst.get_with_default(sname, "select_pairs", 4, eval=True)
+    dis_en = inst.get_boolean(sname, "disable_enantiomer")
 
     calculate_folder_rcd_difference_worker(folder, suffix=suffix,
                                            key=key, ratio=ratio, select_pairs=pairs,
