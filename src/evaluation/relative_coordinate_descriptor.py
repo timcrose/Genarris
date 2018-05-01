@@ -26,6 +26,7 @@ from core.structure_handling import cm_calculation, cell_modification, \
         mole_translation
 from evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
+import glob
 
 
 
@@ -97,24 +98,6 @@ def rcd_calculation(inst, comm):
         if output_info_file != None:
             _rcd_calculation_callback(
                 structs, output_info_file)
-        
-    '''
-    op_args = (napm, axes)
-    op_kwargs = {"close_picks"   : close_picks,
-                 "property_name" : property_name}
-
-    op = BatchSingleStructureOperation(
-            _rcd_calculation,
-            name=sname, args=op_args,
-            kwargs=op_kwargs, **kwargs)
-    result = op.run()
-
-    if output_info_file != None:
-        _rcd_calculation_callback(
-                result, output_info_file)
-
-    return result
-    '''
 
 def _rcd_calculation(struct, napm, axes, close_picks=16, property_name="rcd"):
     '''
@@ -328,21 +311,21 @@ def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector",
     '''
     Given a folder, grab structure that has not been evaluated
     '''
-    time.sleep(random.random()*5)
-    f = open("./RCD_report.out","a")
-    name = socket.gethostname()+"_"+misc.get_random_index()
+    time.sleep(random.random() * 5)
+    f = open("./RCD_report.out", "a")
+    name = socket.gethostname() + "_" + misc.get_random_index()
     f.write("RCD_difference_worker %s reporting from host: %s\n" % 
             (name, socket.gethostname()))
     f.close()
 
-    list_of_struct = _get_structure_list(folder,suffix)
+    list_of_struct = glob.glob(os.path.join(folder, '*' +  suffix))
     while True:
         struct, struct_path = _get_structure(folder, suffix,worker=socket.gethostname())
         if struct == False:
             break
         f = open("./RCD_report.out","a")
-        f.write("RCD_difference_worker %s grabed structure %s\n" %
-                (name,struct_path))
+        f.write("RCD_difference_worker %s grabbed structure %s\n" %
+                (name, struct_path))
         f.close()
 
         diff_list = []
