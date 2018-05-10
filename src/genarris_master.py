@@ -130,7 +130,7 @@ class Genarris():
                 active_comm.Free()
             #See if splitting the communicator is necessary. It will be necessary
             # if num_cores != world_size
-            num_cores = int(self.inst.get(procedure.lower(), 'num_cores'))
+            num_cores = int(self.inst.get_with_default(procedure.lower(), 'num_cores', 1, eval=True))
             if num_cores != world_size:
                 if world_rank < num_cores:
                     #This rank will be used in the procedure
@@ -170,7 +170,7 @@ class Genarris():
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
         from evaluation import affinity
-        affinity.affinity_propagation_fixed_clusters(self.inst)
+        affinity.affinity_propagation_fixed_clusters(self.inst, comm)
 
     def Affinity_Propagation_Fixed_Silhouette(self, comm):
         from evaluation import affinity

@@ -22,7 +22,6 @@ from utilities.write_log import print_time_log, write_log, \
 from evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
 from core.structure import StoicDict, get_struct_coll
-from bisect import bisect
 
 
 
@@ -48,7 +47,7 @@ class APHandler():
         self.num_of_clusters_tolerance = inst.get_with_default(
                 sname, "num_of_clusters_tolerance", 0, eval=True)
         self.max_sampled_preferences = inst.get_with_default(
-                sname, "max_sampled_preferences", 10, eval=True)
+                sname, "max_sampled_preferences", 10)
         self.output_without_success = inst.get_boolean(
                 sname, "output_without_success")
         
@@ -108,130 +107,73 @@ class APHandler():
                 elif self.affinity_type[0] == "power":
                     self.affinity_matrix[i][j] = \
                             -dist_mat[i][j] ** self.affinity_type[1]
-    
-    def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
-        '''
-        Determine if AP generated an acceptable number of clusters and if not,
-        return the new preference range to try as well as the preference range 
-        of the previous iteration.
-        
-        num_of_clusters_and_pref_list : array-like, shape (num_cores, 2)
-        
-            Matrix where each row has form [num_clusters, pref] where num_clusters
-            is the number of clusters produced by AP when preference pref is used.
-            The reason these are grouped is to reduce MPI communication latency.
+                            
+    def get_new_pref_range(self, num_of_clusters_and_pref_list):
+        over_i, under_i = -1, -1
+        pref_l, pref_u = 0, 0
+        over_dist, under_dist = None, None
+        for i, [num_clusters, pref] in enumerate(num_of_clusters_and_pref_list):        
             
-        prev_l : float
-        
-            The lower-bound on the preference range used on the previous iteration.
-            
-        prev_u : float
-        
-            The upper-bound on the preference range used on the previous iteration.
-            
-        iter_n : int
-        
-            The iteration number.
-        '''
-        
-        #Separate the matrix into two lists, one list of the number of clusters
-        # produced by each core, and the other are the preference values used 
-        # by each core. These lists are ordered by MPI rank.
-        num_clusters_list, pref_list = zip(*num_of_clusters_and_pref_list)
-        num_clusters_list = list(num_clusters_list)
-        
-        #Reverse these lists because that's how the following code was written.
-        #You could rewrite this function to work with the forward direction if
-        # you want instead.
-        num_clusters_list.reverse()
-        pref_list = list(pref_list)
-        pref_list.reverse()
-        
-        for n, num_clusters in enumerate(num_clusters_list):
-            #If you've found the desired number of clusters or want to output 
-            # without success on the last iteration:
-            if abs(num_clusters - self.num_of_clusters) <= self.num_of_clusters_tolerance or\
-                    (self.output_without_success and iter_n == self.max_sampled_preferences - 1):
+            if abs(num_clusters - self.num_of_clusters) \
+                  <= self.num_of_clusters_tolerance:
+                      
                 success = True
                 
-                if self.output_without_success and iter_n == self.max_sampled_preferences - 1:
-                    #n is the index of the original list. Thus the len... - ... - 1
-                    #Output the result with the closest number of clusters to the 
-                    # desired amount.
-                    n = len(num_clusters_list) -  num_clusters_list.index(
-                            min(num_clusters_list, key=lambda x:abs(x - self.num_of_clusters))) - 1
-                else:
-                    n = len(num_clusters_list) - n - 1
+                #Here, pref_l, pref_u are inconsequential; they are only here 
+                # due to formatting
+                return success, pref, i, pref_l, pref_u
+            
+            if num_clusters - self.num_of_clusters < \
+                    num_of_clusters_and_pref_list[over_i][0] and\
+                    pref - self.num_of_clusters > 0:
                 
-                #In the case of success, the last four return values are just
-                # for formatting
-                return success, pref_list[n], n, 0, 0, 0, 0
-        
+                over_dist = abs(self.num_of_clusters - pref)
+                over_i = i
+                
+            if self.num_of_clusters - num_clusters < \
+                    num_of_clusters_and_pref_list[under_i][0] and\
+                    self.num_of_clusters - pref > 0:
+                
+                under_dist = abs(self.num_of_clusters - pref)
+                under_i = i
+                
         success = False
-        
-        #Get the index of the value that the desired number of clusters would 
-        # be in if the list num_cluster_list were to maintain being ordered.
-        #Warning: for this to work properly, num_cluster_list should be 
-        # ordered at this point. As preference decreases, the number of clusters
-        # generated by AP should also decrease. However, this is not always
-        # strictly true. In general, don't demand AP to give you exactly a certain
-        # number of clusters.
-        i = bisect(num_clusters_list, self.num_of_clusters)
-        
-        if i == 0:
-            #self.num_of_clusters is lower than any value obtained. Set the 
-            # preference bounds to be the previous lower bound and the lowest
-            # bound on this iteration to supposedly find a better region.
-            pref_l, pref_u = prev_l, pref_list[0]
-        elif i == len(pref_list):
-            #self.num_of_clusters is higher than any value obtained. Set the 
-            # preference bounds to be the previous lower bound and the highest
-            # bound on this iteration to supposedly find a better region.
-            pref_l, pref_u = pref_list[-1], prev_l
-        else:
-            #self.num_of_clusters is in between values obtained. Set the 
-            # preference bounds to be the preference values on either side of 
-            # where self.num_of_clusters would be inserted.
-            pref_l, pref_u = pref_list[i - 1], pref_list[i]
-        prev_l, prev_u = pref_list[0], pref_list[-1]
-        
-        #In this case, the 0 values are just there for formatting
-        return success, 0, 0, pref_l, pref_u, prev_l, prev_u 
+        num_clusters_list, pref_list = zip(*num_of_clusters_and_pref_list)
+        pref_l, pref_u = pref_list[under_i], pref_list[over_i]
+        #Here, pref is inconsequential; it is only here 
+        # due to formatting. i here is the closest result.
+        if not over_dist is None:
+            if not under_dist is None:
+                if over_dist < under_dist:
+                    i = over_dist
+                else:
+                    i = under_dist
+            else:
+                i = over_dist
+        return success, pref, i, pref_l, pref_u
                             
     def run_fixed_num_of_clusters(self):
-        '''
-        Run the AP algorithm in parallel until either an acceptable number of 
-        of clusters has been generated or the number of iterations asked for 
-        has expired.
-        '''
-        
         if self.num_of_clusters > len(self.struct_coll):
-            raise ValueError("Cannot cluster pool into more clusters " +
+            raise ValueError("Cannot cluster pool into more clusters "
                     "than number of structures in it")
         if self.max_sampled_preferences < 1:
             raise ValueError("max_sampled_preferences must be >= 1")
 
-        print_time_log("Running Affinity Propagation with fixed number " +
+        print_time_log("Running Affinity Propagation with fixed number "
                 "of clusters " + str(self.num_of_clusters))
         self.enable_subdir_output = False
 
         iter_n = 0
         pref_l, pref_u = self.preference_range
-        prev_l, prev_u = self.preference_range
         closest_result = None
         
         while iter_n < self.max_sampled_preferences:
-            print_time_log('Beginning new iteration with iter_n being ' + str(iter_n))
-
             self.preference = \
-                    float(pref_l - pref_u) * float(self.rank + 1) / float(self.size + 1) + pref_u
-            
+                    (pref_u - pref_l) * float(self.rank + 1) / float(self.size + 1) + pref_l
+            print_time_log('rank is %i. and pref is %f.' % (self.rank, self.preference))
             self.struct_coll_cld, result = self._run()
             
             num_of_clusters_gotten = result['num_of_clusters']
-            
-            #Package the number of clusters and preference value used by this rank
-            # so that MPI communication latency is minimized.
             num_of_clusters_and_pref = [num_of_clusters_gotten, self.preference]
             
             self.comm.barrier()
@@ -241,57 +183,46 @@ class APHandler():
             
             if self.rank == 0:
                 new_pref_range_result = self.get_new_pref_range(
-                        num_of_clusters_and_pref_list, prev_l, prev_u, iter_n)
+                        num_of_clusters_and_pref_list)
             else:
                 new_pref_range_result = None
             
             self.comm.barrier()
             
-            #Get the result of the clustering (success or failure and some 
-            # other useful values)
             new_pref_range_result = self.comm.bcast(new_pref_range_result, root=0)
             
-            success, self.preference, n, pref_l, pref_u, prev_l, prev_u = new_pref_range_result
+            success, self.preference, i, pref_l, pref_u = new_pref_range_result
             
             if success:
-                print_time_log('success')
-                #If not the rank that was successful:
-                if n != self.rank:
-                    print_time_log('rank ' + str(self.rank) + ' is returning')
+                if i != self.rank:
                     return
                 
                 #Print results! You're done!
                 break
                 
+            print_time_log('rank is %i' % (self.rank))
             result_num = result["num_of_clusters"]
-            
-            #print_time_log("Iteration %i. Preference used: %f. "
-            #        "Clusters generated: %i."
-            #        % (iter_n, self.preference, result_num))
+            print_time_log("Iteration %i. Preference used: %f. "
+                    "Clusters generated: %i."
+                    % (iter_n, self.preference, result_num))
             self._print_result_summary(result)
 
             iter_n += 1
-            
+
         if success:
-            print_time_log("Affinity Propagation with fixed number of clusters "+
+            print_time_log("Affinity Propagation with fixed number of clusters "
                     "succeeded!")
         else:
             print_time_log("Failed to cluster to %i clusters with tolerance %i"
                     % (self.num_of_clusters, self.num_of_clusters_tolerance))
-
+            if self.output_without_success:
+                print_time_warning("Outputing clustered collection although "
+                        "fixed clustering failed.")
         if success:
             self._print_results(result, self.verbose_output)
         elif self.output_without_success:
             closest_result = result
             self._print_results(closest_result, self.verbose_output)
-            
-        self.result = result
-        
-        #Unzip the 2-dimensional list which is the structure collection. The
-        # second element in is the Structure object.
-        pool = zip(*self.struct_coll_cld)[1]
-        #In the future, parallelize the writing of structures to output_dir
-        output_pool(pool, self.output_dir, self.output_format)
             
     def _run(self):
         return _affinity_propagation(self.struct_coll, 
@@ -376,9 +307,7 @@ def affinity_propagation_fixed_clusters(inst, comm):
     
     aph.struct_coll, struct_ids = get_struct_coll(jsons_dir, stoic)
     
-    aph.run_fixed_num_of_clusters()
-    
-    #aph.struct_coll_cld, aph.result
+    struct_coll_cld, result_dict = aph.run_fixed_num_of_clusters()
     
     
     
