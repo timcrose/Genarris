@@ -15,7 +15,8 @@ Created on Wed Jun 17 22:13:09 2015
 import os
 import sys,socket
 from core import instruct
-from utilities import parallel_run, write_log
+#from utilities import parallel_run, write_log
+from utilities import write_log
 from mpi4py import MPI
 import time, random
 
@@ -59,9 +60,11 @@ class Genarris():
         '''
         Interprets the instruction and calls the respective attributes of self.
         '''
+        
         comm = MPI.COMM_WORLD
         world_rank = comm.Get_rank()
         world_size = comm.Get_size()
+        
         #inst_path is sys.argv[-1] aka path/to/ui.conf
         self.inst_path = inst_path
         #Instruct object inherits from SafeConfigParser
@@ -97,7 +100,7 @@ class Genarris():
                 os.path.join(self.working_dir,"Genarris.log"))
         self.inst.set_default(sname, "master_err_path",
                 os.path.join(self.working_dir,"Genarris.err"))
-          
+        
         sys.stdout = open(self.inst.get(sname,"master_log_path"),"a")
         sys.stderr = open(self.inst.get(sname,"master_err_path"),"a")
         write_log.set_global_output(sys.stdout, sys.stderr)
@@ -106,7 +109,7 @@ class Genarris():
                       os.path.realpath(__file__))
         self.inst.set_default(sname,"master_node",
                       socket.gethostname())
-        
+
         procedures = self.inst.get_keywords([[sname,"procedures"]],True)[0]
         
         for section in self.inst.sections():
@@ -126,8 +129,10 @@ class Genarris():
             
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure
-            if active_comm is not None:
+            try:
                 active_comm.Free()
+            except:
+                pass
             #See if splitting the communicator is necessary. It will be necessary
             # if num_cores != world_size
             num_cores = int(self.inst.get_with_default(procedure.lower(), 'num_cores', 1, eval=True))
@@ -147,6 +152,7 @@ class Genarris():
                 except:
                     #rank doesn't belong to the set of active ranks
                     continue
+                print('world_rank', world_rank)
                 getattr(self, procedure)(active_comm)
             else:
                 #If num_cores requested is all of them then don't need to split
@@ -190,7 +196,7 @@ class Genarris():
 
     def FHI_Aims_Batch_Run(self, comm):
         from evaluation import FHI_aims
-        FHI_aims.fhi_aims_batch_run(self.inst)
+        FHI_aims.fhi_aims_batch_run(self.inst, comm)
 
     def FHI_Aims_Extract(self, comm):
         from evaluation import fhi_aims_modules

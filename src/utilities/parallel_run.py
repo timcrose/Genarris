@@ -136,7 +136,7 @@ def _get_all_processes(command,hostlist=None):
     print_host = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "print_host.py")
     arglist += ["python",print_host]
-    print "This is arglist in _get_all_processes: " + str(arglist)
+    print("This is arglist in _get_all_processes: " + str(arglist))
     
     p = subprocess.Popen(arglist,stdout=subprocess.PIPE)
     time.sleep(2)
@@ -146,11 +146,11 @@ def _get_all_processes(command,hostlist=None):
     try:
         out = str(out,"utf-8") #Python 3
     except:
-	pass
+        pass
 
     hosts = out.split("\n")
     hosts.pop() #Last line empty
-    print "These are the hosts:" + str(hosts)
+    print("These are the hosts:" + str(hosts))
     return hosts
 
 def _partition_processes(processes, nodes_per_partition=None, 
@@ -202,7 +202,7 @@ def _partition_processes(processes, nodes_per_partition=None,
             else:
                 nop = non*ppn
             npp = [int(0+(x%ppn)==0) for x in range(1,nop+1)]
-	    ppp = [ppp]*nop
+        ppp = [ppp]*nop
 
     elif number_of_partitions!=None:
         nop = number_of_partitions
@@ -220,7 +220,7 @@ def _partition_processes(processes, nodes_per_partition=None,
             ppp+= ([hpn/ppn+1]*(hpn%ppn)+[hpn/ppn]*(ppn-(hpn%ppn)))*(non-add)
 
         else:
-	    npp = non / nop
+            npp = non / nop
             add = non % nop
             npp = [npp+1]*add + [npp]*(nop-add)
             ppp = [hpn*x for x in npp]
