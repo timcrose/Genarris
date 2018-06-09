@@ -426,7 +426,7 @@ def closeness_check (struct,inst,napm):
 
 def lattice_vector_generation(struct,inst):
 
-        '''
+    '''
         Reads in the Bravais type of the lattice
         And create a set of Bravais lattice forming a cell with the constrained volume
         Calls diacheck to perform the diagonal rule test on the new cell
