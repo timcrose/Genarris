@@ -1,17 +1,11 @@
-"""
-If any part of this module is used for a publication please cite:
-
-X. Li, F. Curtis, T. Rose, C. Schober, A. Vazquez-Mayagoitia, K. Reuter,
-H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal 
-Structures and Fast Screening with a Harris Approximation, ",
-J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
-"""
 '''
 Created on June 17, 2015
 Author: Patrick Kilecdi
 '''
 import random, copy
+random.seed()
 import numpy as np
+np.random.seed()
 from core import structure_handling
 from core.structure import Structure
 from generation import sgroup
@@ -22,19 +16,6 @@ from utilities.misc import half_gaussian_sampling_upper, \
         retrieve_integer_and_subtract
 from utilities.check_type import *
 from utilities.write_log import print_time_log
-
-
-__author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
-__copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
-                "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
-__credits__ = ["Xiayue Li", "Luca Ghiringhelli", "Farren Curtis", "Tim Rose",
-               "Christoph Schober", "Alvaro Vazquez-Mayagoita",
-               "Karsten Reuter", "Harald Oberhofer", "Noa Marom"]
-__license__ = "BSD-3"
-__version__ = "1.0"
-__maintainer__ = "Timothy Rose"
-__email__ = "trose@andrew.cmu.edu"
-__url__ = "http://www.noamarom.com"
 
 def get_structure_generator_from_inst(inst, sname):
     ucv_target = inst.get_eval(sname, "ucv_target")
@@ -346,6 +327,7 @@ class StructureGenerator():
                 output_structure(
                         self._structure, self._output_dir,
                         self._output_format)
+                self._update_space_group()
                 return self._structure
 
             self._update_generation_counters()
