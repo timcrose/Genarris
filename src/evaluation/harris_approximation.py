@@ -16,6 +16,7 @@ from core import structure, structure_handling, structure_comparison
 from external_libs import matrix_op
 #from external_libs.aimsrotate import rotate
 from aimsutils.rotate import rotate2
+print(rotate2.__file__)
 #from aimsrotate import rotate
 import shutil, os, copy, numpy
 from evaluation import run_aims, utility

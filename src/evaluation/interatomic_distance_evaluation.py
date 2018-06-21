@@ -73,10 +73,10 @@ def _interatomic_distance_evaluation(struct, napm, atomic_pairs,
 
     # Makes deepcopy to avoid numpy's resizing error
     struct = copy.deepcopy(struct)
-    structure_handling.cell_modification(
+    struct = structure_handling.cell_modification(
             struct, struct.get_n_atoms()//napm,
             napm, create_duplicate=False)
-    structure_handling.cell_extension(struct, extension=structure_extension,
+    struct = structure_handling.cell_extension(struct, extension=structure_extension,
             create_duplicate=False)
     
     result = []
