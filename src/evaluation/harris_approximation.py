@@ -447,7 +447,7 @@ def harris_single_run(inst):
 	rotated_dir = os.path.join(working_dir,"harris")
 	r = rotate2.Rotations()
 	r.load_rotations("rotations.in")
-	r.write_restartfile("harris", "restart.combined000")
+	r.write_restartfile("harris")
 #	R = rotate.RotateMixed(working_dir+"/")
 #	R.write_files(folder=rotated_dir)
 
