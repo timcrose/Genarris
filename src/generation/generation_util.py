@@ -51,9 +51,27 @@ def get_structure_generator_from_inst(inst, sname):#, number_of_structures, numb
             sname, "space_groups_allowed", eval=True)
     wyckoff_list = inst.get_with_default(
             sname, "wyckoff_list", [0], eval=True)
-    ucv_ratio_range = inst.get_with_default(
+    vol_est_num_structs = inst.get_or_none(
+            sname, "vol_est_num_structs", eval=True)
+    if vol_est_num_structs is None:
+        ucv_ratio_range = inst.get_with_default(
             sname, "ucv_ratio_range", [1,1], eval=True)
-    ucv_std = inst.get_or_none(sname, "ucv_std", eval=True)
+        #No volume estimate so just use ucv_std instead of ucv_std_after_vol_est
+        ucv_ratio_range_after_vol_est = None
+        ucv_std = inst.get_or_none(sname, "ucv_std", eval=True)
+        #No volume estimate so just use ucv_std instead of ucv_std_after_vol_est
+        ucv_std_after_vol_est = None
+    elif type(vol_est_num_structs) is int:
+        if vol_est_num_structs <= 0:
+            raise ValueError('vol_est_num_structs must be > 0. Current vol_est_num_structs = ',
+                vol_est_num_structs)
+        ucv_ratio_range = inst.get_with_default(
+            sname, 'ucv_ratio_range_vol_est', [0.1,4.0], eval=True)
+        ucv_ratio_range_after_vol_est = inst.get_with_default(
+            sname, 'ucv_ratio_range', [0.9,1.1], eval=True)
+        ucv_std = inst.get_or_none(sname, "ucv_std_vol_est", eval=True)
+        ucv_std_after_vol_est = inst.get_or_none(sname, "ucv_std", eval=True)
+
     p_tolerance = inst.get_with_default(
             sname, "p_tolerance", 0.25, eval=True)
     angle_range = inst.get_with_default(
@@ -109,8 +127,11 @@ def get_structure_generator_from_inst(inst, sname):#, number_of_structures, numb
     check_type_or_none(
             space_groups_allowed, "space_groups_allowed", (int, list))
     check_list(wyckoff_list, "wyckoff_list")
+    check_int_or_none(vol_est_num_structs, "vol_est_num_structs")
     check_list(ucv_ratio_range, "ucv_ratio_range")
+    check_list_or_none(ucv_ratio_range_after_vol_est, "ucv_ratio_range_after_vol_est")
     check_float_or_none(ucv_std, "ucv_std")
+    check_float_or_none(ucv_std_after_vol_est, "ucv_std_after_vol_est")
     check_float(p_tolerance, "p_tolerance")
     check_list(angle_range, "angle_range")
     check_list(ax_variance, "ax_variance")
@@ -149,8 +170,10 @@ def get_structure_generator_from_inst(inst, sname):#, number_of_structures, numb
             ucv_target, nmpc, is_chiral, molecule_path=molecule_path,
             molecule_name=molecule_name, enantiomer_name=enantiomer_name,
             space_groups_allowed=space_groups_allowed,
-            wyckoff_list=wyckoff_list,
-            ucv_ratio_range=ucv_ratio_range, ucv_std=ucv_std,
+            wyckoff_list=wyckoff_list, vol_est_num_structs=vol_est_num_structs,
+            ucv_ratio_range=ucv_ratio_range,
+            ucv_ratio_range_after_vol_est=ucv_ratio_range_after_vol_est,
+            ucv_std=ucv_std, ucv_std_after_vol_est=ucv_std_after_vol_est,
             p_tolerance=p_tolerance, angle_range=angle_range,
             ax_variance=ax_variance, by_variance=by_variance,
             cz_variance=cz_variance, com_dist=com_dist,
@@ -182,7 +205,9 @@ class StructureGenerator():
         self, ucv_target, nmpc, is_chiral, molecule=None, molecule_path=None,
         molecule_name="molecule_original", enantiomer_name="molecule_enantiomer",
         space_groups_allowed=None, wyckoff_list=[0],
-        ucv_ratio_range=[1,1], ucv_std=None,
+        vol_est_num_structs=None,
+        ucv_ratio_range=[1,1], ucv_ratio_range_after_vol_est=None,
+        ucv_std=None, ucv_std_after_vol_est=None,
         p_tolerance=0.25, angle_range=[30,150],
         ax_variance=[0.5,2], by_variance=[0.5,2], cz_variance=[0.5,2],
         com_dist=None, atom_dist=None,
@@ -216,9 +241,19 @@ class StructureGenerator():
         wyckoff_list: If not None, forces the Wyckoff positions chosen;
             Default of [0] forces the molecule to always be placed on the
             general Wyckoff position.
+        vol_est_num_structs: number of structures to use in the volume 
+            estimate. After this number of structures has been generated,
+            the lowest volume then becomes ucv. Default None which means 
+            ucv will always be the target volume.
         ucv_ratio_range: allowed unit cell ratio range; list of two floats
+        ucv_ratio_range_after_vol_est: ucv_ratio_range effective after the number
+            of structs generated is > vol_est_num_structs. Only applicable if
+            vol_est_num_structs is not None
         ucv_std: If not None, enables half-normal distribution (right) to bias
             towards lower volume
+        ucv_std_after_vol_est: ucv_std effective after the number of structs 
+            generated is > vol_est_num_structs. Only applicable if
+            vol_est_num_structs is not None
         p_tolerance: Legacy threshold to determine how skewed a unit cell
             can be
         angle_range: List of two int/floats determining range for angles
@@ -259,6 +294,7 @@ class StructureGenerator():
             structures
         '''
         self._ucv_target = ucv_target
+        self.vol_est_num_structs = vol_est_num_structs
         self._nmpc = nmpc
         self._is_chiral = is_chiral
         self._molecule = molecule
@@ -268,7 +304,9 @@ class StructureGenerator():
         self._space_groups_allowed = space_groups_allowed
         self._wyckoff_list = wyckoff_list
         self._ucv_ratio_range = ucv_ratio_range
+        self._ucv_ratio_range_after_vol_est = ucv_ratio_range_after_vol_est
         self._ucv_std = ucv_std
+        self._ucv_std_after_vol_est = ucv_std_after_vol_est
         self._p_tolerance = p_tolerance
         self._angle_range = angle_range
         self._ax_variance = ax_variance
@@ -345,18 +383,60 @@ class StructureGenerator():
         self._generation_success = False
         self._structure = None
         self._structure_index = -1
+        #vol_est_complete is used because of the ease of I/O communication but
+        # to avoid its pitfall: the # of structs may jump past vol_est_num_structs
+        # so canoot just check if self._structure_index == self.vol_est_num_structs
+        # but instead have to check if self._structure_index >= self.vol_est_num_structs
+        # but don't want to run use_vol_estimate 5000 times.
+        self.vol_est_complete = False
+
+    def use_vol_estimate(self):
+        #Get the lowest volume out of those generated so far as the new 
+        # target volume
+        self._ucv_target = 1000000.0
+        if self._output_format == 'json' or self._output_format == 'both':
+            #use jsons to get volume
+            struct_flist = glob(self._output_dir + '/*.json')
+        elif self._output_format == 'geometry':
+            #Use geometry.in's to get volume
+            struct_flist = glob(self._output_dir + '/*.in')
+        else:
+            raise ValueError('self._output_format must be json, geometry, or both')
+
+        if len(struct_flist) == 0:
+            raise ValueError('len(struct_flist) must be > 0.')
+
+        for fname in struct_flist:
+            tmp_struct = Structure()
+            tmp_struct.loads_try_both(fname)
+                
+            if tmp_struct.get_property('unit_cell_volume') < self._ucv_target:
+                self._ucv_target = tmp_struct.get_property('unit_cell_volume')
+        print_time_log('ucv_target after vol estimate is ' + str(self._ucv_target))
+        
+        self._ucv_ratio_range = self._ucv_ratio_range_after_vol_est
+        self._ucv_std = self._ucv_std_after_vol_est
+        self.vol_est_complete = True
 
     def generate_structure_until_index_or_attempts_zero(self):
         
         #Loops until the number of structures desired are outputted
         # or global stop condition reached
-        
         if self._number_of_attempts is not None:
             while self._structure_index < self._number_of_structures\
                         and self.num_attempts_used < self._number_of_attempts:
+                if self.vol_est_num_structs is not None and \
+                        self._structure_index >= self.vol_est_num_structs and\
+                        self.vol_est_complete == False:
+                    self.use_vol_estimate()
+
                 self.generate_structure()
         else:
             while self._structure_index < self._number_of_structures:
+                if self.vol_est_num_structs is not None and \
+                        self._structure_index >= self.vol_est_num_structs and\
+                        self.vol_est_complete == False:
+                    self.use_vol_estimate()
                 self.generate_structure()
 
     def generate_structure(self):
@@ -385,6 +465,7 @@ class StructureGenerator():
                 output_structure(
                         self._structure, self._output_dir,
                         self._output_format)
+                self._update_space_group()
                 return self._structure
 
             self._update_generation_counters()
@@ -911,10 +992,10 @@ def closeness_check(
     struct = copy.deepcopy(struct)
     if struct.get_n_atoms() % napm != 0:
         raise ValueError("napm does not divide the number of atoms in struct.")
-
+    
     struct = structure_handling.cell_modification(
-            struct, len(struct.geometry)/napm, napm, create_duplicate=False)
-    nmpc = struct.get_n_atoms() / napm
+            struct, int(len(struct.geometry)/napm), napm, create_duplicate=False)
+    nmpc = int(struct.get_n_atoms() / napm)
 
     if not com_dist is None:
         result = structure_handling.COM_distance_check(
@@ -930,7 +1011,7 @@ def closeness_check(
 
     if not sr_proportion is None:
         result = structure_handling.specific_radius_check(struct,
-                                  nmpc=len(struct.geometry)/napm,
+                                  nmpc=int(len(struct.geometry)/napm),
                                   proportion=sr_proportion,
                                   custom_radii=custom_radii,
                                   custom_radii_by_pairs=custom_radii_by_pairs)

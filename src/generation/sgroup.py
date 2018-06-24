@@ -36,9 +36,9 @@ enantiomorphic=set([3,4,5,6,7,8,9,10,11,12,13,14,15])
 
 MAX_AVAILABLE_SPACE_GROUP = 142
 CHIRAL_SPACE_GROUPS = \
-    ([1] + range(3,6) + range(16,25) + range(75,81) + range(89,99) 
-    + range(143,147) + range(149,156) + range(168,174) + range(177,183)
-    + range(195,200) + range(207,215))
+    ([1] + list(range(3,6)) + list(range(16,25)) + list(range(75,81)) + list(range(89,99))
+    + list(range(143,147)) + list(range(149,156)) + list(range(168,174)) + list(range(177,183))
+    + list(range(195,200)) + list(range(207,215)))
 RACEMIC_SPACE_GROUPS = \
     [x for x in range(1, 231) if not x in CHIRAL_SPACE_GROUPS] 
 
@@ -70,7 +70,7 @@ class SpaceGroupManager():
         self._space_group = None
         self._space_group_selected_counter = {}
         self._space_group_user_counter = {}
-        for sg in range(1, MAX_AVAILABLE_SPACE_GROUP + 1):
+        for sg in range(1, int(MAX_AVAILABLE_SPACE_GROUP + 1)):
             self._space_group_selected_counter[sg] = 0
             self._space_group_user_counter[sg] = 0
 
@@ -79,7 +79,7 @@ class SpaceGroupManager():
         if self._space_groups_allowed != None:
             space_group_range = self._space_groups_allowed
         else:
-            space_group_range = range(0, self._maximum_space_group + 1)
+            space_group_range = range(0, int(self._maximum_space_group + 1))
 
         if self._is_chiral:
             space_group_range = \
@@ -2863,11 +2863,11 @@ class Sgroup():
         Need to update wycarr!!!
         '''
         mlist=[]
-        for i in range (0,nmpc+1):
+        for i in range (0, int(nmpc + 1)):
             mlist.append([]) #Initializing mlist
         mlist[0]=[[]] #Provides the nil solution
-        for i in range (0,self.nwyc):
-            for j in range (0,nmpc+1-self.wmult[i]*self.bmult):
+        for i in range (0,int(self.nwyc)):
+            for j in range (0, nmpc + 1 - self.wmult[i] * self.bmult):
                 for k in range (0,len(mlist[j])):
                     mlist[j+self.wmult[i]*self.bmult].append(mlist[j][k]+[i])
         return mlist[nmpc]
@@ -2877,20 +2877,20 @@ class Sgroup():
         Prepare a list of Wyckoff position for placing the molecule
         '''
         self.mlist=[]
-        for i in range (0,nmpc+1):
+        for i in range (0, int(nmpc + 1)):
             self.mlist.append([])
         self.mlist[0]=[[]]
-        for i in range (0,self.nsg):
+        for i in range (0, int(self.nsg)):
             if self.snrep>i:
             #A full knapsack for the repeating Wyckoff Positions
-                for j in range (0,nmpc+1-self.swyc_mult[i]*self.bmult):
+                for j in range (0, int(nmpc + 1 - self.swyc_mult[i] * self.bmult)):
                     for k in range (0,len(self.mlist[j])):
                         self.mlist[j+self.swyc_mult[i]*self.bmult].append(self.mlist[j][k]+[i])
             else:
             #A limited knapsack for the non-repeating Wyckoff positions
-                for j in range (nmpc-self.swyc_mult[i]*self.bmult,-1,-1):
+                for j in range (int(nmpc - self.swyc_mult[i] * self.bmult), -1, -1):
                         #                    print "hello j=",j, mlist[j]
-                    for l in range (1,1+min(self.swycn[i],(nmpc-j)/(self.swyc_mult[i]*self.bmult))):
+                    for l in range (1, int(1 + min(self.swycn[i],(nmpc-j)/(self.swyc_mult[i]*self.bmult)))):
                         for k in range (0,len(self.mlist[j])):
                             self.mlist[j+l*self.swyc_mult[i]*self.bmult].append(self.mlist[j][k]+[i for ll in range (0,l)])
 #        print self.mlist[nmpc]
@@ -2903,13 +2903,13 @@ class Sgroup():
         for i in range (0,len(slist)):
             if slist[i]<self.snrep:
                 wn=int(random.uniform(0,self.swycn[slist[i]]))
-                for j in range (0,slist[i]):
+                for j in range (0, int(slist[i])):
                     wn+=self.swycn[j]
                 wlist.append(wn)
             else:
                 while True:
                     wn=int(random.uniform(0,self.swycn[slist[i]]))
-                    for j in range (0,slist[i]):
+                    for j in range (0, int(slist[i])):
                         wn+=self.swycn[j]
                     if not (wn in wlist):
                         break
@@ -2936,7 +2936,7 @@ def allowed_sg_wyckoff_list(nmpc,wyckoff_list):
     Returns a list of space group that gives the desirable nmpc
     '''
     result = []
-    for i in range (0,MAX_AVAILABLE_SPACE_GROUP):
+    for i in range (0, int(MAX_AVAILABLE_SPACE_GROUP)):
         sg = Sgroup(i)
         if nmpc==sg.wyckoff_counter(wyckoff_list):
             result.append(i)
@@ -2947,7 +2947,7 @@ def allowed_sg_nmpc(nmpc):
     Given nmpc, returns the list of space group that can yield the number
     '''
     result = []
-    for i in range (0,MAX_AVAILABLE_SPACE_GROUP):
+    for i in range (0, int(MAX_AVAILABLE_SPACE_GROUP)):
         sg = Sgroup(i)
         if sg.wyckoff_preparation(nmpc):
             result.append(i)

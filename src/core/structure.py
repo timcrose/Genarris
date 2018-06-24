@@ -20,7 +20,6 @@ import math
 import numpy
 import numpy as np
 import os
-import glob
 
 
 
@@ -340,6 +339,12 @@ class Structure(object):
         self.properties=data_dictionary['properties']
         self.build_geo_whole(convert_array(data_dictionary['geometry']))       
 
+    def json_loads_properties(self,fname):
+        f=open(fname,"r")
+        st=f.read()
+        data_dictionary=json.loads(st)
+        self.properties=data_dictionary['properties']
+
     def loads_try_both(self,fname):
         f=open(fname,"r")
         st = f.read()
@@ -431,49 +436,3 @@ def read_data(filepath, filename=None):
     contents_string = d_file.read()
     d_file.close()
     return contents_string
-
-def get_value_from_key(key_name, jsons_dir):
-    jsons_list = glob.glob(os.path.join(jsons_dir, '*.json'))
-
-    datastore = []
-    for filename in jsons_list:
-        with open(filename, 'r') as f:
-            data = json.load(f)
-
-        datastore.append(data[key_name])
-
-    return datastore
-
-def convert_to_structures(files_to_add, energy_name="energy"):
-    '''
-    Args: List of files to add to collection
-    Returns: List of Structures(),
-    '''
-    struct_list = []
-    for file in files_to_add:
-        struct = Structure()
-        struct.build_geo_from_json_file(file)
-        struct.set_property('file_path', file)
-        struct.set_property('replica', 'init_pool')
-        en = struct.get_property(energy_name)
-        if en is not None:
-            struct.set_property('energy', en)
-        else:
-            print('Warning: Stored energy name, ' + energy_name + ' not found for %s' % \
-                             (file))
-        struct_list.append(struct)
-    return struct_list
-
-def get_struct_coll(jsons_dir, stoic):
-    files_to_add = glob.glob(os.path.join(jsons_dir, '*.json'))
-    struct_ids = get_value_from_key('struct_id', jsons_dir)
-    #make struct objects for each json structure
-    struct_list = convert_to_structures(files_to_add, 'energy')
-
-    if len(struct_ids) != len(struct_list):
-        print('len(struct_ids)', len(struct_ids), 'len(struct_list)', len(struct_list))
-        raise Exception('len(struct_ids) != len(struct_list)')
-
-    struct_coll = [[struct_ids[i], struct_list[i]] for i in range(len(struct_ids))]
-
-    return struct_coll, struct_ids

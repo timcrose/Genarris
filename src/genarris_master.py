@@ -15,8 +15,7 @@ Created on Wed Jun 17 22:13:09 2015
 import os
 import sys,socket
 from core import instruct
-#from utilities import parallel_run, write_log
-from utilities import write_log
+from utilities import write_log#parallel_run, write_log
 from mpi4py import MPI
 import time, random
 
@@ -60,11 +59,9 @@ class Genarris():
         '''
         Interprets the instruction and calls the respective attributes of self.
         '''
-        
         comm = MPI.COMM_WORLD
         world_rank = comm.Get_rank()
         world_size = comm.Get_size()
-        
         #inst_path is sys.argv[-1] aka path/to/ui.conf
         self.inst_path = inst_path
         #Instruct object inherits from SafeConfigParser
@@ -100,7 +97,7 @@ class Genarris():
                 os.path.join(self.working_dir,"Genarris.log"))
         self.inst.set_default(sname, "master_err_path",
                 os.path.join(self.working_dir,"Genarris.err"))
-        
+          
         sys.stdout = open(self.inst.get(sname,"master_log_path"),"a")
         sys.stderr = open(self.inst.get(sname,"master_err_path"),"a")
         write_log.set_global_output(sys.stdout, sys.stderr)
@@ -109,7 +106,7 @@ class Genarris():
                       os.path.realpath(__file__))
         self.inst.set_default(sname,"master_node",
                       socket.gethostname())
-
+        
         procedures = self.inst.get_keywords([[sname,"procedures"]],True)[0]
         
         for section in self.inst.sections():
@@ -126,45 +123,39 @@ class Genarris():
         active_comm = None
         for procedure in procedures:
             comm.barrier()
-            
+
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure
-            try:
+            if active_comm is not None:
                 active_comm.Free()
-            except:
-                pass
             #See if splitting the communicator is necessary. It will be necessary
             # if num_cores != world_size
-            num_cores = int(self.inst.get_with_default(procedure.lower(), 'num_cores', 1, eval=True))
+            num_cores = int(self.inst.get(procedure.lower(), 'num_cores'))
             if num_cores != world_size:
                 if world_rank < num_cores:
                     #This rank will be used in the procedure
                     color = 0
                 else:
                     color = MPI.UNDEFINED
-                #get the communicator corresponding to the non-communicating
-                # processes only
+                #get the communicator corresponding to the active processes only
                 active_comm = comm.Split(color)
                 #Only run with however many ranks desired
                 try:
                     #rank belongs to the set of active ranks
-                    world_rank = active_comm.Get_rank()
+                    rank = active_comm.Get_rank()
                 except:
                     #rank doesn't belong to the set of active ranks
                     continue
-                print('world_rank', world_rank)
                 getattr(self, procedure)(active_comm)
             else:
-                #If num_cores requested is all of them then don't need to split
                 getattr(self, procedure)(comm)
-            
 
-        
+        '''
         comm.barrier()
         end_time = time.time()
-        if world_rank == 0:
+        if rank == 0:
             print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time)
-        
+        '''
 
     def Affinity_Propagation_Analyze_Preference(self, comm):
         from evaluation import affinity
@@ -176,7 +167,7 @@ class Genarris():
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
         from evaluation import affinity
-        affinity.affinity_propagation_fixed_clusters(self.inst, comm)
+        affinity.affinity_propagation_fixed_clusters(self.inst)
 
     def Affinity_Propagation_Fixed_Silhouette(self, comm):
         from evaluation import affinity
@@ -192,11 +183,11 @@ class Genarris():
 
     def FHI_Aims_Single_Run(self, comm):
         from evaluation import run_aims
-        run_aims.fhi_aims_single_run(self.inst, comm)
+        run_aims.aims_single_run(self.inst)
 
     def FHI_Aims_Batch_Run(self, comm):
         from evaluation import FHI_aims
-        FHI_aims.fhi_aims_batch_run(self.inst, comm)
+        FHI_aims.fhi_aims_batch_run(self.inst)
 
     def FHI_Aims_Extract(self, comm):
         from evaluation import fhi_aims_modules
@@ -259,8 +250,8 @@ class Genarris():
         radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
     def RCD_Calculation(self, comm):
-        from evaluation import relative_coordinate_descriptor as rcd
-        rcd.rcd_calculation(self.inst, comm)
+        from evaluation import relative_coordinate_descriptor
+        relative_coordinate_descriptor.rcd_calculation(self.inst)
 
     def RCD_Difference_Compare_Single(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd

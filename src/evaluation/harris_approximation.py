@@ -414,8 +414,8 @@ def harris_approximation_single(inst):
 				if os.path.dirname(os.path.abspath(folder))!=working_dir:
 					shutil.rmtree(os.path.join(working_dir,os.path.basename(folder)),ignore_errors=True)
 		harris_dir = os.path.join(working_dir,"harris")
-		if clean_up == 2 and os.path.isfile(os.path.join(harris_dir,"restart.new000")): #Additional removes restart.neww000
-			os.remove(os.path.join(harris_dir,"restart.new000"))
+		if clean_up == 2 and os.path.isfile(os.path.join(harris_dir,"restart.combined000")): #Additional removes restart.neww000
+			os.remove(os.path.join(harris_dir,"restart.combined000"))
 		if clean_up == 3:
 		#Removes all but aims.out, geometry.in and control.in
 			files = os.listdir(harris_dir)
@@ -447,7 +447,7 @@ def harris_single_run(inst):
 	rotated_dir = os.path.join(working_dir,"harris")
 	r = rotate2.Rotations()
 	r.load_rotations("rotations.in")
-	r.write_restartfile("harris")
+	r.write_restartfile("harris", "restart.combined000")
 #	R = rotate.RotateMixed(working_dir+"/")
 #	R.write_files(folder=rotated_dir)
 

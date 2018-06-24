@@ -19,8 +19,9 @@ Funtions that read in a struct() and necessary arguments, and return a struct()
 """
 import numpy
 import numpy as np
-#from core import structure #!!!!!!
-import structure
+
+from core import structure #!!!!!!
+#import structure
 
 import copy
 #import parameters
@@ -275,33 +276,33 @@ def cm_calculation (struct,atom_list):
 	return cm
 	
 def move_molecule_in (struct,nmpc,create_duplicate=True):
-	'''
-	Translate the molecules by the cell vector such that their center of mass lies within the cell
-	'''
-	if create_duplicate:
-		struct=copy.deepcopy(struct)
-	napm = int(len(struct.geometry)/nmpc)
-        lattice=[struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]]
-	lattice=numpy.transpose(lattice)
-	latinv=numpy.linalg.inv(lattice) 
-	for i in range (nmpc):
-		cm=cm_calculation(struct,range(i*napm,i*napm+napm)) #Calculates the center of mass of the molecule
-		frac=numpy.dot(latinv,cm) #Calculates the fractional coordinate of the center of mass
-		for j in range (0,3): 
-		#Go through the fractional coordinate one at a time to see if any translation is needed
-			lat=lat_interp[j]
-			vec=struct.properties[lat]
-			if (frac[j]<-0.0001):
-				kk=int(-frac[j]+1)
-				for k in range(i*napm,i*napm+napm):
-					for l in range (3):
-						struct.geometry[k][l]+=kk*vec[l]
-			elif (frac[j]>0.99999):
-				kk=int(frac[j]+0.00001)
-				for k in range(i*napm,i*napm+napm):
-					for l in range (3):
-						struct.geometry[k][l]-=kk*vec[l]
-	return struct
+    '''
+    Translate the molecules by the cell vector such that their center of mass lies within the cell
+    '''
+    if create_duplicate:
+        struct=copy.deepcopy(struct)
+    napm = int(len(struct.geometry)/nmpc)
+    lattice=[struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]]
+    lattice=numpy.transpose(lattice)
+    latinv=numpy.linalg.inv(lattice) 
+    for i in range (nmpc):
+        cm = cm_calculation(struct,range(i*napm,i*napm+napm)) #Calculates the center of mass of the molecule
+        frac=numpy.dot(latinv,cm) #Calculates the fractional coordinate of the center of mass
+        for j in range (0,3): 
+            #Go through the fractional coordinate one at a time to see if any translation is needed
+            lat=lat_interp[j]
+            vec=struct.properties[lat]
+            if (frac[j]<-0.0001):
+                kk=int(-frac[j]+1)
+                for k in range(i*napm,i*napm+napm):
+                    for l in range (3):
+                        struct.geometry[k][l]+=kk*vec[l]
+            elif (frac[j]>0.99999):
+                kk=int(frac[j]+0.00001)
+                for k in range(i*napm,i*napm+napm):
+                    for l in range (3):
+                        struct.geometry[k][l]-=kk*vec[l]
+    return struct
 
 def angle(l1,l2):
 	'''
@@ -354,13 +355,13 @@ def atom_distance_check_1(struct,nmpc=None,lowerbound=None):
 	tr=[[0,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0],[0,1,1],[0,1,-1],[0,-1,1],[0,-1,-1],[1,0,0],[-1,0,0],[1,0,1],[1,0,-1],[-1,0,1],[-1,0,-1],[1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0],[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]
 	min_dist=None
 
-	for a1 in range (total_atoms-napm):
+	for a1 in range (int(total_atoms-napm)):
 		for tr_choice in tr:
 			new_apos = [struct.geometry[a1][j]+struct.properties["lattice_vector_a"][j]*tr_choice[0]+struct.properties["lattice_vector_b"][j]*tr_choice[1]+struct.properties["lattice_vector_c"][j]*tr_choice[2] for j in range (3)]
 			if tr_choice == [0,0,0]:
-				start = (a1/napm+1)*napm
+				start = int((a1/napm + 1)*napm)
 			else:
-				start = (a1/napm)*napm #If the molecule is translated, needs to compare with itself
+				start = int((a1/napm)*napm) #If the molecule is translated, needs to compare with itself
 			for a2 in range (start,total_atoms): #Atoms should not be compared to those from the same molecule
 				diff=[struct.geometry[a2][j]-new_apos[j] for j in range (3)]
 				if min_dist==None or numpy.linalg.norm(diff)<min_dist:
@@ -424,7 +425,7 @@ def specific_radius_check(struct,nmpc=None,proportion=None,custom_radii={},custo
 			new_apos = numpy.add(old_apos,
 					     numpy.dot(lv_mat,tr_choice))
 
-			for a2 in [x for x in range (a1-a1%napm,a1-a1%napm+napm)\
+			for a2 in [x for x in range (int(a1 - a1 % napm), int(a1 - a1 % napm + napm)) \
 				   if struct.geometry[x][3] in ra
 				   or (struct.geometry[x][3],struct.geometry[a1][3]) in ra_p
 				   or (struct.geometry[a1][3],struct.geometry[x][3]) in ra_p]:
@@ -451,13 +452,13 @@ def specific_radius_check(struct,nmpc=None,proportion=None,custom_radii={},custo
 		      for z in range(-1,2)]
 
 	struct = move_molecule_in(struct,total_atoms) #Move in to prevent too far away from cell
-	for a1 in [x for x in range (total_atoms-napm) if struct.geometry[x][3] in ra]:
+	for a1 in [x for x in range(int(total_atoms-napm)) if struct.geometry[x][3] in ra]:
 		for tr_choice in tr:
 			old_apos = [struct.geometry[a1][j] for j in range(3)]
 			new_apos = numpy.add(old_apos,
 					     numpy.dot(lv_mat,tr_choice))
 		
-			for a2 in [x for x in range((a1/napm+1)*napm,total_atoms)\
+			for a2 in [x for x in range(int((a1 / napm + 1) * napm), total_atoms) \
 				   if struct.geometry[x][3] in ra
 				   or (struct.geometry[x][3],struct.geometry[a1][3]) in ra_p
 				   or (struct.geometry[a1][3],struct.geometry[x][3]) in ra_p]:
@@ -701,7 +702,7 @@ def main():
 	struct.build_geo_whole_atom_format(f.read())
 	f.close()
 	molecule_COM_move(struct,create_duplicate=False)
-	print struct.get_geometry_atom_format()
+	print(struct.get_geometry_atom_format())
 	
 	
 
