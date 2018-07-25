@@ -19,7 +19,6 @@ from external_libs.filelock import FileLock
 import ast, subprocess
 import utilities.write_log as wl
 
-
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
                 "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
@@ -119,7 +118,13 @@ def aims_single_run (inst):
 			hoststring = hostlist[0]
 			for i in range (1,len(hostlist)):
 				hoststring += ","+hostlist[i]
-			arglist += ["--host",hoststring]
+			if inst.get_with_default('FHI-aims', 'use_host','yes') == 'yes': 
+				mpi_vendor = inst.get_with_default('parallel_settings', 'mpi_vendor',
+                                                                   'intel')
+				if mpi_vendor == 'open_mpi':
+					arglist += ["--host",hoststring]
+				elif mpi_vendor == 'intel':
+					arglist += ["-hosts",hoststring]
 		arglist.append(bin)
 		if info_level>=3:
 			wl.write_master_log(inst,"This is arglist in aims_single_run "+str(arglist))
@@ -198,7 +203,10 @@ def aims_single_run (inst):
 					inst.grant_permission(write_active_path)
 				inst.grant_permission(working_dir)
 				time.sleep(1)
-
+			if p.poll() is None:
+				wl.write_master_log(inst,'p.poll() is None')
+			else:
+				wl.write_master_log(inst,'p.poll() is ' + str(p.poll()))
 			if (os.stat(aimsout).st_size>512):
 				if write_log_enabled:
 					write_log(write_log_path,write_log_name+": Aims calculation begins to output")
@@ -210,6 +218,7 @@ def aims_single_run (inst):
 				write_log(write_log_path,write_log_name+": Aims calculation failed to launch")
 				inst.grant_permission(write_log_path)
 			try:
+				wl.write_master_log(inst,'sending termination signal from run_aims.py 0')
 				p.send_signal(2)
 			except:
 				if write_log_enabled:
@@ -246,6 +255,7 @@ def aims_single_run (inst):
 				write_log(write_log_path,write_log_name+": Aims job hung")
 				inst.grant_permission(write_log_path)
 			try:
+				wl.write_master_log(inst,'sending termination signal from run_aims.py 1')
 				p.send_signal(2)
 			except:
 				if write_log_enabled:

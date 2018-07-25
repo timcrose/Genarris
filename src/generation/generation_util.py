@@ -21,6 +21,7 @@ def get_structure_generator_from_inst(inst, sname):
     ucv_target = inst.get_eval(sname, "ucv_target")
     nmpc = inst.get_eval(sname, "NMPC")
     is_chiral = inst.get_boolean(sname, "is_chiral")
+    is_racemic = inst.get_boolean(sname, "is_racemic")
     molecule_path = inst.get_or_none(sname, "molecule_path")
     molecule_name = inst.get_with_default(
             sname, "molecule_name", "molecule_original", eval=False)
@@ -113,8 +114,12 @@ def get_structure_generator_from_inst(inst, sname):
     print_time_log(
             "Structure generator initialized from section: " + sname)
 
+    if is_chiral and is_racemic:
+        raise ValueError("Specify only one of is_chiral and is_racemic.")
+
     return StructureGenerator(
-            ucv_target, nmpc, is_chiral, molecule_path=molecule_path,
+            ucv_target, nmpc, is_chiral, is_racemic, 
+            molecule_path=molecule_path,
             molecule_name=molecule_name, enantiomer_name=enantiomer_name,
             space_groups_allowed=space_groups_allowed,
             wyckoff_list=wyckoff_list,
@@ -146,7 +151,8 @@ class StructureGenerator():
     This is the master class behind structure generation
     '''
     def __init__(
-        self, ucv_target, nmpc, is_chiral, molecule=None, molecule_path=None,
+        self, ucv_target, nmpc, is_chiral, is_racemic, 
+        molecule=None, molecule_path=None,
         molecule_name="molecule_original", enantiomer_name="molecule_enantiomer",
         space_groups_allowed=None, wyckoff_list=[0],
         ucv_ratio_range=[1,1], ucv_std=None,
@@ -223,6 +229,7 @@ class StructureGenerator():
         self._ucv_target = ucv_target
         self._nmpc = nmpc
         self._is_chiral = is_chiral
+        self._is_racemic = is_racemic
         self._molecule = molecule
         self._molecule_path = molecule_path
         self._molecule_name = molecule_name
@@ -282,7 +289,7 @@ class StructureGenerator():
 
         self._space_group_manager = \
             sgroup.SpaceGroupManager(
-                nmpc, is_chiral,
+                nmpc, is_chiral, is_racemic,
                 wyckoff_list=wyckoff_list,
                 space_groups_allowed=space_groups_allowed)
 
@@ -421,8 +428,10 @@ class StructureGenerator():
     def _update_space_group(self):
         # This method updates all the temporary generation settings
         # as space group change requires unit cell and wyckoff list change
+        #self._space_group = \
+        #    self._space_group_manager.get_space_group_randomly()
         self._space_group = \
-            self._space_group_manager.get_space_group_randomly()
+             self._space_group_manager.get_space_group_uniformly(self._output_dir)
         self._bravais_system = self._space_group.get_bravais_system_type()
         self._update_wyckoff_list()
         self._update_unit_cell()

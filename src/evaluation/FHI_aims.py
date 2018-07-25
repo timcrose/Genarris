@@ -18,7 +18,6 @@ from core.structure import Structure
 from utilities import parallel_run, misc
 import copy
 
-
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
                 "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
@@ -357,6 +356,7 @@ def _handle_hung_job(job):
     '''
     p = job[2]; calc_path = job[3]
     try:
+	print('sending termination signal from FHI_aims.py 0')
         p.send_signal(2)
     except:
         pass
@@ -383,6 +383,7 @@ def _handle_failed_launch(job):
 
     p = job[2]; calc_path = job[3]
     try:
+	print('sending termination signal from FHI_aims.py 1')
         p.send_signal(2)
     except:
         pass

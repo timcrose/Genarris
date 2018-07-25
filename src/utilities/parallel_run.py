@@ -128,7 +128,12 @@ def _get_all_processes(command,hostlist=None):
     arglist = [command]
     if hostlist!=None:
         if command == "mpirun":
-            arglist += ["--host",",".join(map(str,hostlist))]
+            if inst.get('FHI-aims', 'use_host') == 'yes':
+                mpi_vendor = inst.get('parallel_settings', 'mpi_vendor')
+                if mpi_vendor == 'open_mpi':
+                    arglist += ["--host",",".join(map(str,hostlist))]
+                elif mpi_vendor == 'intel':
+                    arglist += ["-host",",".join(map(str,hostlist))]
         elif command == "srun":
             arglist += ["-w",",".join(map(str,hostlist))]
 
@@ -262,7 +267,13 @@ def _mpirun_arguments(partition):
     '''
     Given a partition, returns the proper arguments to set to mpirun
     '''
-    args = ["-host",",".join(map(str,[x[0] for x in partition]))]
+    if inst.get('FHI-aims', 'use_host') == 'yes':
+        mpi_vendor = inst.get('parallel_settings', 'mpi_vendor')
+        if mpi_vendor == 'open_mpi':
+            args = ["--host",",".join(map(str,[x[0] for x in partition]))]
+        elif mpi_vendor == 'intel':
+            args = ["-host",",".join(map(str,[x[0] for x in partition]))]
+
     args += ["-n",str(sum([x[1] for x in partition]))]
     return args 
 

@@ -14,7 +14,7 @@ This module stores information for the space group
 sgroup.wycgen generate a random fractional coordinate sitting on a Wyckoff position
 sgroup.wycarr produces a list of Wyckoff position arrangements that add up to nmpc of molecules per cell
 """
-import random
+import random, glob, os, json
 from utilities.write_log import print_time_log
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -43,7 +43,7 @@ RACEMIC_SPACE_GROUPS = \
 
 class SpaceGroupManager():
     def __init__(
-        self, nmpc, is_chiral, wyckoff_list=[0],
+        self, nmpc, is_chiral, is_racemic, wyckoff_list=[0],
         space_groups_allowed=None):
         '''
         nmpc: Number of molecule per cell; allowed space group must have Wyckoff
@@ -62,6 +62,7 @@ class SpaceGroupManager():
         self._racemic_space_groups = RACEMIC_SPACE_GROUPS
         self._nmpc = nmpc
         self._is_chiral = is_chiral
+        self._is_racemic = is_racemic
         self._wyckoff_list = wyckoff_list
         self._space_groups_allowed = space_groups_allowed
         self._deduce_allowed_space_groups()
@@ -84,10 +85,14 @@ class SpaceGroupManager():
             space_group_range = \
                 [sg for sg in space_group_range
                     if sg in self._chiral_space_groups]
-        else:
+        elif self._is_racemic:
             space_group_range = \
                 [sg for sg in space_group_range
                     if sg in self._racemic_space_groups]
+        else:
+            # No limitations placed on space groups
+            space_group_range = \
+                [sg for sg in range(1,MAX_AVAILABLE_SPACE_GROUP+1)]
         
         self._space_group_range = []
         if (self._wyckoff_list != None):
@@ -113,6 +118,48 @@ class SpaceGroupManager():
                          str(self._space_groups_allowed)))
         print_time_log("Space group range from input: " +
                 " ".join(map(str, self._space_group_range)))
+
+    def get_space_group_uniformly(self, output_dir):
+        '''
+        output_dir: str
+            path to structures being generated and outputted.
+        return: int
+            space group to try next.
+        Purpose: Get an under-represented space group number in the current
+            pool to promote uniform sampling of space groups.
+        '''
+        #First, let there be a small probability of selecting a random
+        # space group rather than making sure a least-represented
+        # space group is selected
+        if random.random() < 0.10:
+            self._space_group = self.get_space_group_randomly()
+            return self._space_group
+            
+        #Get the space group distribution so far in the pool.
+        struct_flist = glob.glob(os.path.join(output_dir, '*.json'))
+        #Get list of space groups so far in the pool.
+        sg_list_in_pool = []
+        for struct_file in struct_flist:
+            with open(struct_file) as f:
+                struct_data = json.load(f)
+                sg_list_in_pool.append(int(struct_data['properties']['space_group']))
+        #Get counts of each space group
+        sg_counts_list = [sg_list_in_pool.count(sg_allowed) for sg_allowed in self._space_group_range]
+        #Choose randomly from one of the least represented space groups.
+        least_represented_sg_count = min(sg_counts_list)
+        indicies_of_least_represented_sgs = [i for i, count in enumerate(sg_counts_list) if count == least_represented_sg_count]
+        sg_group_range_index = indicies_of_least_represented_sgs[random.randint(0, len(indicies_of_least_represented_sgs) - 1)]
+        sg = self._space_group_range[sg_group_range_index]
+
+        self._space_group = Sgroup(sg)
+        self._space_group.wyckoff_preparation(self._nmpc)
+        if not self._is_wyckoff_list_fixed:
+            self._wyckoff_list = \
+                self._space_group.wyckoff_selection(self._nmpc)
+
+        self._space_group_selected_counter[sg] += 1
+        return self._space_group
+
 
     def get_space_group_randomly(self):
         sg = self._space_group_range[

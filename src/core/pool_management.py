@@ -947,6 +947,7 @@ class Relax():
 			outfile.close()
 			write_log("Replica %s failed to launch aims job." % self.replica)
 			try:
+				write_log('sending termination signal from pool_management.py 0')
 				p.send_signal(2)
 			except:
 				write_log("Replica %s process no longer exists ; kill failure ; possible nodes failure" % self.replica)
@@ -971,6 +972,7 @@ class Relax():
 		if counter==60:
 			try:
 				write_log("Replica %s aims job hung for some reason." % self.replica)
+				write_log('sending termination signal from pool_management.py 1')
 				p.send_signal(2)
 				active_sleep(60,self.working_dir)
 			except:

@@ -63,11 +63,12 @@ def rcd_calculation(inst):
             name=sname, args=op_args,
             kwargs=op_kwargs, **kwargs)
     result = op.run()
+    #result is ((struct, rcd_vector),...)
 
     if output_info_file != None:
         _rcd_calculation_callback(
                 result, output_info_file)
-
+    
     return result
 
 def _rcd_calculation(struct, napm, axes, close_picks=16, property_name="rcd"):

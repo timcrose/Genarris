@@ -28,6 +28,7 @@ output h_s_matrices
 #k_grid 			    1 1 1
  KS_method scalapack
  rotated_restart                    .true.
+ #force_single_restart_file          .true.
  restart_write_only                 h_kv
 # restart_read_only rotate.new
  

@@ -243,7 +243,8 @@ class AffinityPropagationExecutor(PoolOperation):
                     % (iter_n, pref, result_num))
             self._print_result_summary(result)
 
-            if result_num == num_of_clusters:
+            if result_num <= (num_of_clusters+num_of_clusters_tolerance) \
+                          and result_num >= (num_of_clusters-num_of_clusters_tolerance):
                 break
             if result_num > num_of_clusters:
                 pref_u = pref

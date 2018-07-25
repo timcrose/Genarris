@@ -32,7 +32,7 @@ def get_parallel_run_args(inst, section):
             section, "parallel_run_command",
             ["python", "$MASTER", "$CONF"], eval=True)
     parallel_run_instances = inst.get_with_default(
-            section, "parallel_run_instances", 5, eval=True)
+            section, "processes_limit", 5, eval=True)
     tmp_dir = inst.get_tmp_dir(section)
     tmp_dir_clean_up = inst.get_boolean(section, "tmp_dir_clean_up")
     return (parallel_run_command, parallel_run_instances,
