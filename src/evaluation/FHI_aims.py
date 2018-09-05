@@ -90,19 +90,20 @@ def conduct_relaxation(structure_folder, structure_suffix,
     else:
         partitions = [(nodes_per_partition, processes_per_node)]*number_of_partitions    
 
-    print "Number of partitions: ", number_of_partitions
-    print "These are partitions; ", partitions
+    print("Number of partitions: ", number_of_partitions)
+    print("These are partitions; ", partitions)
     jobs = []
     for i in range(len(partitions)):
         struct, struct_path = _get_structure(structure_folder, structure_suffix)
-        if struct == False:
+        if struct is False:
+            print('struct at path ' + struct_path + ' is False')
             break
         job, calc_path, outfile, errfile = _submit_job(struct, struct_path,
                                                        binary_path, control_path,
                                                        tmp_folder, job_command, partitions[i],
                                                        additional_args)
         jobs.append([struct, struct_path, job, calc_path, time.time(), 0, outfile, errfile])
-        print "Job submitted!"
+        print("Job submitted!")
 
 
     launch_fails = [0]*len(partitions)
@@ -110,12 +111,12 @@ def conduct_relaxation(structure_folder, structure_suffix,
     while _is_running(jobs):
         for i in range(len(jobs)):
             j = jobs[i]
-            if j==None:
+            if j is None:
                 continue
 
             misc.write_active(j[3]) #Prevent this folder from being scavenged
 
-            if j[2].poll()!=None: #Job completed
+            if j[2].poll() is not None: #Job completed
 
                 _conclude_job(j, output_folder, output_format, output_suffix,
                               energy_key=energy_key, clean_tmp=clean_tmp)
@@ -136,7 +137,7 @@ def conduct_relaxation(structure_folder, structure_suffix,
                     _handle_hung_job(j)
                     jobs[i] = None
                 
-            if jobs[i] == None and launch_fails[i]<10:
+            if jobs[i] is None and launch_fails[i]<10:
                 struct, struct_path = _get_structure(structure_folder,
                                                      structure_suffix)
                 if struct==False:
@@ -256,20 +257,25 @@ def _submit_job(struct, struct_path, binary, control_path, tmp_folder,
     '''
     Submits an FHI-aims job
     '''
-    if struct.struct_id!=None:
+    if struct.struct_id is not None:
         name = struct.struct_id + "_" + misc.get_random_index()
     else:
         name = misc.get_random_index()
 
     calc_path = os.path.abspath(os.path.join(tmp_folder,name))
-    print "This is calc_path: " + calc_path
+    print("This is calc_path: " + calc_path)
     misc.safe_make_dir(calc_path)
-    
+
     f = open(os.path.join(calc_path, "geometry.in"),"w")
-    f.write(struct.get_geometry_atom_format())
+    geo_string = struct.get_geometry_atom_format()
+    geo_string_no_newlines = geo_string.split('\n')
+    for i,line in enumerate(geo_string_no_newlines):
+        f.write(line)
+        if i != len(geo_string_no_newlines) - 1:
+            f.write('\n')
     f.close()
 
-    print "This is control_path: ", control_path
+    print("This is control_path: ", control_path)
     shutil.copyfile(control_path,os.path.join(calc_path,"control.in"))
 
     f = open(os.path.join(calc_path, "struct.info"),"w")
@@ -280,23 +286,23 @@ def _submit_job(struct, struct_path, binary, control_path, tmp_folder,
 
     args = [job_command]
     if job_command == "mpirun":
-        if partition!=None:
+        if partition is not None:
             args += parallel_run._mpirun_arguments(partition)
         args += ["-wdir", calc_path]
         if additional_args!=None:
             args += additional_args
         args.append(binary)
     elif job_command == "aprun":
-        if partition!=None:
+        if partition is not None:
             args += parallel_run._aprun_arguments(partition)
-        if additional_args!=None:
+        if additional_args is not None:
             args += additional_args
         args.append(binary) 
     
     
     aimsout = open(os.path.join(calc_path,"aims.out"),"w")
     aimserr = open(os.path.join(calc_path,"aims.err"),"w")
-    print "Submitting job: ", " ".join(map(str,args))
+    print("Submitting job: ", " ".join(map(str,args)))
     current_dir = os.getcwd()
     os.chdir(calc_path)
     p = subprocess.Popen(args, stdout=aimsout, stderr=aimserr)

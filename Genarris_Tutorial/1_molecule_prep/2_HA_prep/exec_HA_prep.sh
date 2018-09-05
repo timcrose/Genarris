@@ -1,1 +1,2 @@
-python /home/tutor/Genarris/src/genarris_master.py harris_molecule_preparation.conf
+module load genarris
+python ${genarris_master} harris_molecule_preparation.conf

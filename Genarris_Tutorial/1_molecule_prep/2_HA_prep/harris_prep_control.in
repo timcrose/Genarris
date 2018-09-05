@@ -24,7 +24,7 @@ vdw_correction_hirshfeld
 
 # For rotated restarts:
 
- KS_method scalapack
+ KS_method parallel
  force_single_restartfile           .true.
  restart_write_only                 h_kv
  

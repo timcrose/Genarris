@@ -94,6 +94,8 @@ def molecule_harris_info_prep(trans,orien):
     Generate the molecule_harris_info character of the structure given by trans and orien
     '''
     if round(numpy.linalg.det(orien)) == -1:
+        # is_enantiomer = False
+        # COMMENTING THIS OUT BECAUSE WE AREN'T RUNNING ENANTIOMERS
         is_enantiomer = True
         orien = numpy.dot(orien,[[1,0,0],[0,1,0],[0,0,-1]])
     else:

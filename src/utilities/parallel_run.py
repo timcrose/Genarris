@@ -126,21 +126,16 @@ def _get_all_processes(command,hostlist=None):
     if command!="mpirun" and command!="srun":
         raise ValueError("Unsupported command for get_all_hosts; only supporting mpirun and srun")
     arglist = [command]
-    if hostlist!=None:
+    if hostlist is not None:
         if command == "mpirun":
-            if inst.get('FHI-aims', 'use_host') == 'yes':
-                mpi_vendor = inst.get('parallel_settings', 'mpi_vendor')
-                if mpi_vendor == 'open_mpi':
-                    arglist += ["--host",",".join(map(str,hostlist))]
-                elif mpi_vendor == 'intel':
-                    arglist += ["-host",",".join(map(str,hostlist))]
+            arglist += ["-host",",".join(map(str,hostlist))]
         elif command == "srun":
             arglist += ["-w",",".join(map(str,hostlist))]
 
     print_host = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "print_host.py")
     arglist += ["python",print_host]
-    print "This is arglist in _get_all_processes: " + str(arglist)
+    print("This is arglist in _get_all_processes: " + str(arglist))
     
     p = subprocess.Popen(arglist,stdout=subprocess.PIPE)
     time.sleep(2)
@@ -179,7 +174,7 @@ def _partition_processes(processes, nodes_per_partition=None,
         else:
             ppp = npp*hpn
 
-        if number_of_partitions!=None:
+        if number_of_partitions is not None:
             nop = number_of_partitions
         else:
             nop = non/npp
@@ -267,12 +262,7 @@ def _mpirun_arguments(partition):
     '''
     Given a partition, returns the proper arguments to set to mpirun
     '''
-    if inst.get('FHI-aims', 'use_host') == 'yes':
-        mpi_vendor = inst.get('parallel_settings', 'mpi_vendor')
-        if mpi_vendor == 'open_mpi':
-            args = ["--host",",".join(map(str,[x[0] for x in partition]))]
-        elif mpi_vendor == 'intel':
-            args = ["-host",",".join(map(str,[x[0] for x in partition]))]
+    args = ["-host",",".join(map(str,[x[0] for x in partition]))]
 
     args += ["-n",str(sum([x[1] for x in partition]))]
     return args 
