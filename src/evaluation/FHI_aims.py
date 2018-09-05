@@ -96,7 +96,7 @@ def conduct_relaxation(structure_folder, structure_suffix,
     for i in range(len(partitions)):
         struct, struct_path = _get_structure(structure_folder, structure_suffix)
         if struct is False:
-            print('struct at path ' + struct_path + ' is False')
+            print('Warning, struct is False in conduct_relaxation.')
             break
         job, calc_path, outfile, errfile = _submit_job(struct, struct_path,
                                                        binary_path, control_path,
