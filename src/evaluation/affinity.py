@@ -175,7 +175,7 @@ class AffinityPropagationExecutor(PoolOperation):
         if len(dist_mat) != len(dist_mat[0]):
             raise ValueError("Distance matrix is not a square matrix: "
                     + self._dist_mat_input_file + 'has dimensions: '+ 
-                    len(dist_mat) + 'x' + len(dist_mat[0]))
+                    str(len(dist_mat)) + 'x' + str(len(dist_mat[0])))
 
         m = len(dist_mat)
         self._distance_matrix = dist_mat
