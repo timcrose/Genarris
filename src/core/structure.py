@@ -19,7 +19,10 @@ import json
 import math
 import numpy
 import numpy as np
-import os
+import os, glob
+
+from pymatgen import Lattice as LatticeP
+from pymatgen import Structure as StructureP
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -305,19 +308,26 @@ class Structure(object):
     def dumps(self):
         if "lattice_vector_a" in self.properties:
             self.properties["lattice_vector_a"] == \
-                    list(self.properties["lattice_vector_a"])               
+                    list(map(float,self.properties["lattice_vector_a"]))          
         if "lattice_vector_b" in self.properties:
             self.properties["lattice_vector_b"] == \
-                    list(self.properties["lattice_vector_b"])
+                    list(map(float, self.properties["lattice_vector_b"]))
         if "lattice_vector_c" in self.properties:
             self.properties["lattice_vector_c"] == \
-                    list(self.properties["lattice_vector_c"])
+                    list(map(float, self.properties["lattice_vector_c"]))
+        for prop in self.properties:
+            try:
+                if int(self.properties[prop]) == self.properties[prop]:
+                    self.properties[prop] = int(self.properties[prop])
+            except:
+                pass
  
         data_dictionary = {}
         data_dictionary['properties'] = self.properties
         data_dictionary['struct_id'] = self.struct_id
         data_dictionary['input_ref'] = self.input_ref
         data_dictionary['geometry'] = self.geometry.tolist()
+        #print('data_dictionary', data_dictionary, type(data_dictionary))
         return json.dumps(data_dictionary, indent=4)
         
     def loads(self, json_string):
@@ -429,3 +439,43 @@ def read_data(filepath, filename=None):
     contents_string = d_file.read()
     d_file.close()
     return contents_string
+
+def get_value_from_key(key_name, jsons_dir):
+    jsons_list = glob.glob(os.path.join(jsons_dir, '*.json'))
+
+    datastore = []
+    for filename in jsons_list:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+
+        datastore.append(data[key_name])
+
+    return datastore
+
+def convert_to_structures(files_to_add):
+    '''
+    Args: List of files to add to collection
+    Returns: List of Structures(),
+    '''
+    struct_list = []
+    for file in files_to_add:
+        struct = Structure()
+        struct.build_geo_from_json_file(file)
+        struct.set_property('file_path', file)
+        struct.set_property('replica', 'init_pool')
+        struct_list.append(struct)
+    return struct_list
+
+def get_struct_coll(jsons_dir, stoic):
+    files_to_add = glob.glob(os.path.join(jsons_dir, '*.json'))
+    struct_ids = get_value_from_key('struct_id', jsons_dir)
+    #make struct objects for each json structure
+    struct_list = convert_to_structures(files_to_add)
+
+    if len(struct_ids) != len(struct_list):
+        print('len(struct_ids)', len(struct_ids), 'len(struct_list)', len(struct_list))
+        raise Exception('len(struct_ids) != len(struct_list)')
+
+    struct_coll = [[struct_ids[i], struct_list[i]] for i in range(len(struct_ids))]
+
+    return struct_coll, struct_ids

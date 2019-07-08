@@ -115,8 +115,8 @@ def load_structure_with_inst(inst,section,option="structure_format",structure_pa
     Raise ValueError if the option exists but is not geometry or json
     Return structure if successfully loaded; return False if not
     '''
-    if structure_path == None:
-        inst.get(section,"structure_path")
+    if structure_path is None:
+        structure_path = inst.get(section,"structure_path")
     f = open(structure_path,"r")
     st = f.read()
     f.close()
@@ -145,7 +145,7 @@ def load_structure_with_inst(inst,section,option="structure_format",structure_pa
                 return False
         else:
             return False
-    if struct.struct_id == None:
+    if struct.struct_id is None:
         if inst.has_option(section,"structure_suffix"):
             struct.struct_id = os.path.split(structure_path)[-1][:-len(inst.get(section,"structure_suffix"))]
         else:

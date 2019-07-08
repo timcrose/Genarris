@@ -19,8 +19,8 @@ Funtions that read in a struct() and necessary arguments, and return a struct()
 """
 import numpy
 import numpy as np
-#from core import structure #!!!!!!
-import structure
+from core import structure
+from utilities import radius
 
 import copy
 #import parameters
@@ -89,17 +89,17 @@ def cell_reflection_x(struct,create_duplicate=True):
 def cell_rotation(struct,vec=None,theta_deg=None,theta_rad=None,phi_deg=None,phi_rad=None,origin=[0,0,0],deg=None,rad=None,create_duplicate=True):
 	if create_duplicate:
 		struct=copy.deepcopy(struct)    
-	if (deg==None) and (rad==None):
+	if (deg is None) and (rad is None):
 		return False
-	if (vec==None) and (((theta_deg==None) and (theta_rad==None)) or ((phi_deg==None) and (phi_rad==None))):
+	if (vec is None) and (((theta_deg is None) and (theta_rad is None)) or ((phi_deg is None) and (phi_rad is None))):
 		return False
-	if rad==None:
+	if rad is None:
 		rad=numpy.deg2rad(deg)
-	if (theta_rad==None) and (theta_deg!=None):
+	if (theta_rad is None) and (theta_deg!=None):
 		theta_rad=numpy.deg2rad(theta_deg)
-	if (phi_rad==None) and (phi_deg!=None):
+	if (phi_rad is None) and (phi_deg!=None):
 		phi_rad=numpy.deg2rad(phi_deg)
-	if vec==None:
+	if vec is None:
 		vec=[numpy.sin(phi_rad)*numpy.cos(theta_rad),numpy.sin(phi_rad)*numpy.sin(theta_rad),numpy.cos(phi_rad)]
 	else:
 		l=(vec[0]**2+vec[1]**2+vec[2]**2)**0.5
@@ -233,11 +233,11 @@ def mole_translation(struct,mn,napm,vec=None,frac=None,create_duplicate=True):
 	Translates molecule #mn by a vector
 	Vector expressed as in absolute coordinate (vec) or fractional coordinate (frac)
 	'''
-	if (vec==None) and (frac==None):
+	if (vec is None) and (frac is None):
 		raise RuntimeError("Please input at least one type of translation vector into structure_handling.mole_translation")
 	if create_duplicate:
 		struct=copy.deepcopy(struct)
-	if vec==None:
+	if vec is None:
 		vec=[0,0,0]
 		for i in range (3):
 			for j in range (3):
@@ -277,10 +277,12 @@ def move_molecule_in (struct,nmpc,create_duplicate=True):
 	'''
 	Translate the molecules by the cell vector such that their center of mass lies within the cell
 	'''
+	if nmpc is not None:
+		nmpc = int(nmpc)
 	if create_duplicate:
 		struct=copy.deepcopy(struct)
 	napm = int(len(struct.geometry)/nmpc)
-        lattice=[struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]]
+	lattice=[struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]]
 	lattice=numpy.transpose(lattice)
 	latinv=numpy.linalg.inv(lattice) 
 	for i in range (nmpc):
@@ -308,39 +310,299 @@ def angle(l1,l2):
 	'''
 	return (numpy.rad2deg(numpy.arccos(numpy.dot(l1,l2)/(numpy.linalg.norm(l1)*numpy.linalg.norm(l2)))))
 
+def full_nearest_image(struct, nmpc=2, lowerbound=None, 
+                         enable_timings=False):
+    '''
+    Purpose:
+        Computes full nearest image convention for all molecules in the cell
+          excluding the molecules own image to itself. 
+    lowerbound: (min_dist, min_sr)
+    '''
+    if nmpc is not None:
+        nmpc = int(nmpc)
+    if enable_timings:
+        start_time = time.time()
+    total_atoms=len(struct.geometry)
+    napm = int(total_atoms / nmpc)
+    
+    radius_list = []
+    for i in range(0,total_atoms):
+        radius_list.append(radius.radius[struct.geometry[i][3]])
+    '''
+    lattice_vector_a = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_a']])
+    lattice_vector_b = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_b']])
+    lattice_vector_c = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_c']])
+    '''
+    lattice_vector_a = np.array(struct.properties['lattice_vector_a'])
+    lattice_vector_b = np.array(struct.properties['lattice_vector_b'])
+    lattice_vector_c = np.array(struct.properties['lattice_vector_c'])
+    lattice_matrix = np.array([lattice_vector_a, 
+                               lattice_vector_b,
+                               lattice_vector_c]).T
+    inverse_lattice_matrix = np.linalg.inv(lattice_matrix)
+        
+    evaluations = 0
+    dist_list = []
+    sr_list = []
+    # Don't need to compute for the last molecule
+    for a1 in range(0, total_atoms-napm):
+        a1_radius = radius_list[a1 % napm]
+        a1_position = np.array([struct.geometry[a1][0],
+                                struct.geometry[a1][1],
+                                struct.geometry[a1][2]])
+        a1_molecule = int(a1 / napm)
+        next_molecule_index = (a1_molecule+1)*napm
+        # Compare a1 to all further molecules in upper triange
+        for a2 in range(next_molecule_index, total_atoms):
+            a2_radius = radius_list[a2 % napm]
+            a2_position = np.array([struct.geometry[a2][0],
+                                    struct.geometry[a2][1],
+                                    struct.geometry[a2][2]])
+            distance_vector = a2_position - a1_position
+            distance_crystal_basis = np.dot(inverse_lattice_matrix,
+                                            distance_vector)
+
+            for i,entry in enumerate(distance_crystal_basis):
+                if entry > 0.50:
+                    a2_position -= lattice_matrix[:,i]
+                elif entry < -0.50:
+                    a2_position += lattice_matrix[:,i]
+                                
+            # Calculate the final distance
+            final_dist = np.linalg.norm(a2_position - a1_position)
+            dist_list.append(final_dist)
+            
+            sum_radius = a1_radius+a2_radius
+            final_sr = final_dist / sum_radius
+            sr_list.append(final_sr)
+            
+            if lowerbound:
+                if lowerbound[0]:
+                    if final_dist < lowerbound[0]:
+                        return False
+                        #return(np.min(dist_list),np.min(sr_list))
+                if lowerbound[1]:
+                    if final_sr < lowerbound[1]:
+                        return False
+                        #return(np.min(dist_list),np.min(sr_list))
+                
+            evaluations += 1
+    
+    if enable_timings:
+        end_time = time.time()
+        print('Full nearest image: {} for {}'
+              .format(end_time - start_time, evaluations))
+
+    return True
+
+def calc_atom_dist_manny(struct, nmpc=None, lowerbound=None, 
+                         enable_timings=False):
+    '''
+    Purpose:
+        Constructs full supercell and compares intermolecular distances 
+          in the supercell using vertorized calculations.
+    '''
+    if nmpc is not None:
+        nmpc = int(nmpc)
+    if enable_timings:
+        start_time = time.time()
+        
+    total_atoms=len(struct.geometry)
+    napm = int(total_atoms / nmpc)
+    
+    if lowerbound:
+        atom_dist = lowerbound[0]
+        sr = lowerbound[1]
+
+    # Array for translations to construct supercell
+    tr=[[0,0,0],[0,0,1],[0,0,-1],
+        [0,1,0],[0,-1,0],[0,1,1],
+        [0,1,-1],[0,-1,1],[0,-1,-1],
+        [1,0,0],[-1,0,0],[1,0,1],
+        [1,0,-1],[-1,0,1],[-1,0,-1],
+        [1,1,0],[1,-1,0],[-1,1,0],
+        [-1,-1,0],[1,1,1],[1,1,-1],
+        [1,-1,1],[1,-1,-1],[-1,1,1],
+        [-1,1,-1],[-1,-1,1],[-1,-1,-1]]
+    
+    # Prepring array of the atoms in a single molecule
+    atom_list = []
+    radius_list = []
+    for i in range(0,total_atoms):
+        radius_list.append(radius.radius[struct.geometry[i][3]])
+#        atom_list.append(struct.geometry[i][3])
+        
+    
+    # Preparing numpy array of the current geometry
+    current_geometry = np.array([struct.geometry[0][0],
+                                 struct.geometry[0][1],
+                                 struct.geometry[0][2]]).reshape(1,3)
+    for atom in range(1,len(struct.geometry)):
+        coords = np.array([struct.geometry[atom][0], 
+                           struct.geometry[atom][1],
+                           struct.geometry[atom][2]]).reshape(1,3)
+        current_geometry = np.append(current_geometry, coords, axis=0)
+#    print(current_geometry)
+    # Checking all distances in current geometry
+    rows = current_geometry.shape[0]
+    x_matrix = np.repeat(current_geometry[:,0].reshape(rows,1),rows, axis=1)
+    y_matrix = np.repeat(current_geometry[:,1].reshape(rows,1),rows, axis=1)
+    z_matrix = np.repeat(current_geometry[:,2].reshape(rows,1),rows, axis=1)
+    x_dist = np.square(x_matrix - x_matrix.T)
+    y_dist = np.square(y_matrix - y_matrix.T)
+    z_dist = np.square(z_matrix - z_matrix.T)
+    # I just changes np.power(,0.5) to np.sqrt and save 30% of time!
+    current_dist = np.sqrt(x_dist + y_dist + z_dist)
+
+    # Extracting sr from current geometry
+    columns = x_dist.shape[1]
+    current_intermolecular_dist = []
+    current_atom_dist = []
+    current_sr_proportion = []
+    for row in range(0, napm * (nmpc - 1)):
+        molecule = int(row/napm)+1
+        atom_row = radius_list[row % napm]
+        for column in range(napm*molecule, columns):
+            total_dist = current_dist[row,column]
+            current_atom_dist.append(total_dist)
+            # Calculate sr sum list
+            atom_column = radius_list[column % napm]
+            sum_radius = atom_row + atom_column
+            current_sr_proportion.append(total_dist / sum_radius)
+    
+    current_min_atom_dist = np.min(current_atom_dist)
+    current_min_sr_proportion = np.min(current_sr_proportion)
+    
+    if enable_timings:
+        current_geo_time = time.time()
+        print('Time to evaluate current geometry: {}'
+              .format(current_geo_time - start_time))
+
+    if current_min_atom_dist < atom_dist or current_min_sr_proportion < sr:
+        print('Exited on unit cell geometry check with atom dist '
+              '{} and sr {}'.format(current_min_atom_dist, current_min_sr_proportion))
+        return (current_min_atom_dist, current_min_sr_proportion)
+
+    # Preparing lattice vectors for translations to geometry
+    lattice_vector_a = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_a']])
+    lattice_vector_b = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_b']])
+    lattice_vector_c = np.array([x if abs(x)>0.000001 else 0 
+                                 for x in struct.properties['lattice_vector_c']])
+    lattice_matrix = np.array([lattice_vector_a, 
+                               lattice_vector_b,
+                               lattice_vector_c]).T
+    #print(lattice_matrix)
+    # Preparing super cell
+    tr.remove([0,0,0])
+    super_cell = current_geometry
+    for translation in tr:
+        final_trans = np.sum(np.dot(lattice_matrix, np.diag(translation)), 
+                             axis=1)
+        super_cell = np.append(super_cell, current_geometry+final_trans, 
+                               axis=0)
+    num_supercell_atoms = super_cell.shape[0]
+       
+    # Until here takes 0.002 seconds, which is <2% of total calculation
+    if enable_timings:
+        super_cell_time = time.time()
+        print('Supercell construction took {}'
+              .format(super_cell_time - start_time))    
+    
+    # This part takes 0.02 seconds which is 20% of entire calculation
+    rows = super_cell.shape[0]
+    x_matrix = np.repeat(super_cell[:,0].reshape(rows,1),rows, axis=1)
+    y_matrix = np.repeat(super_cell[:,1].reshape(rows,1),rows, axis=1)
+    z_matrix = np.repeat(super_cell[:,2].reshape(rows,1),rows, axis=1)
+    
+    if enable_timings:
+        mid_time = time.time()
+        print('Setup for calculation has completed in {}'
+              .format(mid_time - super_cell_time))
+    
+    x_dist = np.square(x_matrix - x_matrix.T)
+    y_dist = np.square(y_matrix - y_matrix.T)
+    z_dist = np.square(z_matrix - z_matrix.T)
+    # I just changes np.power(,0.5) to np.sqrt and save 30% of time!
+    all_dist = np.sqrt(x_dist + y_dist + z_dist)
+    
+    if enable_timings:
+        mid_2_time = time.time()
+        print('All major calculations took {}'
+              .format(mid_2_time - mid_time))
+    
+    
+    columns = x_dist.shape[1]
+    intermolecular_dist = []
+    sr_proportion = []
+    for row in range(0,num_supercell_atoms-napm):
+        molecule = int(row/napm)+1
+        atom_row = radius_list[row % napm]
+        for column in range(napm*molecule, columns):
+            final_dist = all_dist[row,column]
+            intermolecular_dist.append(final_dist)
+            # Calculate sr sum list
+            atom_column = radius_list[column % napm]
+            sum_radius = atom_row + atom_column
+            final_sr = final_dist / sum_radius
+            sr_proportion.append(final_sr)
+            
+            if lowerbound:
+                if lowerbound[0]:
+                    if final_dist < lowerbound[0]:
+                        return(np.min(intermolecular_dist),
+                               np.min(sr_proportion))
+                if lowerbound[1]:
+                    if final_sr < lowerbound[1]:
+                        return(np.min(intermolecular_dist),
+                                np.min(sr_proportion))
+            
+    if enable_timings:
+        end_time = time.time()
+        print('Extracting results took {}'
+              .format(end_time - mid_2_time))
+    
+        print('Total time took {}'.format(end_time - start_time))
+    
+    return (min(intermolecular_dist), min(sr_proportion))
+
 
 def COM_distance_check(struct,nmpc=None,lowerbound=None):
-	'''
-	Calculates and returns the minimal distance between the center of mass of the molecules in the unit cell
-	if lowerbound is specified, then returns a True system if the minimal distance is greater than the lowerbound
-	'''
-	if nmpc==None:
-		nmpc=struct.properties["nmpc"]
-	napm=int(len(struct.geometry)/nmpc)
+    '''
+    Calculates and returns the minimal distance between the center of mass of the molecules in the unit cell
+    if lowerbound is specified, then returns a True system if the minimal distance is greater than the lowerbound
+    '''
+    if nmpc  is None:
+        nmpc = int(struct.properties["nmpc"])
+    napm=int(len(struct.geometry)/nmpc)
 	
-	cmlist=[cm_calculation(struct,range(napm*i,napm*i+napm)) for i in range (nmpc)] #Calculates the center of mass of all molecules
-	tr=[[0,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0],[0,1,1],[0,1,-1],[0,-1,1],[0,-1,-1],[1,0,0],[-1,0,0],[1,0,1],[1,0,-1],[-1,0,1],[-1,0,-1],[1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0],[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]] 
-	#Each molecule will have to be compared with the 27 equivalent of the other one in order to conduct the distance check
-	min_dist = min([numpy.linalg.norm(struct.properties["lattice_vector_a"]),numpy.linalg.norm(struct.properties["lattice_vector_b"]),numpy.linalg.norm(struct.properties["lattice_vector_c"])])
-	if min_dist<lowerbound:
-		return False
+    cmlist=[cm_calculation(struct,range(napm*i,napm*i+napm)) for i in range (nmpc)] #Calculates the center of mass of all molecules
+    tr=[[0,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0],[0,1,1],[0,1,-1],[0,-1,1],[0,-1,-1],[1,0,0],[-1,0,0],[1,0,1],[1,0,-1],[-1,0,1],[-1,0,-1],[1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0],[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]] 
+    #Each molecule will have to be compared with the 27 equivalent of the other one in order to conduct the distance check
+    min_dist = min([numpy.linalg.norm(struct.properties["lattice_vector_a"]),numpy.linalg.norm(struct.properties["lattice_vector_b"]),numpy.linalg.norm(struct.properties["lattice_vector_c"])])
+    if min_dist<lowerbound:
+        return False
 
 
-	for m1 in range (nmpc-1):
-		for m2 in range (m1+1,nmpc):
-			for tr_choice in range (27):
-				new_cm=[cmlist[m2][j]+struct.properties["lattice_vector_a"][j]*tr[tr_choice][0]+struct.properties["lattice_vector_b"][j]*tr[tr_choice][1]+struct.properties["lattice_vector_c"][j]*tr[tr_choice][2] for j in range (3)] #Move the molecule by the fractional vector specified by tr[tr_choice]
-				diff=[cmlist[m1][j]-new_cm[j] for j in range (3)]
-				if min_dist==None or numpy.linalg.norm(diff)<min_dist:
-					min_dist=numpy.linalg.norm(diff)
-				if lowerbound!=None and min_dist<lowerbound:
-					return False
-	if lowerbound==None:
-		return min_dist
-	elif min_dist>=lowerbound:
-		return True
-	else:
-		return False
+    for m1 in range (nmpc-1):
+        for m2 in range (m1+1,nmpc):
+            for tr_choice in range (27):
+                new_cm=[cmlist[m2][j]+struct.properties["lattice_vector_a"][j]*tr[tr_choice][0]+struct.properties["lattice_vector_b"][j]*tr[tr_choice][1]+struct.properties["lattice_vector_c"][j]*tr[tr_choice][2] for j in range (3)] #Move the molecule by the fractional vector specified by tr[tr_choice]
+                diff=[cmlist[m1][j]-new_cm[j] for j in range (3)]
+                if min_dist is None or numpy.linalg.norm(diff)<min_dist:
+                    min_dist=numpy.linalg.norm(diff)
+                if lowerbound!=None and min_dist<lowerbound:
+                    return False
+    if lowerbound is None:
+        return min_dist
+    elif min_dist>=lowerbound:
+        return True
+    else:
+        return False
 
 def atom_distance_check_1(struct,nmpc=None,lowerbound=None):
 	'''
@@ -362,13 +624,13 @@ def atom_distance_check_1(struct,nmpc=None,lowerbound=None):
 				start = (a1/napm)*napm #If the molecule is translated, needs to compare with itself
 			for a2 in range (start,total_atoms): #Atoms should not be compared to those from the same molecule
 				diff=[struct.geometry[a2][j]-new_apos[j] for j in range (3)]
-				if min_dist==None or numpy.linalg.norm(diff)<min_dist:
+				if min_dist is None or numpy.linalg.norm(diff)<min_dist:
 					min_dist=numpy.linalg.norm(diff)
 				if lowerbound!=None and min_dist<lowerbound:
 					return False
 
 
-	if lowerbound==None:
+	if lowerbound is None:
 		return min_dist
 	elif min_dist>=lowerbound:
 		return True
@@ -515,7 +777,7 @@ def cell_niggli_reduction(struct,napm,create_duplicate=True):
     lats = struct.get_lattice_vectors()
     from spglib import niggli_reduce
     reduced_lats =  niggli_reduce(lats)
-    if reduced_lats is None:
+    if reduced_lats  is None:
         return False
     del(struct.properties["lattice_vector_a"])
     del(struct.properties["lattice_vector_b"])
@@ -637,7 +899,7 @@ def struct_properties_updates(s1,s2):
 	Updates the missing properties in s1 by s2
 	'''
 	for key in s2.properties:
-		if (not key in s1.properties) or (s1.properties[key]==None):
+		if (not key in s1.properties) or (s1.properties[key] is None):
 			s1.properties[key]=s2.properties[key]
 
 
@@ -691,16 +953,16 @@ def angle_between(v1, v2):
 	return np.rad2deg(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
 def main():
-	print("You are calling structure_handling directly.")
-	print("specify the tasks in main()")
-	struct = structure.Structure()
+    print("You are calling structure_handling directly.")
+    print("specify the tasks in main()")
+#	struct = structure.Structure()
 #	f=open("/lustre/project/nmarom/pool_management_0.2/tmp_0.75/253052e51f/geometry.in","r")
-	f=open("/home/xli20/NEW_BTM_TEST/target_13/relaxation/geometry.in.next_step","r")
+#	f=open("/home/xli20/NEW_BTM_TEST/target_13/relaxation/geometry.in.next_step","r")
 #	struct.build_geo_whole_atom_format(f.read())
-	struct.build_geo_whole_atom_format(f.read())
-	f.close()
-	molecule_COM_move(struct,create_duplicate=False)
-	print struct.get_geometry_atom_format()
+#	struct.build_geo_whole_atom_format(f.read())
+#	f.close()
+#	molecule_COM_move(struct,create_duplicate=False)
+#	print struct.get_geometry_atom_format()
 	
 	
 

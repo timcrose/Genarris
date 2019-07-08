@@ -65,13 +65,19 @@ class Instruct(SafeConfigParser):
 
     def get_boolean(self,section,option):
         '''
-        Check and see if the section and option is specified
-        if specified, has to set to "TRUE", else an error will be raised
+        Check and see if the section and option is specified. If so, use it if valid, otherwise raise an error. Return False by default.
         '''
         if self.has_option(section,option):
-            if self.get(section,option)!="TRUE":
-                raise ValueError("Optional boolean flag has to be set to TRUE if present")
-            return True
+            value = self.get(section,option)
+                
+            if value == 'True' or value == 'true' or value == 'TRUE':
+                return True
+            elif value == 'False' or value == 'false' or value == 'FALSE':
+                return False
+            else:
+                raise ValueError("Optional boolean flag has to be set to True, true, TRUE, False, false, or FALSE if present")
+
+        # default to False
         return False
 
     def get_eval(self,section,option):
@@ -316,6 +322,75 @@ class Instruct(SafeConfigParser):
         copied.readfp(config_string)
         return copied
 
+    def get_inferred(self, sname, sname_list, options, default=None, eval=False, type_=str, required=True):
+        '''
+        sname: str
+            Current section name
+        sname_list: list of str or str
+            list of section names to check. The first section that has option defined
+            will get used.
+        options: list of str or str
+            list of option names that correspond to the list of snames given
+        default: any
+            default value for option
+        eval: bool
+            True if you want to evaluate the expression with python's eval function
+        type_: any
+            type of the desired output.
+        required: bool
+            True: will throw error if option DNE in sname_list
+            False: will return "none_value" if option DNE in sname_list
+
+        return: option value
+
+        Purpose: The option might have been specified in a different (usually previous
+            in a workflow of sections) section so we'd like to be able to grab that
+            option value so the user doesn't have to specify redundant options in
+            all sections. This function iterates over a list of section names and 
+            returns the option value that exists in the first of these sections.
+        '''
+        if type(sname_list) is str:
+            sname_list = [sname_list]
+        if type(options) is str:
+            options = [options] * len(sname_list)
+        if len(options) != len(sname_list):
+            raise Exception('Got different number of options and section names')
+        found_sname = None
+        for sname, option in zip(sname_list, options):
+            if self.has_option(sname, option):
+                if (type_ == 'dir' and os.path.isdir(self.get(sname, option))) or \
+                    (type_ == 'file' and os.path.isfile(self.get(sname, option))) or \
+                    (type_ != 'dir' and type_ != 'file'):
+
+                    found_sname = sname
+                    break
+        if found_sname is None and (required or sname in sname_list):
+            raise Exception('could not find options ' + ', '.join(options) + ' in any of the '+
+            'following sections: ' + ', '.join(sname_list), 'Or, path didnt exist')
+        if default is not None:
+            value = self.get_with_default(found_sname,option,default,eval=eval)
+        elif type_ is str or type_ == 'dir' or type_ == 'file':
+            value = self.get(found_sname, option)
+        elif type_ is bool:
+            value = self.get_boolean(found_sname, option)
+        elif type_ is list:
+            value = self.get_list(found_sname, option)
+        elif type_ is None:
+            value = self.get_or_none(found_sname, option, eval=eval)
+        elif eval:
+            value = self.get_eval(found_sname, option)
+        else:
+            value = 'none_value'
+        if (required or sname in sname_list) and value == 'none_value':
+            raise Exception('Could not find options', options, 'in', sname_list)
+        
+        if (required or sname in sname_list) and \
+            (type_ == 'dir' and not os.path.isdir(value)) or \
+            (type_ == 'file' and not os.path.isfile(value)):
+
+            raise Exception('type_', type_, 'in', options, 'in', sname_list, 'DNE')
+
+        return value
 
 def get_random_index(seed=None):
         '''

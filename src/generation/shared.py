@@ -360,7 +360,7 @@ def place_molecule_space_group (struct,molecule,sgn,wycn,create_duplicate=True):
 		new_mole = structure_handling.cell_transform_mat(\
 		molecule,final_orien[i])
 
-		structure_handling.cell_translation(new_mole,
+		new_mole = structure_handling.cell_translation(new_mole,
 						    final_trans[i],False)
 
 		struct.geometry = numpy.concatenate((struct.geometry,
@@ -384,13 +384,13 @@ def closeness_check (struct,inst,napm):
 	if COM_dist!=None:
 		result = structure_handling.COM_distance_check(struct,nmpc=len(struct.geometry)/napm,lowerbound=COM_dist)
 		if not result:
-#			print "Failed COM test"
+			#print "Failed COM test"
 			return False
 	if atom_dist!=None:
 		result = structure_handling.atom_distance_check_1(struct,nmpc=len(struct.geometry)/napm,lowerbound=atom_dist)
 			
 		if not result:
-#			print "Failed atom_dist test"
+			#print "Failed atom_dist test"
 			if inst.get_info_level()>=3:
 				write_log.write_master_log(inst,"Structure failed intermolecular atomic distance check")
 
@@ -424,217 +424,118 @@ def closeness_check (struct,inst,napm):
 	return True
 
 def lattice_vector_generation(struct,inst):
-
-        '''
+    '''
         Reads in the Bravais type of the lattice
         And create a set of Bravais lattice forming a cell with the constrained volume
         Calls diacheck to perform the diagonal rule test on the new cell
         btype= 1-->Triclinic, 2-->monoclinic, 3-->orthorhombic,
         4-->tetragonal, 5-->Cubic
-	'''
-	sname = "structure_generation"
-	check=inst.check_keywords([["structure_generation","unit_cell_volume"]])
-	if not (check==True):
-		raise ValueError("Missing key in Instruct: "+check)
+    '''
+    sname = "structure_generation"
+    check=inst.check_keywords([["structure_generation","unit_cell_volume"]])
+    if not (check==True):
+        raise ValueError("Missing key in Instruct: "+check)
 
-	#Retrive information from inst
-	standard_volume,vrange,vstd,vupper,p_tolerance,angle_range=\
-	inst.get_keywords_single_section("structure_generation",["unit_cell_volume",["volume_ratio_range",[1,1]],["unit_cell_volume_std",0],["unit_cell_volume_upper_bound",None],["p_tolerance",0.25],["angle_range",[30,150]],],True)
-#	dcheck = inst.get_boolean("structure_generation","diagonal_rule_enabled")
-	btype,sgp,ax_variance,by_variance,cz_variance = \
-	inst.get_keywords_single_section("structure_generation",[["bravais_system",-1],["space_group",-1],["ax_variance",[0.5,2]],["by_variance",[0.5,2]],["cz_variance",[0.5,2]]],True)
+    #Retrive information from inst
+    standard_volume,vrange,vstd,vupper,p_tolerance,angle_range=\
+    inst.get_keywords_single_section("structure_generation",["unit_cell_volume",["volume_ratio_range",[1,1]],["unit_cell_volume_std",0],["unit_cell_volume_upper_bound",None],["p_tolerance",0.25],["angle_range",[30,150]],],True)
+    #dcheck = inst.get_boolean("structure_generation","diagonal_rule_enabled")
+    btype,sgp,ax_variance,by_variance,cz_variance = \
+    inst.get_keywords_single_section("structure_generation",[["bravais_system",-1],["space_group",-1],["ax_variance",[0.5,2]],["by_variance",[0.5,2]],["cz_variance",[0.5,2]]],True)
 
-	if btype == -1:
-		btype = int(random.uniform(1,6))
+    if btype == -1:
+        btype = int(random.uniform(1,6))
 
-	if sgp!=-1 and sgp!=0:
-		sg=sgroup.Sgroup(sgp)
-		btype = sg.blt
-
-
-	sequence_interp={0:[0,1,2],1:[0,2,1],2:[1,0,2],3:[1,2,0],4:[2,0,1],5:[2,1,0]} #In order for equivalence between the three lattice vectors, a number is randomized, which is then interpreted by this value into actual 
-
-        struct.properties['bravais_system']=btype
-#	total_volume=standard_volume*random.uniform(vrange[0],vrange[1])
-	total_volume = misc.half_gaussian_sampling_upper(standard_volume,vstd,upperbound=vupper)
-	cube_root = total_volume**(1.0/3)
-	angles=["alpha","beta","gamma"]
-	lengths=["a","b","c"]
-	vectors=["lattice_vector_a","lattice_vector_b","lattice_vector_c"]
-	for i in range (3):
-		struct.properties[vectors[i]]=[0,0,0]
-	principle_variance=[ax_variance,by_variance,cz_variance]
-	#The above three values allows streamlined interacting with struct.properties
-	
-	counter=0
-	while True:
-		counter+=1
-		if counter==1000:
-			raise RuntimeError("Repeated failure to generate Bravais lattice; check variance parameters")
-		struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
-		if btype==1:
-			for j in range (3):	
-				struct.properties[angles[j]]=random.uniform(angle_range[0],angle_range[1])
-			if struct.properties["alpha"]+struct.properties["beta"]+struct.properties["gamma"]>355: #Cannot be flat on the plane
-				continue
-			if struct.properties["alpha"]>struct.properties["beta"]+struct.properties["gamma"]-5 or \
-			   struct.properties["gamma"]>struct.properties["beta"]+struct.properties["alpha"]-5 or \
-			   struct.properties["beta"]>struct.properties["gamma"]+struct.properties["alpha"]-5: 
-			   #This will force the structure to be a plane
-				continue
-
-	                p=calc_p(struct.properties["alpha"],struct.properties["beta"],struct.properties["gamma"])
-        	        if p<p_tolerance:
-                	    continue
-		elif btype==2:
-			struct.properties[angles[1]]=random.uniform(angle_range[0],angle_range[1]) #Forcing beta to be the non-90 angle
-	                p=calc_p(struct.properties["alpha"],struct.properties["beta"],struct.properties["gamma"])
-        	        if p<p_tolerance:
-                	    continue
+    if sgp!=-1 and sgp!=0:
+        sg=sgroup.Sgroup(sgp)
+        btype = sg.blt
 
 
-		if btype==1 or btype==2 or btype==3: #Triclinic, Monoclinic and Orthorhombic cells have a!=b!=c
-			sequence = int(random.uniform(0,6))
-			v1, v2, v3 = sequence_interp[sequence]
-			struct.properties[vectors[v1]][v1] = random.uniform(principle_variance[v1][0],principle_variance[v1][1])*cube_root
-			vol_remain = total_volume / struct.properties[vectors[v1]][v1]
-			lower = max(principle_variance[v2][0]*cube_root,vol_remain/(cube_root*principle_variance[v3][1]))
-			#Has to leave a certain range for v3 to fall into the required range
-			upper = min(principle_variance[v2][1]*cube_root,vol_remain/(cube_root*principle_variance[v3][0]))
-			if lower>upper:
-				continue
-			struct.properties[vectors[v2]][v2] = random.uniform(lower,upper)
-			struct.properties[vectors[v3]][v3] = vol_remain / struct.properties[vectors[v2]][v2]
+    sequence_interp={0:[0,1,2],1:[0,2,1],2:[1,0,2],3:[1,2,0],4:[2,0,1],5:[2,1,0]} #In order for equivalence between the three lattice vectors, a number is randomized, which is then interpreted by this value into actual 
 
-		elif btype==4: #Tetragonal cell has a=a!=c
-			lower = max(cube_root*ax_variance[0],cube_root*by_variance[0],(total_volume/(cube_root*cz_variance[1]))**0.5)
-			upper = min(cube_root*ax_variance[1],cube_root*by_variance[1],(total_volume/(cube_root*cz_variance[0]))**0.5)
-			if lower>upper:
-				raise RuntimeError("Principle component variance unsuitable for tetragonal structure generation")
-			struct.properties["lattice_vector_a"][0]=struct.properties["lattice_vector_b"][1]=random.uniform(lower,upper)
-			struct.properties["lattice_vector_c"][2]=total_volume/(struct.properties["lattice_vector_a"][0]**2)
+    struct.properties['bravais_system']=btype
+    #total_volume=standard_volume*random.uniform(vrange[0],vrange[1])
+    total_volume = misc.half_gaussian_sampling_upper(standard_volume,vstd,upperbound=vupper)
+    cube_root = total_volume**(1.0/3)
+    angles=["alpha","beta","gamma"]
+    lengths=["a","b","c"]
+    vectors=["lattice_vector_a","lattice_vector_b","lattice_vector_c"]
+    for i in range (3):
+        struct.properties[vectors[i]]=[0,0,0]
+    principle_variance=[ax_variance,by_variance,cz_variance]
+    #The above three values allows streamlined interacting with struct.properties
 
-		elif btype==5: #Cubic structure the same for all
-			for i in range (3):
-				struct.properties[vectors[i]][i] = cube_root
-		else:
-			raise ValueError("Unsupported Bravais Lattice Type number")
-		alpha,beta,gamma = numpy.deg2rad(struct.properties["alpha"]), numpy.deg2rad(struct.properties["beta"]), numpy.deg2rad(struct.properties["gamma"])
-
-		struct.properties["a"]=struct.properties["lattice_vector_a"][0]
-		struct.properties["b"]=struct.properties["lattice_vector_b"][1]/numpy.sin(gamma)
-		struct.properties["lattice_vector_b"][0] = struct.properties["b"]*numpy.cos(gamma)
-		struct.properties["c"]=struct.properties["lattice_vector_c"][2]*struct.properties["lattice_vector_b"][1]/(numpy.sin(beta)**2*struct.properties["lattice_vector_b"][1]**2-(struct.properties["b"]*numpy.cos(alpha)-struct.properties["lattice_vector_b"][0]*numpy.cos(beta))**2)**0.5
-		struct.properties["lattice_vector_c"][0]=struct.properties["c"]*numpy.cos(beta)
-		struct.properties["lattice_vector_c"][1]=(struct.properties["c"]*struct.properties["b"]*numpy.cos(alpha)-struct.properties["lattice_vector_c"][0]*struct.properties["lattice_vector_b"][0])/struct.properties["lattice_vector_b"][1]
-		struct.properties["unit_cell_volume"] = numpy.linalg.det([struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]])
-
-
-#		if not dcheck or structure_handling.cell_diagonal_rule(struct)==True:
-			#If the user wishes the cell to be automatically orthogonal
-			#The cell_diagonal_rule check should be enabled
-			#WARNING: This will disable exploring the alternative space group settings
-		break
-	return struct
- 	
-
-def lattice_vector_generation_obselete(struct,inst):
-        '''
-        Reads in the Bravais type of the lattice
-        And create a set of Bravais lattice forming a cell with the constrained volume
-        Calls diacheck to perform the diagonal rule test on the new cell
-        btype= 1-->Triclinic, 2-->monoclinic, 3-->orthorhombic,
-        4-->tetragonal, 5-->Cubic
-	'''
-	check=inst.check_keywords([["structure_generation","unit_cell_volume"],["structure_generation","p_tolerance"],["structure_generation","bravais_system"]])
-	if not (check==True):
-		raise ValueError("Missing key in Instruct: "+check)
-
-	#Retrive information from inst
-	if int(inst.get("structure_generation","bravais_system"))==-1:
-		btype=int(random.uniform(1,6))
-	else:
-		btype=int(inst.get("structure_generation","bravais_system"))
-	standard_volume,vrange,vstd,vupper,p_tolerance,lattice_variance,angle_range,dcheck=\
-	inst.get_keywords_single_section("structure_generation",["unit_cell_volume",["volume_ratio_range",[1,1]],["unit_cell_volume_std",0],["unit_cell_volume_upper_bound",None],"p_tolerance","lattice_variance","angle_range",["diagonal_rule_enabled",True]],True)
-
-#	print "This is btype", btype
-
-	sequence_interp={0:[0,1,2],1:[0,2,1],2:[1,0,2],3:[1,2,0],4:[2,0,1],5:[2,1,0]} #In order for equivalence between the three lattice vectors, a number is randomized, which is then interpreted by this value into actual 
-
-        struct.properties['bravais_system']=btype
-#	total_volume=standard_volume*random.uniform(vrange[0],vrange[1])
-	total_volume = misc.half_gaussian_sampling_upper(standard_volume,vstd,upperbound=vupper)
-	print("In lattice generation, this is standard_volume = %f,vstd = %f ,upperbound = %f" % (standard_volume,vstd,upperbound))
-	angles=["alpha","beta","gamma"]
-	lengths=["a","b","c"]
-	vectors=["lattice_vector_a","lattice_vector_b","lattice_vector_c"]
-	#The above three values allows streamlined interacting with struct.properties
+    counter=0
+    while True:
+        counter+=1
+        if counter==1000:
+            raise RuntimeError("Repeated failure to generate Bravais lattice; check variance parameters")
+        struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
         if btype==1:
-            while True:
-		for j in range (3):
-			struct.properties[angles[j]]=random.uniform(angle_range[0],angle_range[1])
-                p=calc_p(struct.properties["alpha"],struct.properties["beta"],struct.properties["gamma"])
-                if p<p_tolerance:
-                    continue
-                abc=total_volume/p
-                sequence=int(random.uniform(0,6))
-		#Generate a random sequence for the three lattice vector lengths to be calculated
-                for i in range (2):
-			struct.properties[lengths[sequence_interp[sequence][i]]]=abc**(1/(3-i+0.0))*random.uniform(lattice_variance[0],lattice_variance[1])
-                        abc/=struct.properties[lengths[sequence_interp[sequence][i]]]
-                if abc<(total_volume/p)**(1/(3+0.0))*lattice_variance[0]:
-		#The last vector length is too small
-			continue
-		struct.properties[lengths[sequence_interp[sequence][2]]]=abc
-                structure_handling.set_lattice_vectors(struct)
-		if not dcheck or structure_handling.cell_diagonal_rule(struct)==True:
-			break
-        if btype==2: #Always requires beta to be non-90
-            while True:
-#                picked=int(random.uniform(0,3))
-                struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
-		struct.properties[angles[1]]=random.uniform(angle_range[0],angle_range[1]) #Forcing beta to be the non-90 angle
-                p=calc_p(struct.properties['alpha'],struct.properties['beta'],struct.properties['gamma'])
-                if p<p_tolerance:
-                    continue
-                abc=total_volume/p
-                sequence=int(random.uniform(0,6))
-                for i in range (2):
-			struct.properties[lengths[sequence_interp[sequence][i]]]=abc**(1/(3-i+0.0))*random.uniform(lattice_variance[0],lattice_variance[1])
-                        abc/=struct.properties[lengths[sequence_interp[sequence][i]]]
-                if abc<(total_volume/p)**(1/(3+0.0))*lattice_variance[0]:
-                    continue
-		struct.properties[lengths[sequence_interp[sequence][2]]]=abc
-                structure_handling.set_lattice_vectors(struct)
-                if not dcheck or structure_handling.cell_diagonal_rule(struct)==True:
-                    break
-        if btype==3:
-            while True:
-		struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
-		abc=total_volume
-                sequence=int(random.uniform(0,6))
-                for i in range (2):
-                        struct.properties[lengths[sequence_interp[sequence][i]]]=abc**(1/(3-i+0.0))*random.uniform(lattice_variance[0],lattice_variance[1])
-                        abc/=struct.properties[lengths[sequence_interp[sequence][i]]]
-                if abc<(total_volume)**(1/(3+0.0))*lattice_variance[0]:
-                    continue
-                struct.properties[lengths[sequence_interp[sequence][2]]]=abc
-                structure_handling.set_lattice_vectors(struct)
-		break
-        if btype==4: #Tetragonal
-		struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
-		abc=total_volume
-		picked=int(random.uniform(0,3))
-		struct.properties[lengths[picked]]=abc**(1/(3-0.0))*random.uniform(lattice_variance[0],lattice_variance[1])
-		for j in range (3):
-			if j!=picked:
-				struct.properties[lengths[j]]=(abc/struct.properties[lengths[picked]])**0.5
-		structure_handling.set_lattice_vectors(struct)
-	if btype==5: #Cubic
-		struct.properties['alpha']=struct.properties['beta']=struct.properties['gamma']=90
-		struct.properties[lengths[0]]=struct.properties[lengths[1]]=struct.properties[lengths[2]]=total_volume**(1/(3+0.0))
-		structure_handling.set_lattice_vectors(struct)
+            for j in range (3):	
+                struct.properties[angles[j]]=random.uniform(angle_range[0],angle_range[1])
+            if struct.properties["alpha"]+struct.properties["beta"]+struct.properties["gamma"]>355: #Cannot be flat on the plane
+                continue
+            if struct.properties["alpha"]>struct.properties["beta"]+struct.properties["gamma"]-5 or \
+                struct.properties["gamma"]>struct.properties["beta"]+struct.properties["alpha"]-5 or \
+                struct.properties["beta"]>struct.properties["gamma"]+struct.properties["alpha"]-5: 
+                #This will force the structure to be a plane
+                continue
+
+            p=calc_p(struct.properties["alpha"],struct.properties["beta"],struct.properties["gamma"])
+            if p<p_tolerance:
+                continue
+        elif btype==2:
+            struct.properties[angles[1]]=random.uniform(angle_range[0],angle_range[1]) #Forcing beta to be the non-90 angle
+            p=calc_p(struct.properties["alpha"],struct.properties["beta"],struct.properties["gamma"])
+            if p<p_tolerance:
+                continue
+
+
+        if btype==1 or btype==2 or btype==3: #Triclinic, Monoclinic and Orthorhombic cells have a!=b!=c
+            sequence = int(random.uniform(0,6))
+            v1, v2, v3 = sequence_interp[sequence]
+            struct.properties[vectors[v1]][v1] = random.uniform(principle_variance[v1][0],principle_variance[v1][1])*cube_root
+            vol_remain = total_volume / struct.properties[vectors[v1]][v1]
+            lower = max(principle_variance[v2][0]*cube_root,vol_remain/(cube_root*principle_variance[v3][1]))
+            #Has to leave a certain range for v3 to fall into the required range
+            upper = min(principle_variance[v2][1]*cube_root,vol_remain/(cube_root*principle_variance[v3][0]))
+            if lower>upper:
+                continue
+            struct.properties[vectors[v2]][v2] = random.uniform(lower,upper)
+            struct.properties[vectors[v3]][v3] = vol_remain / struct.properties[vectors[v2]][v2]
+
+        elif btype==4: #Tetragonal cell has a=a!=c
+            lower = max(cube_root*ax_variance[0],cube_root*by_variance[0],(total_volume/(cube_root*cz_variance[1]))**0.5)
+            upper = min(cube_root*ax_variance[1],cube_root*by_variance[1],(total_volume/(cube_root*cz_variance[0]))**0.5)
+            if lower>upper:
+                raise RuntimeError("Principle component variance unsuitable for tetragonal structure generation")
+            struct.properties["lattice_vector_a"][0]=struct.properties["lattice_vector_b"][1]=random.uniform(lower,upper)
+            struct.properties["lattice_vector_c"][2]=total_volume/(struct.properties["lattice_vector_a"][0]**2)
+
+        elif btype==5: #Cubic structure the same for all
+            for i in range (3):
+                struct.properties[vectors[i]][i] = cube_root
+        else:
+            raise ValueError("Unsupported Bravais Lattice Type number")
+        alpha,beta,gamma = numpy.deg2rad(struct.properties["alpha"]), numpy.deg2rad(struct.properties["beta"]), numpy.deg2rad(struct.properties["gamma"])
+
+        struct.properties["a"]=struct.properties["lattice_vector_a"][0]
+        struct.properties["b"]=struct.properties["lattice_vector_b"][1]/numpy.sin(gamma)
+        struct.properties["lattice_vector_b"][0] = struct.properties["b"]*numpy.cos(gamma)
+        struct.properties["c"]=struct.properties["lattice_vector_c"][2]*struct.properties["lattice_vector_b"][1]/(numpy.sin(beta)**2*struct.properties["lattice_vector_b"][1]**2-(struct.properties["b"]*numpy.cos(alpha)-struct.properties["lattice_vector_b"][0]*numpy.cos(beta))**2)**0.5
+        struct.properties["lattice_vector_c"][0]=struct.properties["c"]*numpy.cos(beta)
+        struct.properties["lattice_vector_c"][1]=(struct.properties["c"]*struct.properties["b"]*numpy.cos(alpha)-struct.properties["lattice_vector_c"][0]*struct.properties["lattice_vector_b"][0])/struct.properties["lattice_vector_b"][1]
+        struct.properties["unit_cell_volume"] = numpy.linalg.det([struct.properties["lattice_vector_a"],struct.properties["lattice_vector_b"],struct.properties["lattice_vector_c"]])
+
+
+        #if not dcheck or structure_handling.cell_diagonal_rule(struct)==True:
+            #If the user wishes the cell to be automatically orthogonal
+            #The cell_diagonal_rule check should be enabled
+            #WARNING: This will disable exploring the alternative space group settings
+        break
+    return struct
+ 	
 
 def calc_p (alpha,beta,gamma):
 	'''

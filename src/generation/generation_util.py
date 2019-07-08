@@ -2,6 +2,8 @@
 Created on June 17, 2015
 Author: Patrick Kilecdi
 '''
+import sys
+
 import random, copy
 random.seed()
 import numpy as np
@@ -16,6 +18,7 @@ from utilities.misc import half_gaussian_sampling_upper, \
         retrieve_integer_and_subtract
 from utilities.check_type import *
 from utilities.write_log import print_time_log
+import time
 
 def get_structure_generator_from_inst(inst, sname):
     ucv_target = inst.get_eval(sname, "ucv_target")
@@ -110,7 +113,7 @@ def get_structure_generator_from_inst(inst, sname):
               "fill_molecule_attempt_limit")
     check_list(struct_id_scheme, "struct_id_scheme")
     check_int(struct_index_length, "struct_index_length")
-
+    
     print_time_log(
             "Structure generator initialized from section: " + sname)
 
@@ -300,6 +303,10 @@ class StructureGenerator():
                 p_tolerance=p_tolerance)
         
         # Initializes generation settings
+        
+        number_of_structures = 2500
+        processes_limit = 56
+
         self._update_space_group()
         self._update_closeness_criteria()
         self._current_space_group_attempts = 0
@@ -308,7 +315,8 @@ class StructureGenerator():
         self._current_closeness_criteria_attempts = 0
         self._generation_success = False
         self._structure = None
-        self._structure_index = -1
+        #self._structure_index = total_structures / total_processes
+        self._structure_index = number_of_structures / processes_limit 
 
     def generate_structure_until_index_or_attempts_zero(self):
         # First condition makes sure master attempts have not run out
@@ -430,8 +438,10 @@ class StructureGenerator():
         # as space group change requires unit cell and wyckoff list change
         #self._space_group = \
         #    self._space_group_manager.get_space_group_randomly()
+        #self._space_group = \
+        #     self._space_group_manager.get_space_group_uniformly(self._output_dir)
         self._space_group = \
-             self._space_group_manager.get_space_group_uniformly(self._output_dir)
+             self._space_group_manager.get_space_group_uniformly_manny(self._output_dir)
         self._bravais_system = self._space_group.get_bravais_system_type()
         self._update_wyckoff_list()
         self._update_unit_cell()
@@ -479,7 +489,7 @@ class StructureGenerator():
 
     def _update_structure_index(self):
         if self._index_tracking_file is None:
-            self._structure_index += 1
+            self._structure_index -= 1
         else:
             self._structure_index = retrieve_integer_and_subtract(
                     self._index_tracking_file, subtract=1)
@@ -833,7 +843,7 @@ def place_molecule_space_group(struct, molecule, sgn, wycn, create_duplicate=Tru
         # Get geometry of the new molecule
         new_mole = structure_handling.cell_transform_mat(
               molecule, final_orien[i])
-        structure_handling.cell_translation(
+        new_mole = structure_handling.cell_translation(
               new_mole, final_trans[i], False)
 
         struct.geometry = np.concatenate((struct.geometry,
@@ -859,29 +869,28 @@ def closeness_check(
             struct, len(struct.geometry)/napm, napm, create_duplicate=False)
     nmpc = struct.get_n_atoms() / napm
 
-    if not com_dist is None:
-        result = structure_handling.COM_distance_check(
-                struct, nmpc=nmpc, lowerbound=com_dist)
-        if not result:
+    if not atom_dist is None or not sr_proportion is None:
+        lowerbound = (atom_dist, sr_proportion)
+        continue_check = structure_handling.full_nearest_image(struct, nmpc=nmpc, lowerbound=lowerbound) 
+
+        if not continue_check:
             return False
 
-    if not atom_dist is None:
-        result = structure_handling.atom_distance_check_1(
-                struct, nmpc=nmpc, lowerbound=atom_dist)
-        if not result:
-            return False
+        min_atom_dist, min_sr = structure_handling.calc_atom_dist_manny(struct,
+                                                nmpc=nmpc, 
+                                                lowerbound=lowerbound)
+        result = True
+        if atom_dist != None:
+            if min_atom_dist < atom_dist:
+                result = False
+        if sr_proportion != None:
+            if min_sr < sr_proportion:
+                result = False
+        if result == True:
+            original_struct.properties['sr'] = [min_sr]
 
-    if not sr_proportion is None:
-        result = structure_handling.specific_radius_check(struct,
-                                  nmpc=len(struct.geometry)/napm,
-                                  proportion=sr_proportion,
-                                  custom_radii=custom_radii,
-                                  custom_radii_by_pairs=custom_radii_by_pairs)
-
-        if not result:
-            return False
-        original_struct.properties["sr"] = [result]
-
+    if not result:
+        return False
     return True
 
 def calc_p (alpha,beta,gamma):

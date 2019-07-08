@@ -54,7 +54,7 @@ structure_dir = os.path.join(cwd, 'structures')
 progress_file = os.path.join(cwd, tmp_dir , 'progress.dat')
 default_config = os.path.join(GA_dir, 'res', 'default.conf')
 (options,argv)=argument_opt() #Retrieve the user_input from command line
-ui_conf = os.path.join(cwd, options.user_input)
+#ui_conf = os.path.join(cwd, options.user_input)
 replica_file = os.path.join(tmp_dir, 'replica_index.dat')
 output_file = os.path.join(cwd, 'output.out')
 
@@ -154,9 +154,14 @@ def get_and_increment_index(index_path):
         data_file.close()
     return index
 
+
 def get_random_index(seed=None):
     LENGTH_OF_INDEX = 10
-    return sha1(repr(time.time())+str(seed)).hexdigest()[:LENGTH_OF_INDEX]
+    if seed is None:
+        return sha1(repr(time.time()).encode('utf-8')).hexdigest()[:LENGTH_OF_INDEX]
+    else:
+        return sha1((repr(time.time())+str(seed)).encode('utf-8')).hexdigest()[:LENGTH_OF_INDEX]
+
 
 def print_to_file(message):
     with FileLock(output_file):
@@ -165,4 +170,4 @@ def print_to_file(message):
         data_file.close()
 
 if __name__ == '__main__':
-    print cwd
+    print(cwd)

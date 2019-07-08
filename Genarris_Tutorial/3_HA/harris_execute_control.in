@@ -18,7 +18,7 @@
   sc_accuracy_etot   1E-6
 #  sc_accuracy_forces 1E-4
 
- KS_method scalapack
+ KS_method parallel
  vdw_correction_hirshfeld
 #
 # For rotated restarts:

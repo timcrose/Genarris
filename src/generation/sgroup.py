@@ -14,7 +14,8 @@ This module stores information for the space group
 sgroup.wycgen generate a random fractional coordinate sitting on a Wyckoff position
 sgroup.wycarr produces a list of Wyckoff position arrangements that add up to nmpc of molecules per cell
 """
-import random, glob, os, json
+import random, glob, os, json, time
+import numpy as np
 from utilities.write_log import print_time_log
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -35,9 +36,9 @@ enantiomorphic=set([3,4,5,6,7,8,9,10,11,12,13,14,15])
 
 MAX_AVAILABLE_SPACE_GROUP = 142
 CHIRAL_SPACE_GROUPS = \
-    ([1] + range(3,6) + range(16,25) + range(75,81) + range(89,99) 
-    + range(143,147) + range(149,156) + range(168,174) + range(177,183)
-    + range(195,200) + range(207,215))
+    ([1] + list(range(3,6)) + list(range(16,25)) + list(range(75,81)) + list(range(89,99))
+    + list(range(143,147)) + list(range(149,156)) + list(range(168,174)) + list(range(177,183))
+    + list(range(195,200)) + list(range(207,215)))
 RACEMIC_SPACE_GROUPS = \
     [x for x in range(1, 231) if not x in CHIRAL_SPACE_GROUPS] 
 
@@ -73,6 +74,14 @@ class SpaceGroupManager():
         for sg in range(1, MAX_AVAILABLE_SPACE_GROUP + 1):
             self._space_group_selected_counter[sg] = 0
             self._space_group_user_counter[sg] = 0
+        
+        # For keeping counts of the spacegroups in the structure pool quickly
+        self.structures_in_pool = {}
+        self.sg_in_pool = [0 for x in range(len(self._space_group_range))]
+        self.sg_lookup_dict = {}
+        # Dictionary to convert a space group to an index for sg_in_pool
+        for i,space_group in enumerate(self._space_group_range):
+            self.sg_lookup_dict[space_group] = i
 
     def _deduce_allowed_space_groups(self):
         space_group_range = []
@@ -134,7 +143,9 @@ class SpaceGroupManager():
         if random.random() < 0.10:
             self._space_group = self.get_space_group_randomly()
             return self._space_group
-            
+       
+        print_time_log('This is the beginning of getting uniformly.')     
+        start_time = time.time()
         #Get the space group distribution so far in the pool.
         struct_flist = glob.glob(os.path.join(output_dir, '*.json'))
         #Get list of space groups so far in the pool.
@@ -158,6 +169,66 @@ class SpaceGroupManager():
                 self._space_group.wyckoff_selection(self._nmpc)
 
         self._space_group_selected_counter[sg] += 1
+        end_time = time.time() 
+        test = os.listdir(output_dir)
+        print_time_log('Getting uniformly has ended by selecting {}. '
+                       'It took this much time: {} ' 
+                       'and it loaded this many files: {} '
+                       'from this directory: {}'
+                       .format(sg, end_time-start_time, len(test), output_dir))
+        return self._space_group
+
+    def get_space_group_uniformly_manny(self, output_dir, 
+                                        struct_list=None):
+        '''
+        Saves structures it has already seen in a dictionary for fast lookup
+            and saves their space groups to a ordered list
+        '''
+
+        if random.random() < 0.01:
+            self._space_group = self.get_space_group_randomly()
+            return self._space_group
+
+        # start_time = time.time()
+        if not struct_list:
+            struct_list = glob.glob(os.path.join(output_dir, '*.json'))
+        
+        for struct_file in struct_list:
+            if struct_file not in self.structures_in_pool:
+                self.structures_in_pool[struct_file] = {}
+                with open(struct_file, 'r') as f:
+                    struct_str = f.read()
+                if len(struct_str) == 0:
+                    continue
+                struct_dict = json.loads(struct_str)
+                sg = int(struct_dict['properties']['space_group'])
+                index = self.sg_lookup_dict[sg] 
+                self.sg_in_pool[index] += 1
+
+        
+        # np.where returns tuple
+        least_represented_index = np.where(self.sg_in_pool == 
+                                           np.min(self.sg_in_pool))
+        next_sg_index = np.random.choice(least_represented_index[0])
+        
+        next_sg = self._space_group_range[next_sg_index]
+        
+        self._space_group = Sgroup(next_sg)
+        self._space_group.wyckoff_preparation(self._nmpc)
+        if not self._is_wyckoff_list_fixed:
+            self._wyckoff_list = \
+                self._space_group.wyckoff_selection(self._nmpc)
+        
+        # end_time = time.time()
+        
+        # test = os.listdir(output_dir)
+        # print_time_log('Getting uniformly manny has ended by selecting {}. '
+        #               'It took this much time: {} '
+        #               'and it loaded this many files: {} '
+        #               'from this directory: {}'
+        #      .format(next_sg, end_time-start_time, len(test), output_dir))
+        
+        self._space_group_selected_counter[next_sg] += 1
         return self._space_group
 
 
@@ -2922,6 +2993,7 @@ class Sgroup():
         '''
         Prepare a list of Wyckoff position for placing the molecule
         '''
+        nmpc = int(nmpc)
         self.mlist=[]
         for i in range (0,nmpc+1):
             self.mlist.append([])
@@ -2936,10 +3008,10 @@ class Sgroup():
             #A limited knapsack for the non-repeating Wyckoff positions
                 for j in range (nmpc-self.swyc_mult[i]*self.bmult,-1,-1):
                         #                    print "hello j=",j, mlist[j]
-                    for l in range (1,1+min(self.swycn[i],(nmpc-j)/(self.swyc_mult[i]*self.bmult))):
+                    for l in range(1, int(1 + min(self.swycn[i], (nmpc - j) / (self.swyc_mult[i] * self.bmult)))):
                         for k in range (0,len(self.mlist[j])):
                             self.mlist[j+l*self.swyc_mult[i]*self.bmult].append(self.mlist[j][k]+[i for ll in range (0,l)])
-#        print self.mlist[nmpc]
+        #print self.mlist[nmpc]
         return not (len(self.mlist[nmpc])==0)
 
     def wyckoff_selection (self,nmpc):

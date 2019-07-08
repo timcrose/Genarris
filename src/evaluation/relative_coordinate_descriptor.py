@@ -19,8 +19,11 @@ import multiprocessing
 from core.structure import Structure
 import numpy as np
 from copy import deepcopy
-from utilities import misc, write_log
+from utilities import misc, write_log, file_utils, list_utils
 import os, random, time, socket
+
+from glob import glob
+from external_libs.filelock import FileLock
 
 from core.structure_handling import cm_calculation, cell_modification, \
         mole_translation
@@ -40,12 +43,20 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-def rcd_calculation(inst):
+def rcd_calculation(inst, comm):
     '''
     Main RCD calculation module
     '''
     sname = "rcd_calculation"
-    kwargs = load_batch_single_structure_operation_keywords(inst, sname)
+    
+    if inst.has_option(sname, 'structure_dir'):
+        structure_dir = inst.get(sname,"structure_dir")
+    elif inst.has_section('harris_approximation_batch'):
+        structure_dir = inst.get('harris_approximation_batch', 'output_dir')
+    else:
+        raise Exception('Need an input folder specified for rcd_calculation')
+
+    output_dir = inst.get(sname, 'output_dir')
 
     napm = inst.get_eval(sname, "NAPM")
     axes = inst.get_eval(sname,"axes")
@@ -54,22 +65,42 @@ def rcd_calculation(inst):
             sname, "property_name", "rcd")
     output_info_file = inst.get_or_none(sname, "output_info_file")
 
-    op_args = (napm, axes)
-    op_kwargs = {"close_picks"   : close_picks,
-                 "property_name" : property_name}
+    struct_file_list = glob(os.path.join(structure_dir, '*.json'))
 
-    op = BatchSingleStructureOperation(
-            _rcd_calculation,
-            name=sname, args=op_args,
-            kwargs=op_kwargs, **kwargs)
-    result = op.run()
-    #result is ((struct, rcd_vector),...)
+    if output_dir != structure_dir:
+        if comm.rank == 0:
+            file_utils.cp(struct_file_list, output_dir)
+    comm.barrier()
 
-    if output_info_file != None:
-        _rcd_calculation_callback(
-                result, output_info_file)
+    num_total = len(struct_file_list)
+    num_done = len(glob(os.path.join(structure_dir, '*.rcd')))
+    results = []
+    while num_done < num_total:
+        struct, path = _get_structure(output_dir, structure_suffix=".json")
+        if struct == False:
+            break
+        
+        if not os.path.exists(path + '.rcd'):
+            struct, rcd_vector = _rcd_calculation(struct, napm, axes, close_picks, property_name)
+        if not os.path.exists(path + '.rcd'):
+            file_utils.write_to_file(path + '.rcd', 'done', mode='w')
+            file_utils.write_to_file(path, struct.dumps())
+            results.append([struct, rcd_vector])
+        file_utils.rm(path + '.lock')
+        num_done = len(glob(os.path.join(structure_dir, '*.rcd')))
+
     
-    return result
+    all_results = comm.gather(results, root=0)
+
+    #all_results is ((struct, rcd_vector),...)
+    if comm.rank == 0:
+        all_results = list_utils.flatten_list(all_results)
+        if output_info_file is not None:
+            _rcd_calculation_callback(
+                    all_results, output_info_file)
+        file_utils.rm(glob(os.path.join(output_dir, '*.rcd')))
+    
+    return results
 
 def _rcd_calculation(struct, napm, axes, close_picks=16, property_name="rcd"):
     '''
@@ -119,8 +150,8 @@ def _create_ref_struct(struct, nmpc, napm, close_picks=16):
     ref_struct = cell_modification(struct, nmpc, napm)
 
     COM = [cm_calculation(ref_struct,
-                          range(x*napm,(x+1)*napm))
-           for x in range(nmpc)]
+                          range(int(x * napm), int((x+1) * napm)))
+           for x in range(int(nmpc))]
 
 
     lat_mat = np.transpose(ref_struct.get_lattice_vectors())
@@ -130,17 +161,17 @@ def _create_ref_struct(struct, nmpc, napm, close_picks=16):
             for z in range(-2,3)
             for y in range(-2,3)
             for x in range(-2,3)
-            for k in range(nmpc)] #Calculate the distance between the COM's
+            for k in range(int(nmpc))] #Calculate the distance between the COM's
     COMt.sort(key=lambda com: com[4])
 
     all_geo = deepcopy(ref_struct.geometry)
     ref_struct.geometry = np.delete(ref_struct.geometry,
-                                    range(napm,nmpc*napm))
+                                    range(int(napm), int(nmpc * napm)))
 
-    for i in range(1, close_picks+1): #Skip the 1st original molecule
+    for i in range(1, close_picks + 1): #Skip the 1st original molecule
         k, x, y, z, dist = COMt[i]
         ref_struct.geometry = np.concatenate((ref_struct.geometry,
-                                              all_geo[k*napm:(k+1)*napm]))
+                                              all_geo[int(k * napm) : int((k + 1) * napm)]))
 
         mole_translation(
                 ref_struct, i, napm, frac=[x,y,z], create_duplicate=False)
@@ -178,6 +209,8 @@ def _gram_schmidt(X, row_vecs=True, norm=True):
         return Y.T
 
 def _rcd_calculation_callback(result, output_info_file):
+    print('result from _rcd_calculation_callback')
+    print(result)
     result.sort(key=lambda x : x[0].struct_id)
     message = ""
     for struct, rcd in result:
@@ -200,8 +233,9 @@ def rcd_difference_calculation(inst):
     dis_en = inst.get_boolean(sname,"disable_enantiomer")
     diff_list_output = inst.get_with_default(sname,"diff_list_output",
                                              "./rcd_difference_list.info")
-    diff_matrix_output = inst.get_with_default(
-            sname, "diff_matrix_output", "./rcd_difference_matrix.info")
+    #diff_matrix_output = inst.get_with_default(
+    #        sname, "diff_matrix_output", "./rcd_difference_matrix.info")
+    diff_matrix_output = ""
     processes = inst.get_processes_limit(sname)
 
     coll = misc.load_collection_with_inst(inst,sname)
@@ -263,19 +297,56 @@ def rcd_difference_compare_single(inst):
                                 result[i]))
     f.close()
 
-def rcd_difference_folder_inner(inst):
-    sname = "rcd_difference_folder_inner"
-    folder = inst.get(sname,"structure_dir")
-    suffix = inst.get_with_default(sname,"structure_suffix","")
+def combine(diff_matrix_output, structure_dir, structure_suffix='.json'):
+    files = [x for x in os.listdir(structure_dir)
+         if x.endswith(structure_suffix)]
 
-    key = inst.get_with_default(sname,"stored_property_key","RCD_vector")
-    ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
-    pairs = inst.get_with_default(sname,"select_pairs",4,eval=True)
-    dis_en = inst.get_boolean(sname,"disable_enantiomer")
+    file_sorted = files.sort()
+    for x in files:
+        f = open(os.path.join(structure_dir, x + ".rcd"))
+        l = f.read().split("\n")
+        f.close()
+        l.pop()
+        diff = [float(x.split()[2]) for x in l]
+        f = open(diff_matrix_output, "a")
+        f.write(" ".join(map(str,diff))+"\n")
+
+def rcd_difference_folder_inner(inst, comm):
+    sname = "rcd_difference_folder_inner"
+
+    if inst.has_option(sname, 'structure_dir'):
+        folder = inst.get(sname,"structure_dir")
+    elif inst.has_section('rcd_calculation'):
+        folder = inst.get('rcd_calculation', 'output_dir')
+    elif inst.has_section('harris_approximation_batch'):
+        folder = inst.get('harris_approximation_batch', 'output_dir')
+    elif  inst.has_section('structure_generation_batch'):
+        folder = inst.get('structure_generation_batch', 'output_dir')
+    else:
+        raise Exception('Need an input folder specified for rcd_difference_folder_inner')
+
+    suffix = inst.get_with_default(sname,"structure_suffix",".json")
+
+    if inst.has_option(sname, 'property_name'):
+        key = inst.get(sname, "property_name")
+    elif inst.has_section('rcd_calculation') and inst.has_option('rcd_calculation', 'property_name'):
+        key = inst.get('rcd_calculation', "property_name")
+    else:
+        raise Exception('Need an rcd property_name specified for rcd_difference_folder_inner')
+
+
+    diff_matrix_output = inst.get(sname, 'diff_matrix_output')
+    ratio = inst.get_with_default(sname, "contribution_ratio", 1, eval=True)
+    pairs = inst.get_with_default(sname, "select_pairs", 4, eval=True)
+    dis_en = inst.get_boolean(sname, "disable_enantiomer")
 
     calculate_folder_rcd_difference_worker(folder, suffix=suffix,
                                            key=key, ratio=ratio, select_pairs=pairs,
                                            allow_enantiomer=not dis_en)
+
+    comm.barrier()
+    if comm.rank == 0:
+        combine(diff_matrix_output, folder, structure_suffix=suffix)
 
         
 def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector", 
@@ -284,20 +355,20 @@ def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector",
     Given a folder, grab structure that has not been evaluated
     '''
     time.sleep(random.random()*5)
-    f = open("./RCD_report.out","a")
-    name = socket.gethostname()+"_"+misc.get_random_index()
+    f = open("./RCD_report.out", "a")
+    name = socket.gethostname() + "_" + misc.get_random_index()
     f.write("RCD_difference_worker %s reporting from host: %s\n" % 
             (name, socket.gethostname()))
     f.close()
 
-    list_of_struct = _get_structure_list(folder,suffix)
+    list_of_struct = _get_structure_list(folder, suffix)
     while True:
         struct, struct_path = _get_structure(folder, suffix,worker=socket.gethostname())
         if struct == False:
             break
-        f = open("./RCD_report.out","a")
-        f.write("RCD_difference_worker %s grabed structure %s\n" %
-                (name,struct_path))
+        f = open("./RCD_report.out", "a")
+        f.write("RCD_difference_worker %s grabbed structure %s\n" %
+                (name, struct_path))
         f.close()
 
         diff_list = []
@@ -312,12 +383,12 @@ def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector",
             diff_list.append((struct.struct_id, compared_struct.struct_id, diff))
 
         diff_list.sort(key=lambda x: x[1])
-        f = open(struct_path+".rcd","w")
+        f = open(struct_path + ".rcd", "w")
         for x in diff_list:
             f.write("%s %s %f\n" % (x[0], x[1], x[2]))
         f.close()
         try:
-            os.remove(struct_path+".lock")
+            os.remove(struct_path + ".lock")
         except:
             pass
 
@@ -479,8 +550,10 @@ def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     This version requires that the closest 4 molecules be accounted for
     The difference is taken as the average between the attempts
     '''
-    
-    dist = [(x,y,_calculate_diff(v1[x],v2[y],ratio)) for y in range(len(v2))
+    print('len(v1)', len(v1))
+    print('len(v2)', len(v2))
+    print('select_pairs', select_pairs)
+    dist = [(x, y, _calculate_diff(v1[x], v2[y], ratio)) for y in range(len(v2))
                                                      for x in range(select_pairs)]
 
     dist.sort(key=lambda x: x[2])
@@ -489,20 +562,19 @@ def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     s1 = [False] * len(v1)
     s2 = [False] * len(v2)
     
-    dist_iter = iter(dist)
+    #dist_iter = iter(dist)
     for l in range(select_pairs):
-        try:
-            while True:
-                k = dist_iter.next()
-                if not s1[k[0]] and not s2[k[1]]:
-                #Avoiding selecting same molecule from cell
-                    result += k[2]
-                    s1[k[0]] = True
-                    s2[k[1]] = True
-#                    print "Here is the selection", k
-                    break
-        except:
-            raise RuntimeError("Not enough close picks to select the amount of pairs")
+        #try:
+        for k in dist:
+            if not s1[k[0]] and not s2[k[1]]:
+            #Avoiding selecting same molecule from cell
+                result += k[2]
+                s1[k[0]] = True
+                s2[k[1]] = True
+                #print("Here is the selection", k)
+                break
+        #except:
+        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
 
     dist = [(x,y,_calculate_diff(v1[x],v2[y],ratio)) for y in range(select_pairs)
                                                      for x in range(len(v1))]
@@ -512,23 +584,22 @@ def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     s1 = [False] * len(v1)
     s2 = [False] * len(v2)
     
-    dist_iter = iter(dist)
+    #dist_iter = iter(dist)
     for l in range(select_pairs):
-        try:
-            while True:
-                k = dist_iter.next()
-                if not s1[k[0]] and not s2[k[1]]:
-                #Avoiding selecting same molecule from cell
-                    result += k[2]
-                    s1[k[0]] = True
-                    s2[k[1]] = True
-#                    print "Here is the selection", k
-                    break
-        except:
-            raise RuntimeError("Not enough close picks to select the amount of pairs")
+        #try:
+        for k in dist:
+            if not s1[k[0]] and not s2[k[1]]:
+            #Avoiding selecting same molecule from cell
+                result += k[2]
+                s1[k[0]] = True
+                s2[k[1]] = True
+                #print("Here is the selection", k)
+                break
+        #except:
+        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
 
 
-    return result/2
+    return result / 2.0
 
 
 
@@ -579,16 +650,16 @@ def _get_structure(folder,structure_suffix="",worker=None):
 #                     not os.path.isfile(os.path.join(folder,name+'.lock')) and 
 #                     not os.path.isfile(os.path.join(folder,name+".rcd"))]
 
-    f = open("./RCD_report.out","a")
-    f.write("RCD_difference_worker "+str(worker)+" finished filtering files\n")
+    f = open("./RCD_report.out", "a")
+    f.write("RCD_difference_worker " + str(worker) + " finished filtering files\n")
     f.close()
 
 
     found = False
-    while len(list_of_files)>0:
-        chosen = int(random.uniform(0,len(list_of_files)))
+    while len(list_of_files) > 0:
+        chosen = int(random.uniform(0, len(list_of_files)))
         name = list_of_files[chosen]
-        f = open("./RCD_report.out","a")
+        f = open("./RCD_report.out", "a")
         f.write("RCD_worker looking at item %i of a list of %i files\n" % 
                 (chosen, len(list_of_files)))
         f.close()
@@ -624,7 +695,7 @@ def _get_structure(folder,structure_suffix="",worker=None):
 
     return False, False
 
-def _get_structure_list(folder,structure_suffix=""):
+def _get_structure_list(folder, structure_suffix=""):
     f = open("./RCD_report.out","a")
     f.write("RCD_difference_worker beginning to get structure list\n")
     f.close()
@@ -637,7 +708,7 @@ def _get_structure_list(folder,structure_suffix=""):
     return list_of_files
 
     f = open("./RCD_report.out","a")
-    f.write("RCD_difference_worker finished getting structure list\n")
+    f.write("RCD_difference_worker finished getting structure list\nThere are {:04d}\n".format(len(list_of_files)))
     f.close()
 
 
@@ -648,17 +719,17 @@ def test_create_ref_struct():
     import os
     direct = "./"
     path = [os.path.join(direct,x) for x in os.listdir(direct)]
-#    path = ["./duplicate_pair_1/target_2_0983_b52d9d4a9b.json","./duplicate_pair_1/target_2_0986_33d0a828d6.json"]
+    #path = ["./duplicate_pair_1/target_2_0983_b52d9d4a9b.json","./duplicate_pair_1/target_2_0986_33d0a828d6.json"]
     s = []
     for i in range(2):
         f = open(path[i],"r")
         struct=Structure()
         struct.build_geo_whole_atom_format(f.read())
-#        calculate_molecule_axes(struct.geometry[0:11],[(1,10),(3,9)])
+        #calculate_molecule_axes(struct.geometry[0:11],[(1,10),(3,9)])
         generate_relative_coordinate_descriptor(struct,4,11,[(1,10),(3,9)],close_picks=4)
         s.append(struct)
-    print calculate_rcd_difference(s[0].properties["RCD_vector"],s[1].properties["RCD_vector"],select_pairs=2)
-#        create_ref_struct(struct,4,11,close_picks=8)
+    print(calculate_rcd_difference(s[0].properties["RCD_vector"],s[1].properties["RCD_vector"],select_pairs=2))
+        #create_ref_struct(struct,4,11,close_picks=8)
 if __name__=="__main__":
     test_create_ref_struct()
             

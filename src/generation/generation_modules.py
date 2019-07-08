@@ -14,8 +14,10 @@ This program contains different modules that calls upon shared.py to conduct str
 
 '''
 from generation import shared
-from utilities import misc, parallel_run
+#from utilities import misc, parallel_run
+from utilities import misc
 import multiprocessing, os, shutil, copy
+from glob import glob
 from generation.generation_util import \
         get_structure_generator_from_inst
 from utilities.parallel_master import get_parallel_run_args, \
@@ -46,24 +48,40 @@ def structure_generation_single(inst):
     generator = get_structure_generator_from_inst(inst, sname)
     generator.generate_structure()
 
-def structure_generation_batch(inst):
+def structure_generation_batch(inst, comm):
     '''
     Generates a batch of structure
     '''
     sname = "structure_generation_batch"
     print_time_log("Structure generation batch begins.")
-    if inst.has_option(sname, "index_tracking_file"):
-        print_time_log("Using existing index tracking file: " +
-                inst.get(sname, "index_tracking_file"))
+    output_dir = os.path.abspath(inst.get(sname, 'output_dir'))
+    output_format = inst.get(sname, 'output_format')
+    if output_format == 'both' or output_format == 'json':
+        ext = '.json'
     else:
-        _set_up_index_and_attempt_tracking_files(inst, sname)
+        ext = '.in'
+    number_of_structures = inst.get_eval(sname, 'number_of_structures')
+    number_of_attempts = inst.get_eval(sname, 'number_of_attempts')
+    generator = get_structure_generator_from_inst(inst, sname)
+    structure_list = glob(os.path.join(output_dir, '*' + ext))
+    attempt_num = 0
+    while len(structure_list) < number_of_structures and attempt_num <= number_of_attempts:
+        generator.generate_structure()
+        structure_list = glob(os.path.join(output_dir, '*' + ext))
+        attempt_num += 1
 
-    _make_path_absolute(inst, sname)
-    _inst = copy.deepcopy(inst)
-    _inst.set_procedures(["_Structure_Generation_Batch"])
-    args = get_parallel_run_args(inst, sname)
-    launch_parallel_run_single_inst(_inst, *args)
-    _clean_up_index_and_attempt_tracking_files(inst, sname)
+    comm.barrier()
+    if comm.rank == 0:
+        structure_list = glob(os.path.join(output_dir, '*' + ext))
+        num_excess_structs = len(structure_list) - number_of_structures
+        if num_excess_structs > 0:
+            for extra_struct in structure_list[-num_excess_structs:]:
+                dirname = os.path.dirname(extra_struct)
+                basename = os.path.basename(extra_struct)
+                struct_id = basename[: basename.find(ext)]
+                for struct_file in glob(os.path.join(dirname, struct_id + '*')):
+                    os.remove(struct_file)
+            
 
 def _structure_generation_batch(inst):
     sname = "structure_generation_batch"

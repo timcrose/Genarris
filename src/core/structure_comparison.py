@@ -164,7 +164,7 @@ def match_molecule(s1,s2,napm,mn,cm1=None,create_duplicate=True):
         s2=copy.deepcopy(s2)
     cm2=structure_handling.cm_calculation(s2,range(mn*napm,mn*napm+napm))
     trans=[cm1[j]-cm2[j] for j in range (3)]
-    structure_handling.cell_translation(s2,trans,False) 
+    s2 = structure_handling.cell_translation(s2,trans,False) 
     #Fixes the cm of two molecules to be at the same place
     resi=residual_single_molecule(s1,s2,napm,0,mn)
     if resi<match_molecule_tolerance:
@@ -237,7 +237,7 @@ def match_molecule(s1,s2,napm,mn,cm1=None,create_duplicate=True):
 #        print("A mirror reflection is involved")
         structure_handling.cell_reflection_z(s2,False)
         trans=[0,0,2*cm1[2]]
-        structure_handling.cell_translation(s2,trans,False)
+        s2 = structure_handling.cell_translation(s2,trans,False)
         resi=residual_single_molecule(s1,s2,napm,0,mn)
         if resi<match_molecule_tolerance:
 #            print("no further rotation is needed after mirror reflection along the xy plane, resi=", resi)

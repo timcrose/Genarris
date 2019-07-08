@@ -38,7 +38,7 @@ class FileLock(object):
         compatible as it doesn't rely on msvcrt or fcntl for the locking.
     """
  
-    def __init__(self, file_name, dir_name=os.getcwd(),timeout=10, delay=.05):
+    def __init__(self, file_name, dir_name=os.getcwd(),timeout=10, delay=.05, exit_gracefully=True):
         """ Prepare the file locker. Specify the file to lock and optionally
             the maximum timeout and the delay between each attempt to lock.
         """
@@ -47,6 +47,7 @@ class FileLock(object):
         self.file_name = file_name
         self.timeout = timeout
         self.delay = delay
+        self.exit_gracefully = exit_gracefully
  
  
     def acquire(self):
@@ -64,7 +65,8 @@ class FileLock(object):
                 if e.errno != errno.EEXIST:
                     raise 
                 if (time.time() - start_time) >= self.timeout:
-                    raise FileLockException("Timeout occured waiting for "+self.lockfile)
+                    if not self.exit_gracefully:
+                        raise FileLockException("Timeout occured waiting for "+self.lockfile)
                 time.sleep(self.delay)
         self.is_locked = True
  

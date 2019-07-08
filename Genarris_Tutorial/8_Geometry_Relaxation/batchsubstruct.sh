@@ -3,15 +3,17 @@
 #
 # - This script will sub a aims job for each of the geometry files found in structdir
 # - Makes sure to change the dirname name slicing to fit your current naming scheme
+# - root = Current working directory
 # - structdir =  the directory where all the geometry files you want to run are. Usually, 
 #                 this directory will contain a copy of all the geomtry files you want to run
 # - controlpath = path to the control file you want to use
 # - slurmpath = path to the slurm submission script you want to use
 # - slurmname = name of the slurm submission script 
 
-structdir="/home/ibier/genarris-runs/FUQJIK/8mpc/larger_sr_generation/8_Geometry_Relaxation/batch_eval/"
-controlpath="/home/ibier/genarris-runs/FUQJIK/8mpc/larger_sr_generation/8_Geometry_Relaxation/control.in.FULL.k333"
-slurmpath="/home/ibier/genarris-runs/FUQJIK/8mpc/larger_sr_generation/8_Geometry_Relaxation/sub_aims_2018.sh"
+root="/home/ibier/genarris-runs/FUQJIK/8mpc/larger_sr_generation/8_Geometry_Relaxation/"
+structdir=${root}"/batch_eval/"
+controlpath=${root}"/control.in.FULL.k333"
+slurmpath=${root}"/sub_aims_2018.sh"
 slurmname="sub_aims_2018.sh"
 
 cd "$structdir"
