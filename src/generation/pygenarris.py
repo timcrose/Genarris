@@ -137,8 +137,8 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
         tol = inst.get_eval(sname, 'tol')
         max_attempts = inst.get_eval(sname, 'max_attempts')
         final_filename = inst.get_with_default(sname, 'geometry_out_filename', 'geometry.out')
-        molecule_path = inst.get_inferred(sname, ['pygenarris_structure_generation', 'harris_single_molecule_prep', 'structure_generation_batch'], 
-                                                    ['molecule_path'] * 3, type_='file')
+        sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
         output_format = inst.get_with_default(sname, 'output_format', 'json') #options are json, geometry, both
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
     else:

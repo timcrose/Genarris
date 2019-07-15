@@ -1,8 +1,7 @@
-from copy import deepcopy
-import os
+
+
 import numpy as np
 from ase.data import vdw_radii,atomic_numbers
-from ibslib.io import read
 
 
 class MoleculeVolumeEstimator():
@@ -41,7 +40,7 @@ class MoleculeVolumeEstimator():
         return volume
     
     
-    def linear_correction(self, volume):
+    def linear_correction(volume):
         """
         Applies linear correction to the input volume from CSD analysis.
         """
@@ -146,72 +145,134 @@ class MoleculeVolumeEstimator():
             return True
 
 
-def estimate_unit_cell_volume(inst, comm):
+"""
+From: https://blog.levilentz.com/integrated-charge-density-from-cube-file/
+"""
+
+class Cube_Class():
     """
-    Using the provided inst, if section pygenarris_structure_generation exists
-    then create or overwrite option 'volume_mean' and 'volume_std'. If section
-    pygenarris_structure_generation exists, then create or overwrite option
-    'ucv_target', 'ucv_std', and 'ucv_ratio_range'.
+    Class for running molecule volume estimation using a CUBE file
     """
+    def __init__(self, cube_path, charge_tol=1e-3):
+        """
+        charge_tol: float
+            Value which determines separation between molecule and vacuum
+        """
+        self.charge_tol = charge_tol
 
-    sname = 'estimate_unit_cell_volume'
-    verbose = inst.get_boolean(sname, 'verbose')
-    Z = float(inst.get_eval(sname, 'Z'))
-    if comm.rank == 0:
-        mve = MoleculeVolumeEstimator()
-        sname = 'estimate_unit_cell_volume'
-        sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+        ######  These are all set in _read   ######
+        # N = number of incremenets in each direction
+        self.N = np.zeros(3)
+        # N_matrix = 3x3 of increment vectors stored in rows
+        self.N_matrix = np.zeros((3,3))
+        # Atom coordinates from cube file
+        self.atom_coords = np.array([])
+        # Atom elements as atomic number
+        self.atom_ele = []
+        # Atom charges
+        self.atom_charge = []
+        # 3D grid will be constructed using these values in _read
+        self.charge_grid = np.array([])
+        # Total volume of cube file
+        self.total_volume = 1
 
-        molecule = read(molecule_path)
-        '''if molecule_path.endswith('.json'):
-            molecule.build_geo_from_json_file(molecule_path)
-        elif molecule_path.endswith('.in'):
-            molecule.build_geo_from_atom_file(molecule_path)
-        else:
-            raise Exception('Molecule must be json or geometry.in format. molecule_path:', molecule_path)'''
-        vol_estimate = mve.calc(molecule)
-    else:
-        vol_estimate = None
-    std_about_experimental_vs_prediction_best_fit_line = 21.25 * Z
-    num_std_devs_above_mean_for_99_confidence_interval = 2.5
-    vol_estimate = comm.bcast(vol_estimate, root=0)
-    struct_vol_estimate = Z * vol_estimate
-    vol_lower_bound = struct_vol_estimate - 3.0 * std_about_experimental_vs_prediction_best_fit_line
-    vol_upper_bound = struct_vol_estimate + 3.0 * std_about_experimental_vs_prediction_best_fit_line
-    ucv_ratio_range = [vol_lower_bound / struct_vol_estimate, vol_upper_bound / struct_vol_estimate]
+        # Read in cube file info
+        self._read(cube_path)
+
     
-    if inst.has_section('pygenarris_structure_generation'):
-        inst.set('pygenarris_structure_generation', 'volume_mean', str(struct_vol_estimate))
-        inst.set('pygenarris_structure_generation', 'volume_std', str(std_about_experimental_vs_prediction_best_fit_line))
-        if verbose:
-            print('volume_mean', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
-            print('volume_std', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
-    if inst.has_section('structure_generation_batch'):
-        inst.set('structure_generation_batch', 'ucv_target', str(struct_vol_estimate))
-        inst.set('structure_generation_batch', 'ucv_std', str(std_about_experimental_vs_prediction_best_fit_line))
-        inst.set('structure_generation_batch', 'ucv_ratio_range', str(ucv_ratio_range))
-        if verbose:
-            print('ucv_target', inst.get('structure_generation_batch', 'ucv_target'), flush=True)
-            print('ucv_std', inst.get('structure_generation_batch', 'ucv_std'), flush=True)
-            print('ucv_ratio_range', inst.get('structure_generation_batch', 'ucv_ratio_range'), flush=True)
-    
-    return inst
+    def _read(self, cube_path):
+        """
+        From: https://blog.levilentz.com/integrated-charge-density-from-cube-file/
+        """
+        with open(cube_path,'r') as f:
+            # Skip first two lines
+            next(f)
+            next(f)
 
+            # NAtoms, X-Origin, Y-Origin, Z-Origin
+            line = next(f)
+            split_line = line.split()
+            self.n_atoms = int(split_line[0])
+
+            # Next three lines have format: 
+            # N1, X1, Y1, Z1   increments in first direction
+            for i in range(0,3):
+                line = next(f).split()
+                self.N[i] = int(line[0])
+                for j in range(1,4):
+                    self.N_matrix[i][j-1] = float(line[j])
+            
+            # Initialize atom_coords and read in positions
+            self.atom_coords = np.zeros((self.n_atoms,3))
+            for i in range(0,self.n_atoms):
+                line = next(f).split()
+                self.atom_ele.append(int(line[0]))
+                self.atom_charge.append(float(line[1]))
+                for j in range(0,3):
+                    self.atom_coords[i][j] = float(line[j+2])
+            
+            # Reading grid in
+            lines = f.readlines()
+            lines = [x.split() for x in lines]
+            cube_grid = []
+            for line in lines:
+                for value in line:
+                    cube_grid.append(float(value))
+            cube_grid = np.array(cube_grid)
+            cube_grid = cube_grid.ravel()
+            # Reshaping based on N 
+            columns = np.arange(0,self.N[2])
+            rows = np.arange(0,self.N[1])*self.N[2]
+            depth = np.arange(0,self.N[0])*(self.N[1]*self.N[2])
+            broadcast = depth[:,None,None] + rows[:,None] + columns
+            self.cube_grid = np.take(cube_grid, broadcast.astype(int))
+        
+        for i in range(0,3):
+            self.total_volume *= self.N[i]*np.linalg.norm(self.N_matrix[i,:])
+    
+    
+    def run_MC(self, n_iter=1e7, n_batch=100000):
+        """
+        MC iterations can be performed in batches to speed up calculation. 
+
+        Arguments
+        ---------
+        n_inter: int
+            Number of iterations to perform
+        n_batch: int
+            Number of batches to perform at a single time. Limiting factor 
+            will be the memory of the machine being used. Allocated matrix
+            of samples has to fit in memory. 
+
+        """
+        # Iteration counter
+        batch_iter = int(n_iter / n_batch) + 1
+        self.n_in = 0
+        self.n_out = 0
+        for i in range(batch_iter):
+            samples = self._sample_point(n_batch)
+            results = self.cube_grid[samples[:,0],
+                                     samples[:,1],
+                                     samples[:,2]]
+
+            # updating counts based on results
+            n_in = np.sum(results > self.charge_tol)
+            n_out = n_batch - n_in
+            self.n_in += n_in
+            self.n_out += n_out
+        
+        self.molecule_volume = (self.n_in / (self.n_in + self.n_out)) * self.total_volume
+        return self.molecule_volume
+
+    
+    def _sample_point(self, n_batch=1000):
+        """ Perform batch sampling
+        """
+        x = np.random.random_integers(0,int(self.N[0])-1, size=(n_batch,1))
+        y = np.random.random_integers(0,int(self.N[1])-1, size=(n_batch,1))
+        z = np.random.random_integers(0,int(self.N[2])-1, size=(n_batch,1))
+        return np.concatenate((x,y,z),axis=1)
+    
     
 if __name__ == "__main__":
-    from ibslib.io import read,write
-    import matplotlib.pyplot as plt
-    struct_dict = read("Single_Molecules/json")
-    
-    x = []
-    y = []
-    mve = MoleculeVolumeEstimator()
-    for struct_id,struct in struct_dict.items():
-        exp_volume = struct.get_property("molecule_volume")
-        pred_volume = mve.calc(struct)
-        print("{} {} {}".format(exp_volume, pred_volume, exp_volume-pred_volume))
-        x.append(exp_volume)
-        y.append(pred_volume)
-    
-    plt.scatter(x,y)
+   pass

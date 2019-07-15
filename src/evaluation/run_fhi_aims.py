@@ -118,20 +118,22 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         aims_output_dir = os.getcwd()
     if inst is not None:
         verbose = inst.get_boolean(sname, 'verbose')
-        energy_name = inst.get(sname, 'energy_name')
+        energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
         output_dir = inst.get_or_none(sname, 'output_dir')
         aims_output_dir = inst.get(sname, 'aims_output_dir')
-        sname_list = ['harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
-        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 3)
+        sname_list = [sname, 'relax_single_molecule', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
+        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 5)
 
-        sname_list = ['harris_single_molecule_prep', 'estimate_unit_cell_volume', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 5)
+        sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
 
-        if sname == 'harris_single_molecule_prep':
+        if sname == 'harris_single_molecule_prep' or sname == 'relax_single_molecule':
             if inst.has_option(sname, 'structure_dir'):
                 structure_dir = inst.get(sname, 'structure_dir')
-            else:
+            elif sname == 'harris_single_molecule_prep':
                 structure_dir = 'structure_dir_for_harris_single_molecule_prep'
+            else:
+                structure_dir = 'structure_dir_for_relaxing_single_molecule'
             if not os.path.isfile(molecule_path):
                 raise Exception("molecule_path", molecule_path, 'DNE')
             if not os.path.isfile(os.path.join(structure_dir, os.path.basename(molecule_path))) and world_comm.rank == 0:
@@ -221,9 +223,24 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
 
     if world_comm.rank == 0:
         # Output (copy) jsons to output_dir
+        print('output_dir', output_dir, flush=True)
         if output_dir is not None:
             json_flist = file_utils.glob(os.path.join(aims_output_dir, '**', '*.json'), recursive=True)
-            file_utils.cp(json_flist, output_dir)
+            print('json_flist', json_flist, flush=True)
+            # Only save those structures into jsons in output_dir which successfully gave an energy according to the desired control file
+            for json_fpath in json_flist:
+                name = file_utils.fname_from_fpath(json_fpath)
+                aims_out = os.path.join(aims_output_dir, name, 'aims.out')
+                print('aims_out', aims_out, flush=True)
+                print('sname', sname, flush=True)
+                struct_dct = file_utils.get_dct_from_json(json_fpath)
+                if energy_name in struct_dct['properties'] and struct_dct['properties'][energy_name] != 'none' and \
+                    (sname != 'harris_approximation_batch' or len(file_utils.grep('Reading periodic restart information from file', aims_out)) > 0):
+                    
+                    print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
+                    file_utils.cp(json_fpath, output_dir)
+                elif verbose:
+                    print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
 
 
 

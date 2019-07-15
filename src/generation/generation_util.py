@@ -25,7 +25,8 @@ def get_structure_generator_from_inst(inst, sname):
     nmpc = inst.get_eval(sname, "NMPC")
     is_chiral = inst.get_boolean(sname, "is_chiral")
     is_racemic = inst.get_boolean(sname, "is_racemic")
-    molecule_path = inst.get_or_none(sname, "molecule_path")
+    sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
     molecule_name = inst.get_with_default(
             sname, "molecule_name", "molecule_original", eval=False)
     enantiomer_name = inst.get_with_default(

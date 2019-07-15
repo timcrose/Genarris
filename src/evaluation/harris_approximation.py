@@ -11,11 +11,10 @@ Created by Patrick Kilecdi
 
 Carries out Harris Approximation calculation on a list of structuree
 '''
-
+import os, sys
 from core import structure, structure_handling, structure_comparison
 from external_libs import matrix_op
 #from external_libs.aimsrotate import rotate
-from aimsutils.rotate import rotate2
 #print(rotate2.__file__)
 #from aimsrotate import rotate
 import shutil, os, copy, numpy
@@ -63,15 +62,26 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
     struct_folds = file_utils.glob(os.path.join(aims_output_dir, '*/'))
     # Only 1 rank can act on a directory, so if there are more ranks than number of directories, determine
     # if your rank is not needed and skip this part.
-    if world_comm.rank == 0 or comm.rank == 0:
+    num_aims_dirs = len(struct_folds)
+    if world_comm.rank != 0 and comm.rank == 0:
+        world_comm.send(comm.size, dest=0, tag=2)
+    elif world_comm.rank == 0:
+        replica_comm_sizes = []
+        for r in range(num_replicas):
+            replica_comm_sizes.append(world_comm.recv(source=MPI_ANY_SOURCE, tag=2))
+        if verbose:
+            print('replica_comm_sizes', replica_comm_sizes, flush=True)
+        total_num_workers = sum(replica_comm_sizes)
+
+    if world_comm.rank <= num_aims_dirs:
         if world_comm.rank == 0:
             done_ranks = []
-            while len(done_ranks) != num_replicas:
+            while len(done_ranks) < num_aims_dirs and len(done_ranks) < total_num_workers:
                 if verbose:
-                    print('world rank 0 waiting for ready task', flush=True)
+                    print('world rank', world_comm.rank, 'waiting for ready task', flush=True)
                 ready_rank, task_id = world_comm.recv(source=MPI_ANY_SOURCE, tag=0)
                 if verbose:
-                    print('world rank 0 received task_id', task_id, ' from ready rank', ready_rank, flush=True)
+                    print('world rank', world_comm.rank, 'received task_id', task_id, ' from ready rank', ready_rank, flush=True)
                 if task_id != 'starting':
                     task_list[task_id] = 1
                 if 0 in task_list:
@@ -81,19 +91,19 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
                     message = 'done'
                     done_ranks.append(ready_rank)
                 if verbose:
-                    print('world rank 0 sending message', message, 'to rank' , ready_rank, flush=True)
+                    print('world rank', world_comm.rank, 'sending message', message, 'to rank' , ready_rank, flush=True)
                 world_comm.send(message, dest=ready_rank, tag=1)
                 if verbose:
-                    print('world rank 0 sent message', message, 'to rank' , ready_rank, flush=True)
+                    print('world rank', world_comm.rank, 'sent message', message, 'to rank' , ready_rank, flush=True)
         else:
             if verbose:
                 print('world_comm.size is ', world_comm.size, flush=True)
             world_comm.send([world_comm.rank, 'starting'], dest=0, tag=0)
             if verbose:
-                print('comm.rank 0 sent ',[world_comm.rank, 'starting'], ' to world_comm.rank 0', flush=True)
+                print('comm.rank', comm.rank, 'sent ',[world_comm.rank, 'starting'], ' to world_comm.rank 0', flush=True)
             message = world_comm.recv(source=0, tag=1)
             if verbose:
-                print('comm.rank 0 received message', message, flush=True)
+                print('comm.rank', comm.rank, 'received message', message, flush=True)
             
             while message != 'done':
                 struct_fold = struct_folds[message]
@@ -106,11 +116,19 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
 
                     os.chdir('../..')
 
+                if verbose:
+                    print('comm.rank', comm.rank, 'sending ',[world_comm.rank, message], ' to world_comm.rank 0', flush=True)
                 world_comm.send([world_comm.rank, message], dest=0, tag=0)
+                if verbose:
+                    print('comm.rank', comm.rank, 'sent ',[world_comm.rank, message], ' to world_comm.rank 0', flush=True)
                 message = world_comm.recv(source=0, tag=1)
+                if verbose:
+                    print('comm.rank', comm.rank, 'recieved message', message, ' to world_comm.rank 0', flush=True)
 
-    print('about to call run_fhi_aims.run_fhi_aims_batch and the aims.out are', file_utils.glob(os.path.join(aims_output_dir, '**', 'aims.out')), flush=True)
     # (3) Run batch aims
+    if verbose:
+        print('world_comm.rank', world_comm.rank, 'made it to barrier in HA batch', flush=True)
+    world_comm.barrier()
     run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=inst, sname=sname)
                 
 
@@ -130,10 +148,10 @@ def harris_approximation_single(inst):
 
     #Prepare the molecule_harris_info for rotations.in if the structure does not already have it
     success = False
-    match_molecule_tolerance = inst.get_keywords([[sname, "match_molecule_tolerance", 0.000000001]], eval=True)[0]
+    match_molecule_tolerance = inst.get_keywords([[sname, "match_molecule_tolerance", 1]], eval=True)[0]
     #First attempt to map the standard (COM at origin) molecule to the structure
-    molecule_path = inst.get_inferred(sname, [sname, 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch'], 
-                                                    ['molecule_path'] * 5, type_='file')
+    sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
 
     molecule_name = file_utils.fname_from_fpath(molecule_path)
 
@@ -164,11 +182,17 @@ def harris_approximation_single(inst):
 
     rotations_write(struct,molecule_aims_dir,molecule_name=molecule_name,fname="rotations.in")
 
-    harris_single_run()
+    harris_single_run(inst)
+
+    if verbose:
+        print('Wrote restart file', flush=True)
 
     f = open(structure_file,"w")
     f.write(struct.dumps())
     f.close()
+
+    if verbose:
+        print('Returning from harris_approximation_single', flush=True)
 
     return True	
 
@@ -608,17 +632,43 @@ def harris_single_run_v1(inst):
     inst.set("aims_single_run","mpirun_hosts","['"+inst.get("Genarris_master","master_node")+"']")
     run_aims.aims_single_run(inst)
 
-def harris_single_run():
+def harris_single_run(inst):
     '''
     Runs a single instance of Harris Approximation
     Note: this function merely carries out the calling of aimsrotate and aims binary to evaluate the rotated geometry
     For load-balancing reasons, this function is kept at a relatively low position in hierarchy
     Other functions are to call this to finish up the Harris Approximation
     '''
+    sname = 'harris_approximation_batch'
+    #aimsutils_path = inst.get(sname, 'aimsutils_path')
+    verbose = inst.get_boolean(sname, 'verbose')
+
+    '''if aimsutils_path not in sys.path:
+        sys.path.append(aimsutils_path)
+    if 'PYTHONPATH' not in os.environ:
+        os.environ['PYTHONPATH'] = aimsutils_path
+    elif aimsutils_path not in os.environ['PYTHONPATH']:
+        os.environ['PYTHONPATH'] += ':' + aimsutils_path
+    print('os.environ[PYTHONPATH]', os.environ['PYTHONPATH'])
+    '''
+    from aimsutils.rotate import rotate2
+
+    if verbose:
+        print('Inside harris_single_run', flush=True)
+
     r = rotate2.Rotations()
+    if verbose:
+        print('got Rotations', flush=True)
+        print('os.listdir(.)', os.listdir('.'), flush=True)
     r.load_rotations("rotations.in")
-    r.write_restartfile(".", 'restart.combined000')
+    if verbose:
+        print('loaded rotations', flush=True)
+    r.write_restartfile(".", 'restart.combined000', write_geometry=False)
+    if verbose:
+        print('wrote restartfile', flush=True)
     file_utils.cp('restart.combined000', '.', dest_fname='restart.combined')
+    if verbose:
+        print('copied restartfile', flush=True)
     #R = rotate.RotateMixed(working_dir+"/")
     #R.write_files(folder=rotated_dir)
 
@@ -631,8 +681,8 @@ def harris_single_molecule_prep(comm, world_comm, MPI_ANY_SOURCE, inst):
 
     if world_comm.rank == 0:
 
-        molecule_path = inst.get_inferred(sname, ["harris_single_molecule_prep", 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'], 
-                                                        ['molecule_path'] * 4)
+        sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
 
         control_path = inst.get(sname, 'control_path')
 

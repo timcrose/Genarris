@@ -54,7 +54,7 @@ class APHandler():
                 sname, "output_without_success")
         self.run_num = 1
         # Parameters for AP calculation
-        self.dist_mat_input_file = inst.get_inferred(['rcd_difference_folder_inner', 'rcd_calculation', sname], 
+        self.dist_mat_input_file = inst.get_inferred(sname, ['rcd_difference_folder_inner', 'rcd_calculation', sname], 
                                                     ['diff_matrix_output', 'diff_matrix_output', 'output_dir'])
         
         self.affinity_type = inst.get_with_default(
@@ -96,7 +96,7 @@ class APHandler():
             self.num_of_clusters = inst.get_eval(sname,"num_of_clusters_2")
 
         if self.run_num == 1:
-            self.structure_dir = inst.get_inferred(['rcd_difference_folder_inner', 'rcd_calculation', sname], 'output_dir')
+            self.structure_dir = inst.get_inferred(sname, ['rcd_difference_folder_inner', 'rcd_calculation', sname], 'output_dir')
         else:
             self.structure_dir = inst.get(sname, 'exemplars_output_dir')
             ext_pos = self.dist_mat_input_file.find('.')
