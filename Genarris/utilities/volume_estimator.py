@@ -173,28 +173,30 @@ def estimate_unit_cell_volume(inst, comm):
         vol_estimate = mve.calc(molecule)
     else:
         vol_estimate = None
-    std_about_experimental_vs_prediction_best_fit_line = 21.25 * Z
-    num_std_devs_above_mean_for_99_confidence_interval = 2.5
     vol_estimate = comm.bcast(vol_estimate, root=0)
     struct_vol_estimate = Z * vol_estimate
+    std_of_predicted_errors = 0.062 * struct_vol_estimate
     vol_lower_bound = struct_vol_estimate - 3.0 * std_about_experimental_vs_prediction_best_fit_line
     vol_upper_bound = struct_vol_estimate + 3.0 * std_about_experimental_vs_prediction_best_fit_line
     ucv_ratio_range = [vol_lower_bound / struct_vol_estimate, vol_upper_bound / struct_vol_estimate]
     
     if inst.has_section('pygenarris_structure_generation'):
-        inst.set('pygenarris_structure_generation', 'volume_mean', str(struct_vol_estimate))
-        inst.set('pygenarris_structure_generation', 'volume_std', str(std_about_experimental_vs_prediction_best_fit_line))
-        if verbose:
-            print('volume_mean', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
-            print('volume_std', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
+        if not inst.has_option('pygenarris_structure_generation', 'volume_mean'):
+            inst.set('pygenarris_structure_generation', 'volume_mean', str(struct_vol_estimate))
+        if not inst.has_option('pygenarris_structure_generation', 'volume_std'):
+            inst.set('pygenarris_structure_generation', 'volume_std', str(std_about_experimental_vs_prediction_best_fit_line))
+        print('volume_mean', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
+        print('volume_std', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
     if inst.has_section('structure_generation_batch'):
-        inst.set('structure_generation_batch', 'ucv_target', str(struct_vol_estimate))
-        inst.set('structure_generation_batch', 'ucv_std', str(std_about_experimental_vs_prediction_best_fit_line))
-        inst.set('structure_generation_batch', 'ucv_ratio_range', str(ucv_ratio_range))
-        if verbose:
-            print('ucv_target', inst.get('structure_generation_batch', 'ucv_target'), flush=True)
-            print('ucv_std', inst.get('structure_generation_batch', 'ucv_std'), flush=True)
-            print('ucv_ratio_range', inst.get('structure_generation_batch', 'ucv_ratio_range'), flush=True)
+        if not inst.has_option('structure_generation_batch', 'ucv_target'):
+            inst.set('structure_generation_batch', 'ucv_target', str(struct_vol_estimate))
+        if not inst.has_option('structure_generation_batch', 'ucv_std'):
+            inst.set('structure_generation_batch', 'ucv_std', str(std_about_experimental_vs_prediction_best_fit_line))
+        if not inst.has_option('structure_generation_batch', 'ucv_ratio_range'):
+            inst.set('structure_generation_batch', 'ucv_ratio_range', str(ucv_ratio_range))
+        print('ucv_target', inst.get('structure_generation_batch', 'ucv_target'), flush=True)
+        print('ucv_std', inst.get('structure_generation_batch', 'ucv_std'), flush=True)
+        print('ucv_ratio_range', inst.get('structure_generation_batch', 'ucv_ratio_range'), flush=True)
     
     return inst
 
