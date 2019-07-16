@@ -1,0 +1,50 @@
+
+Purpose
+-------
+Identifies all unique molecules in a structure and performs a 
+reconstruction of the structure using whole molecules. These
+reconstructed geometries are denoted as "rstruct". Most of the 
+time, molecular bonds of molecules in CIF files are satisfied 
+by periodic boundary conditions. However, sometimes it becomes
+more convenient to have all molecular bonds satisfied directly. 
+
+
+Requirements 
+------------
+1. Anaconda3 and Pytorch. Pytorch can be downloaded and installed
+   from here: https://pytorch.org. Typically settings will be to 
+   select the stable Pytorch Build, select your OS, select Conda, 
+   Python3, CUDA as None, then run the provided command. 
+2. Newest version of ibslib installed from:
+   https://github.com/manny405/ibslib
+   Install the package with:
+   python setup.py install
+
+
+Instructions
+------------
+1. Make sure the newest version of ibslib is installed from Github  
+2. Open ibslib_whole_molecules.py script and read the description of 
+   the variables and functions used. 
+3. Modify variables as necessary. Modify struct_file to change target 
+   structure to find whole molecules. Modify output_format for the
+   structures to be output as different file types.  
+4. Run: python ibslib_whole_molecules.py
+5. Visualize the difference between structures from the original CSD 
+   file and the rstruct using jmol. It should be obvious what the 
+   script has done. 
+
+
+Troubleshooting
+---------------
+Any errors will typically be due to using previous versions of 
+ibslib. Redownaload and reinstall and try again. 
+
+
+Files in the directory
+----------------------
+TETCEN.cif - CIF file from the CSD for tetracene
+TETCEN_original.in - Geometry file of TETCEN.cif for visualization using jmol
+ibslib_whole_molecules.py - Script for finding molecules and reconstructing 
+                            the geometry using whole molecules. 
+

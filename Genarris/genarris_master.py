@@ -266,7 +266,7 @@ class Genarris():
         selection.cluster_based_selection(self.inst)
 
     def Estimate_Unit_Cell_Volume(self, comm):
-        from ibslib import volume_estimator
+        from utilities import volume_estimator
         self.inst = volume_estimator.estimate_unit_cell_volume(self.inst, comm)
 
     def Estimate_Unit_Cell_Volume_v1(self, comm):

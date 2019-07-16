@@ -13,7 +13,7 @@ Conducts K-mean clustering
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import numpy as np
-from utilities import misc
+from Genarris.utilities import misc
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

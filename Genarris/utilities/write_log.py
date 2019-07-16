@@ -11,7 +11,7 @@ Handles all kinds of log writing
 '''
 
 import os,time
-from external_libs.filelock import FileLock
+from Genarris.external_libs.filelock import FileLock
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

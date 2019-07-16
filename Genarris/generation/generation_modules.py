@@ -13,18 +13,18 @@ Created by Patrick Kilecdi (Xiayue Li) on 11/25/2015
 This program contains different modules that calls upon shared.py to conduct structural generation
 
 '''
-from generation import shared
+from Genarris.generation import shared
 #from utilities import misc, parallel_run
-from utilities import misc
+from Genarris.utilities import misc
 import multiprocessing, os, shutil, copy
 from glob import glob
-from generation.generation_util import \
+from Genarris.generation.generation_util import \
         get_structure_generator_from_inst
-from utilities.parallel_master import get_parallel_run_args, \
+from Genarris.utilities.parallel_master import get_parallel_run_args, \
         launch_parallel_run_single_inst
-from utilities.write_log import print_time_log
-from utilities.write_log import write_master_log as wml
-from utilities.misc import safe_make_dir
+from Genarris.utilities.write_log import print_time_log
+from Genarris.utilities.write_log import write_master_log as wml
+from Genarris.utilities.misc import safe_make_dir
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

@@ -12,14 +12,14 @@ Created by Patrick Kilecdi
 Carries out Harris Approximation calculation on a list of structuree
 '''
 import os, sys
-from core import structure, structure_handling, structure_comparison
-from external_libs import matrix_op
+from Genarris.core import structure, structure_handling, structure_comparison
+from Genarris.external_libs import matrix_op
 #from external_libs.aimsrotate import rotate
 #print(rotate2.__file__)
 #from aimsrotate import rotate
 import shutil, os, copy, numpy
-from evaluation import run_aims, utility, run_fhi_aims
-from utilities import write_log, misc, file_utils  #, parallel_run
+from Genarris.evaluation import run_aims, utility, run_fhi_aims
+from Genarris.utilities import write_log, misc, file_utils  #, parallel_run
 import multiprocessing
 import time
 

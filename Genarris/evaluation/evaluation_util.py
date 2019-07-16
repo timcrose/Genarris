@@ -6,12 +6,12 @@ H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal
 Structures and Fast Screening with a Harris Approximation, ",
 J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 """
-from utilities import misc, write_log
-from core.structure import Structure
+from Genarris.utilities import misc, write_log
+from Genarris.core.structure import Structure
 import os, multiprocessing, shutil, time
-from utilities.misc import output_structure, list_subdirectories, \
+from Genarris.utilities.misc import output_structure, list_subdirectories, \
        retrieve_float, input_structure, input_pool, output_pool
-from utilities.write_log import print_time_log
+from Genarris.utilities.write_log import print_time_log
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

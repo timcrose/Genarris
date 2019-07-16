@@ -8,16 +8,16 @@ import random, copy
 random.seed()
 import numpy as np
 np.random.seed()
-from core import structure_handling
-from core.structure import Structure
-from generation import sgroup
-from utilities import misc, write_log
-from utilities.misc import half_gaussian_sampling_upper, \
+from Genarris.core import structure_handling
+from Genarris.core.structure import Structure
+from Genarris.generation import sgroup
+from Genarris.utilities import misc, write_log
+from Genarris.utilities.misc import half_gaussian_sampling_upper, \
         half_gaussian_sampling_lower, random_rotation_matrix, \
         frac_coor_adjust, output_structure, \
         retrieve_integer_and_subtract
-from utilities.check_type import *
-from utilities.write_log import print_time_log
+from Genarris.utilities.check_type import *
+from Genarris.utilities.write_log import print_time_log
 import time
 
 def get_structure_generator_from_inst(inst, sname):

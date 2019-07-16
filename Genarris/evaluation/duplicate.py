@@ -15,7 +15,7 @@ from pymatgen import Lattice as LatticeP
 from pymatgen import Structure as StructureP
 from pymatgen.analysis.structure_matcher import StructureMatcher,ElementComparator,SpeciesComparator,FrameworkComparator
 import multiprocessing, copy
-from utilities import misc
+from Genarris.utilities import misc
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

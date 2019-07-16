@@ -17,7 +17,7 @@ Values are overridden by textual user input
 from ConfigParser import SafeConfigParser
 import ast
 
-from core.file_handler import default_config, ui_conf
+from Genarris.core.file_handler import default_config, ui_conf
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\

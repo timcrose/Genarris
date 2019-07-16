@@ -16,10 +16,10 @@ import os
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
-from utilities.misc import output_pool
-from utilities.write_log import print_time_log, write_log, \
+from Genarris.utilities.misc import output_pool
+from Genarris.utilities.write_log import print_time_log, write_log, \
     print_time_warning
-from evaluation.evaluation_util import PoolOperation, \
+from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
 
 

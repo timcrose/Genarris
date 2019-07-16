@@ -6,7 +6,7 @@ H. Oberhofer, and N. Marom "Genarris: Random Generation of Molecular Crystal
 Structures and Fast Screening with a Harris Approximation, ",
 J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 """
-from evaluation.fhi_aims_utils import get_fhi_aims_extractor
+from Genarris.evaluation.fhi_aims_utils import get_fhi_aims_extractor
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

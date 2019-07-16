@@ -9,11 +9,11 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 import copy, math
 import numpy as np
 import numpy # To allow for explicit user input
-from utilities import write_log, misc
-from core import structure_handling
-from evaluation.evaluation_util import BatchSingleStructureOperation, \
+from Genarris.utilities import write_log, misc
+from Genarris.core import structure_handling
+from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
-from evaluation.interatomic_distance_evaluation import all_interatomic_distances
+from Genarris.evaluation.interatomic_distance_evaluation import all_interatomic_distances
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

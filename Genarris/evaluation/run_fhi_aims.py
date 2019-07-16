@@ -1,7 +1,7 @@
 import os, sys
 from glob import glob
-from core.structure import Structure
-from utilities import file_utils
+from Genarris.core.structure import Structure
+from Genarris.utilities import file_utils
 
 def check_type(var, desired_type):
     if desired_type == 'path':

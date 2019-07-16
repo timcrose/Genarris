@@ -16,18 +16,18 @@ and conducts Affinity Propagation for pools
 '''
 
 import multiprocessing
-from core.structure import Structure
+from Genarris.core.structure import Structure
 import numpy as np
 from copy import deepcopy
-from utilities import misc, write_log, file_utils, list_utils
+from Genarris.utilities import misc, write_log, file_utils, list_utils
 import os, random, time, socket
 
 from glob import glob
-from external_libs.filelock import FileLock
+from Genarris.external_libs.filelock import FileLock
 
-from core.structure_handling import cm_calculation, cell_modification, \
+from Genarris.core.structure_handling import cm_calculation, cell_modification, \
         mole_translation
-from evaluation.evaluation_util import BatchSingleStructureOperation, \
+from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
 
 

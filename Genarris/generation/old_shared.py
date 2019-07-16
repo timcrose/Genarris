@@ -10,7 +10,7 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 Created on June 17, 2015
 Author: Patrick Kilecdi
 '''
-from core import user_input, structure, structure_handling
+from Genarris.core import user_input, structure, structure_handling
 import random
 import numpy
 

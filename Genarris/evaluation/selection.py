@@ -12,7 +12,7 @@ Created by Patrick Kilecdi on 01/24/2017
 Module for selection based on clusters
 
 '''
-from evaluation.evaluation_util import load_pool_operation_keywords, \
+from Genarris.evaluation.evaluation_util import load_pool_operation_keywords, \
         PoolOperation
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

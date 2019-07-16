@@ -7,10 +7,10 @@ Structures and Fast Screening with a Harris Approximation, ",
 J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 """
 import os, copy
-from core.structure import Structure
-from utilities.misc import list_subdirectories, list_directory_file, \
+from Genarris.core.structure import Structure
+from Genarris.utilities.misc import list_subdirectories, list_directory_file, \
         safe_make_dir, output_structure, safe_rmdir, safe_remove_files
-from utilities.write_log import print_time_log, print_time_warning, \
+from Genarris.utilities.write_log import print_time_log, print_time_warning, \
         print_time_error
 from copy import deepcopy
 

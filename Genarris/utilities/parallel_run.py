@@ -10,7 +10,7 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 This set of utilities functions contain the necessary functions that carry out parallelization of the code
 '''
 import os,socket,time
-from utilities import misc
+from Genarris.utilities import misc
 import subprocess, math
 
 

@@ -10,11 +10,11 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 Created on June 17, 2015
 Author: Patrick Kilecdi
 '''
-from core import structure, structure_handling, instruct
-from generation import sgroup
+from Genarris.core import structure, structure_handling, instruct
+from Genarris.generation import sgroup
 import random
 import numpy
-from utilities import misc, write_log
+from Genarris.utilities import misc, write_log
 import copy
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

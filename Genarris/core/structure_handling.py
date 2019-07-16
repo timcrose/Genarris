@@ -19,8 +19,8 @@ Funtions that read in a struct() and necessary arguments, and return a struct()
 """
 import numpy
 import numpy as np
-from core import structure
-from utilities import radius
+from Genarris.core import structure
+from Genarris.utilities import radius
 
 import copy
 #import parameters

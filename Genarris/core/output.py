@@ -13,7 +13,7 @@ Created on Dec 19, 2013
 '''
 import os
 
-from core.file_handler import cwd, output_file
+from Genarris.core.file_handler import cwd, output_file
 
 
 

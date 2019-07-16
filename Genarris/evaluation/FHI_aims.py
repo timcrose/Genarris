@@ -14,8 +14,8 @@ Conducts FHI-aims calculations
 
 
 import os, random, time, shutil, subprocess
-from core.structure import Structure
-from utilities import parallel_run, misc
+from Genarris.core.structure import Structure
+from Genarris.utilities import parallel_run, misc
 import copy
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

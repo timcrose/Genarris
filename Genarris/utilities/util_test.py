@@ -9,9 +9,9 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 '''
 These are test modules for utils
 '''
-from core import instruct
-from utilities.write_log import print_time_log
-from utilities.parallel_master import launch_parallel_run_single_inst
+from Genarris.core import instruct
+from Genarris.utilities.write_log import print_time_log
+from Genarris.utilities.parallel_master import launch_parallel_run_single_inst
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

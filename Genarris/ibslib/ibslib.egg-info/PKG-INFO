@@ -1,0 +1,15 @@
+Metadata-Version: 1.1
+Name: ibslib
+Version: 0.0
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires: sklearn
+Requires: pandas
+Requires: pymatgen
+Requires: scipy
+Requires: pymongo

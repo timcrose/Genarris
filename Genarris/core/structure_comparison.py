@@ -11,7 +11,7 @@ Created on Fri May 29 13:46:41 2015
 
 @author: Patrick Kilecdi
 """
-from core import structure, structure_handling
+from Genarris.core import structure, structure_handling
 import numpy
 import copy
 

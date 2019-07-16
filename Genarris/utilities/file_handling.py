@@ -10,7 +10,8 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 Created on Jun 26, 2015
 @author: Patrick Kilecdi
 '''
-from core import structure, structure_handling
+from Genarris.core import structure, structure_handling
+
 import numpy as np
 import os
 

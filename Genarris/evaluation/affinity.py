@@ -16,13 +16,13 @@ import os, random
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
-from utilities.misc import output_pool
-from utilities.write_log import print_time_log, write_log, \
+from Genarris.utilities.misc import output_pool
+from Genarris.utilities.write_log import print_time_log, write_log, \
     print_time_warning
-from utilities import file_utils
-from evaluation.evaluation_util import PoolOperation, \
+from Genarris.utilities import file_utils
+from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
-from core.structure import StoicDict, get_struct_coll
+from Genarris.core.structure import StoicDict, get_struct_coll
 from bisect import bisect
 
 

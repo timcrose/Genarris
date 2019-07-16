@@ -1,12 +1,11 @@
 import sys, os
 import numpy as np
-#sys.path.append('/home/trose/rithwik_generation_code/2019_07_03/cgenarris')
-#import _pygenarris
-from cgenarris import pygenarris
-from utilities import file_utils, list_utils
-from core import structure
-from core import file_handler
-
+from Genarris.cgenarris import _pygenarris
+from Genarris.utilities import file_utils, list_utils
+from Genarris.core import structure
+from Genarris.core import file_handler
+from Genarris.utilities.find_bonding import MoleculeBonding
+from ibslib.io import read
 
 def write_json_files(geometry_out_fpath, output_dir, structs_list):
     file_utils.mkdir_if_DNE(output_dir)
@@ -17,13 +16,6 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
     for i, struct_lines in enumerate(structs_list):
         properties_list = struct_lines[1].split()
         spg = int(properties_list[properties_list.index('spg') + 2])
-
-
-        #Currently there is a bug with space group 2
-        if spg == 2:
-            continue
-
-
         file_utils.write_lines_to_file(tmp_geo_fname, struct_lines, mode='w')
         struct = structure.Structure()
         struct.build_geo_from_atom_file(tmp_geo_fname)
@@ -153,7 +145,11 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
             set_up(molecule_path)
         filename = file_utils.fname_from_fpath(final_filename) + str(comm.rank) + '.' + final_filename.split('.')[-1]
 
+
     comm.barrier()
+    molecule_struct = read(molecule_path)
+    mb = MoleculeBonding(molecule_struct)
+    cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     _pygenarris.generate_molecular_crystals(filename, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, sr, tol, max_attempts)
     if comm is not None:
         comm.barrier()

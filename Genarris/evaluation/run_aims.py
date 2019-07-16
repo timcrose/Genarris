@@ -14,10 +14,10 @@ This module handles the job calling of FHI-aims
 '''
 
 import shutil, os, time
-from core import structure
-from external_libs.filelock import FileLock
+from Genarris.core import structure
+from Genarris.external_libs.filelock import FileLock
 import ast, subprocess
-import utilities.write_log as wl
+import Genarris.utilities.write_log as wl
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\

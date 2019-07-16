@@ -16,7 +16,7 @@ sgroup.wycarr produces a list of Wyckoff position arrangements that add up to nm
 """
 import random, glob, os, json, time
 import numpy as np
-from utilities.write_log import print_time_log
+from Genarris.utilities.write_log import print_time_log
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\

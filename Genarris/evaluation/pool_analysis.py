@@ -14,10 +14,10 @@ This module outputs certain results of a pool of structure
 
 import numpy, multiprocessing, copy, math
 import numpy as np
-from utilities import write_log, misc
-from core import structure_handling, pool_management
+from Genarris.utilities import write_log, misc
+from Genarris.core import structure_handling, pool_management
 import random, os
-from evaluation.evaluation_util import BatchSingleStructureOperation, \
+from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
 
 

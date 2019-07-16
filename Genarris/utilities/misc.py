@@ -10,10 +10,10 @@ J. Chem. Phys., DOI: 10.1063/1.5014038; arXiv 1803.02145 (2018)
 Miscellaneous utilities functions
 '''
 
-from core.structure import Structure
-from utilities import write_log
-from external_libs.filelock import FileLock
-from external_libs import matrix_op
+from Genarris.core.structure import Structure
+from Genarris.utilities import write_log
+from Genarris.external_libs.filelock import FileLock
+from Genarris.external_libs import matrix_op
 import random
 import copy
 import numpy
