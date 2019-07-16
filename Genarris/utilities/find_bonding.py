@@ -90,10 +90,10 @@ class MoleculeBonding():
     def get_crystal_cutoff_matrix(self,nmpc,vdw_mult=0.85):
         """
         Copies the intermolecular distance matrix from 
-        MoleculeBonding.get_contact_matrix into the correct size for a specific
+        MoleculeBonding.get_cutoff_matrix into the correct size for a specific
         number of molecules in the unit cell.
         """
-        cutoff_matrix = self.get_contact_matrix(vdw_mult=vdw_mult)
+        cutoff_matrix = self.get_cutoff_matrix(vdw_mult=vdw_mult)
         return np.tile(cutoff_matrix,(nmpc,nmpc))
         
     
