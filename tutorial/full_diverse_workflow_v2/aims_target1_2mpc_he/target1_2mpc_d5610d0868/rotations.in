@@ -1,0 +1,6 @@
+title geometry
+lattice_vector 5.284081 0.000000 0.000000
+lattice_vector 0.000000 4.016440 0.000000
+lattice_vector 14.547199 0.000000 9.142996
+55.049655 -11.989496 -75.902149 6.978997 3.901730 2.753222 /home/trose/genarris_mpi4py/merged_4_17_2019/tests/full_diverse_workflow/harris_single_molecule_prep_aims_dir/geometry
+124.947820 -168.010716 104.095256 12.852284 3.901730 6.389764 /home/trose/genarris_mpi4py/merged_4_17_2019/tests/full_diverse_workflow/harris_single_molecule_prep_aims_dir/geometry
