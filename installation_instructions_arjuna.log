@@ -1,0 +1,90 @@
+# load intel and impi modules
+$ module purge
+$ module load intel/18.0.3.222
+$ module load impi/2018_Update_3
+
+# Set ulimit to avoid any possible memory problems
+$ ulimit -s unlimited
+$ ulimit -v unlimited
+
+# Set OMP_NUM_THREADS to 1
+$ export OMP_NUM_THREADS=1
+
+# Enable the installed anaconda that you wish to use as the base for you virtual environment. Must be python 3.
+# Let's say it's installed in the ${HOME} directory. Then we have:
+$ export PATH=${HOME}/anaconda3/bin:$PATH
+$ export PYTHONPATH=${HOME}/anaconda3/lib/python3.6/site-packages:$PYTHONPATH
+
+# Create anaconda environment with intelpython3_full (If it's not already created!)
+$ conda create -n intelpython3_full intelpython3_full python=3
+
+# Change PATH and PYTHONPATH to activate it
+$ export PATH=${HOME}/intelpython3_full/bin:$PATH
+$ export PYTHONPATH=${HOME}/anaconda3/envs/intelpython3_full/lib/python3.6/site-packages
+
+# Install pymatgen and its dependencies (If it's not already installed!)
+$ pip install pymatgen
+
+# Enable intel binaries to be found first:
+$ export PATH=/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin_ohpc:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/bin/intel64:${HOME}/anaconda3/envs/intelpython3_full/bin:${HOME}/anaconda3/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+
+# Obtain FHI-aims from https://aims-git.rz-berlin.mpg.de/aims/FHIaims
+# In the src directory, make sure the Makefile has all settings commented out
+# Put the following make.sys in the src directory:
+###############
+# Basic Flags #
+###############
+FC = mpiifort
+FFLAGS = -O3 -ip -fp-model precise -fPIC
+F90FLAGS = $(FFLAGS)
+ARCHITECTURE = Generic
+LAPACKBLAS = -L${MKLROOT}/lib/intel64 \
+             -lmkl_intel_lp64 \
+             -lmkl_sequential \
+             -lmkl_core \
+             -lmkl_blacs_intelmpi_lp64 \
+             -lmkl_scalapack_lp64
+F90MINFLAGS = -O0 -fp-model precise -fPIC
+
+#########################
+# Parallelization Flags #
+#########################
+USE_MPI = yes
+MPIFC = ${FC}
+SCALAPACK = ${LAPACKBLAS}
+
+###############
+# C,C++ Flags #
+###############
+CC = icc
+CFLAGS = -O3 -ip -fp-model precise -fPIC
+
+# Compile FHI-aims as a library:
+$ make -j 20 libaims.scalapack.mpi
+# where the "20" is arbitrary
+
+# Let's say the library file was put in the following directory: ${HOME}/aims/lib
+# Make a directory (say, ${HOME}/aims/aims_as_python_lib) and enter it
+# Put the following in a file called "Makefile" if your aims version is 190522 for example
+LIBAIMS=${HOME}/aims/lib/libaims.190522.scalapack.mpi.so
+include_dir=${HOME}/anaconda3/envs/intelpython3_full/include
+
+aims_w.so: aims_w.f90
+        f2py --f90exec=mpiifort --fcompiler=intelem -m aims_w -c aims_w.f90 ${LIBAIMS} -I${include_dir}
+
+clean:
+        rm aims_w.*.so
+
+# compile FHI-aims as an importable python library!
+$ make
+
+# In the python script (let's say it's called my_python_script.py):
+>>> sys.path.append(os.path.join(os.environ['HOME'], 'aims', 'aims_as_python_lib'))
+>>> import aims_w
+
+# In a file called "preload_scripts.sh" put:
+LD_PRELOAD=${MKLROOT}/lib/intel64_lin/libmkl_intel_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_sequential.so:${MKLROOT}/lib/intel64_lin/libmkl_core.so:${MKLROOT}/lib/intel64_lin/libmkl_blacs_intelmpi_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_scalapack_lp64.so:${I_MPI_ROOT}/intel64/lib/libmpi.so.12 python -u ${HOME}/my_python_script.py
+
+# In the submission script:
+mpirun -n 56 ./preload_scripts.sh
+# where of course, 56 is arbitrary
