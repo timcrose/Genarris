@@ -1,0 +1,245 @@
+running develop
+running egg_info
+writing Genarris_2.0.egg-info/PKG-INFO
+writing dependency_links to Genarris_2.0.egg-info/dependency_links.txt
+writing requirements to Genarris_2.0.egg-info/requires.txt
+writing top-level names to Genarris_2.0.egg-info/top_level.txt
+reading manifest file 'Genarris_2.0.egg-info/SOURCES.txt'
+writing manifest file 'Genarris_2.0.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/Genarris-2.0.egg-link (link to .)
+Genarris-2.0 2.0 is already the active version in easy-install.pth
+
+Installed /home/trose/genarris_mpi4py/merged_4_17_2019/Genarris_package
+Processing dependencies for Genarris-2.0==2.0
+Searching for spherical-functions==2019.7.15.21.5.21
+Best match: spherical-functions 2019.7.15.21.5.21
+Adding spherical-functions 2019.7.15.21.5.21 to easy-install.pth file
+
+Using /home/trose/.local/lib/python3.6/site-packages
+Searching for pymatgen==2019.7.2
+Best match: pymatgen 2019.7.2
+Processing pymatgen-2019.7.2-py3.6-linux-x86_64.egg
+pymatgen 2019.7.2 is already the active version in easy-install.pth
+Installing feff_input_generation script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing feff_plot_cross_section script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing feff_plot_dos script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing gaussian_analyzer script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing get_environment script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing pmg script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/pymatgen-2019.7.2-py3.6-linux-x86_64.egg
+Searching for ase==3.17.0
+Best match: ase 3.17.0
+Processing ase-3.17.0-py3.6.egg
+ase 3.17.0 is already the active version in easy-install.pth
+Installing ase script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing ase-build script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing ase-db script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing ase-gui script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing ase-info script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing ase-run script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/ase-3.17.0-py3.6.egg
+Searching for numpy-quaternion==0.0.0
+Best match: numpy-quaternion 0.0.0
+Adding numpy-quaternion 0.0.0 to easy-install.pth file
+
+Using /home/trose/.local/lib/python3.6/site-packages
+Searching for numpy==1.16.2
+Best match: numpy 1.16.2
+Adding numpy 1.16.2 to easy-install.pth file
+Installing f2py script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing f2py3 script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing f2py3.6 script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages
+Searching for pandas==0.25.0rc0
+Best match: pandas 0.25.0rc0
+Processing pandas-0.25.0rc0-py3.6-linux-x86_64.egg
+pandas 0.25.0rc0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/pandas-0.25.0rc0-py3.6-linux-x86_64.egg
+Searching for sympy==1.4
+Best match: sympy 1.4
+Processing sympy-1.4-py3.6.egg
+sympy 1.4 is already the active version in easy-install.pth
+Installing isympy script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/sympy-1.4-py3.6.egg
+Searching for palettable==3.2.0
+Best match: palettable 3.2.0
+Processing palettable-3.2.0-py3.6.egg
+palettable 3.2.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/palettable-3.2.0-py3.6.egg
+Searching for matplotlib==3.1.1
+Best match: matplotlib 3.1.1
+Processing matplotlib-3.1.1-py3.6-linux-x86_64.egg
+matplotlib 3.1.1 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/matplotlib-3.1.1-py3.6-linux-x86_64.egg
+Searching for networkx==2.3
+Best match: networkx 2.3
+Processing networkx-2.3-py3.6.egg
+networkx 2.3 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/networkx-2.3-py3.6.egg
+Searching for spglib==1.13.0.post6
+Best match: spglib 1.13.0.post6
+Processing spglib-1.13.0.post6-py3.6-linux-x86_64.egg
+spglib 1.13.0.post6 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/spglib-1.13.0.post6-py3.6-linux-x86_64.egg
+Searching for tabulate==0.8.3
+Best match: tabulate 0.8.3
+Processing tabulate-0.8.3-py3.6.egg
+tabulate 0.8.3 is already the active version in easy-install.pth
+Installing tabulate script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/tabulate-0.8.3-py3.6.egg
+Searching for PyDispatcher==2.0.5
+Best match: PyDispatcher 2.0.5
+Processing PyDispatcher-2.0.5-py3.6.egg
+PyDispatcher 2.0.5 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/PyDispatcher-2.0.5-py3.6.egg
+Searching for scipy==1.2.1
+Best match: scipy 1.2.1
+Adding scipy 1.2.1 to easy-install.pth file
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages
+Searching for monty==2.0.4
+Best match: monty 2.0.4
+Processing monty-2.0.4-py3.6.egg
+monty 2.0.4 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/monty-2.0.4-py3.6.egg
+Searching for ruamel.yaml==0.15.99
+Best match: ruamel.yaml 0.15.99
+Processing ruamel.yaml-0.15.99-py3.6-linux-x86_64.egg
+ruamel.yaml 0.15.99 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/ruamel.yaml-0.15.99-py3.6-linux-x86_64.egg
+Searching for requests==2.22.0
+Best match: requests 2.22.0
+Processing requests-2.22.0-py3.6.egg
+requests 2.22.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/requests-2.22.0-py3.6.egg
+Searching for Flask==1.1.1
+Best match: Flask 1.1.1
+Processing Flask-1.1.1-py3.6.egg
+Flask 1.1.1 is already the active version in easy-install.pth
+Installing flask script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/Flask-1.1.1-py3.6.egg
+Searching for pytz==2019.1
+Best match: pytz 2019.1
+Processing pytz-2019.1-py3.6.egg
+pytz 2019.1 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/pytz-2019.1-py3.6.egg
+Searching for python-dateutil==2.8.0
+Best match: python-dateutil 2.8.0
+Processing python_dateutil-2.8.0-py3.6.egg
+python-dateutil 2.8.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/python_dateutil-2.8.0-py3.6.egg
+Searching for mpmath==1.1.0
+Best match: mpmath 1.1.0
+Processing mpmath-1.1.0-py3.6.egg
+mpmath 1.1.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/mpmath-1.1.0-py3.6.egg
+Searching for pyparsing==2.4.0
+Best match: pyparsing 2.4.0
+Processing pyparsing-2.4.0-py3.6.egg
+pyparsing 2.4.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/pyparsing-2.4.0-py3.6.egg
+Searching for kiwisolver==1.1.0
+Best match: kiwisolver 1.1.0
+Processing kiwisolver-1.1.0-py3.6-linux-x86_64.egg
+kiwisolver 1.1.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/kiwisolver-1.1.0-py3.6-linux-x86_64.egg
+Searching for cycler==0.10.0
+Best match: cycler 0.10.0
+Processing cycler-0.10.0-py3.6.egg
+cycler 0.10.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/cycler-0.10.0-py3.6.egg
+Searching for decorator==4.4.0
+Best match: decorator 4.4.0
+Processing decorator-4.4.0-py3.6.egg
+decorator 4.4.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/decorator-4.4.0-py3.6.egg
+Searching for six==1.11.0
+Best match: six 1.11.0
+Adding six 1.11.0 to easy-install.pth file
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages
+Searching for urllib3==1.25.3
+Best match: urllib3 1.25.3
+Processing urllib3-1.25.3-py3.6.egg
+urllib3 1.25.3 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/urllib3-1.25.3-py3.6.egg
+Searching for idna==2.8
+Best match: idna 2.8
+Processing idna-2.8-py3.6.egg
+idna 2.8 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/idna-2.8-py3.6.egg
+Searching for chardet==3.0.4
+Best match: chardet 3.0.4
+Processing chardet-3.0.4-py3.6.egg
+chardet 3.0.4 is already the active version in easy-install.pth
+Installing chardetect script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/chardet-3.0.4-py3.6.egg
+Searching for certifi==2018.1.18
+Best match: certifi 2018.1.18
+Adding certifi 2018.1.18 to easy-install.pth file
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages
+Searching for itsdangerous==1.1.0
+Best match: itsdangerous 1.1.0
+Processing itsdangerous-1.1.0-py3.6.egg
+itsdangerous 1.1.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/itsdangerous-1.1.0-py3.6.egg
+Searching for Click==7.0
+Best match: Click 7.0
+Processing Click-7.0-py3.6.egg
+Click 7.0 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/Click-7.0-py3.6.egg
+Searching for Werkzeug==0.15.4
+Best match: Werkzeug 0.15.4
+Processing Werkzeug-0.15.4-py3.6.egg
+Werkzeug 0.15.4 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/Werkzeug-0.15.4-py3.6.egg
+Searching for Jinja2==2.10.1
+Best match: Jinja2 2.10.1
+Processing Jinja2-2.10.1-py3.6.egg
+Jinja2 2.10.1 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/Jinja2-2.10.1-py3.6.egg
+Searching for setuptools==39.0.1.post20180504
+Best match: setuptools 39.0.1.post20180504
+Adding setuptools 39.0.1.post20180504 to easy-install.pth file
+Installing easy_install script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+Installing easy_install-3.6 script to /home/trose/anaconda/anaconda3/envs/intelpython3_core1/bin
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages
+Searching for MarkupSafe==1.1.1
+Best match: MarkupSafe 1.1.1
+Processing MarkupSafe-1.1.1-py3.6-linux-x86_64.egg
+MarkupSafe 1.1.1 is already the active version in easy-install.pth
+
+Using /home/trose/anaconda/anaconda3/envs/intelpython3_core1/lib/python3.6/site-packages/MarkupSafe-1.1.1-py3.6-linux-x86_64.egg
+Finished processing dependencies for Genarris-2.0==2.0

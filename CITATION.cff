@@ -1,0 +1,9 @@
+cff-version: 1.0.3
+message: If you use this software, please cite the published paper.
+authors:
+  - family-names: Rose, Tom, Bier, Marom, Li, Luca, Farren, Christoph, Alvaro, Karsten, Harald
+    given-names: Timothy, Rithwik, Manny, Noa, Xiayue, Curtis, Ghiringhelli, Schober, Vazquez-Mayagoita, Reuter, Oberhofer
+title: Genarris: Package for generating molecular crystal structures
+version: 2.0
+doi: N/A
+date-released: N/A
