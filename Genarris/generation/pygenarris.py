@@ -1,6 +1,6 @@
 import sys, os
 import numpy as np
-from cgenarris import _pygenarris
+from cgenarris import pygenarris
 from Genarris.utilities import file_utils, list_utils
 from Genarris.core import structure
 from Genarris.core import file_handler
@@ -151,7 +151,7 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     mb = MoleculeBonding(molecule_struct)
     cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
-    _pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts)
+    pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts)
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:

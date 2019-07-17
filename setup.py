@@ -43,4 +43,4 @@ if os.path.exists('cgenarris'):
     shutil.rmtree('cgenarris')
 os.system('git clone https://github.com/ritwit/cgenarris.git')
 os.chdir('cgenarris')
-os.system('python setup.py build_ext --inplace')
+os.system('python setup.py install')
