@@ -14,3 +14,5 @@ $ python setup.py develop
 Notes
 1) Your previously installed ase version will be removed. This is why it's recommended to create a python virtual env in step 1.
 2) The tutorial example has a preload_scripts.sh file which is called by the sub_genarris.sh slurm submission script. If your MPI is not Intel, you might need to call python directly in the submission script rather than calling ./preload_scripts.sh
+3) If you don't specify volume parameters like volume_mean and volume_std, and do have the Estimate_Unit_Cell_Volume procedure before a structure generation procedure in the procedures list, then volume parameters will be estimated and the estimates will be used by the generation procedure and printed to the Genarris.log file.
+4) Some procedures, such as the ones that call FHI-aims, use one rank as a master rank. e.g. if you say num_cores = 57 in run_fhi_aims_batch and num_replicas = 1 then 56 cores will work on an aims job at a time.
