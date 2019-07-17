@@ -11,6 +11,11 @@ setup(name = 'Genarris_2.0',
       version = '2.0'
 )
 cwd = os.path.abspath(os.getcwd())
+package = 'mpi4py'
+try:
+    __import__(package)
+except ImportError:
+    os.system('pip install https://bitbucket.org/mpi4py/mpi4py/get/master.tar.gz')
 os.chdir(os.path.join('Genarris', 'ibslib'))
 os.system('python setup.py install')
 os.chdir(cwd)
