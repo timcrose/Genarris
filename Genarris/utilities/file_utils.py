@@ -8,15 +8,15 @@ Created on Tue Feb  6 19:16:48 2018
 import csv, json, os, sys, pickle
 from glob import glob
 import shutil, fnmatch, random
-from utilities import time_utils, err_utils, list_utils
+from Genarris.utilities import time_utils, err_utils, list_utils
 import platform
 import numpy as np
 
 python_version = float(platform.python_version()[:3])
 if python_version >= 3.0:
-    from utilities.file_utils3 import *
+    from Genarris.utilities.file_utils3 import *
 elif python_version >= 2.0:
-    from utilities.file_utils2 import *
+    from Genarris.utilities.file_utils2 import *
 else:
     print('python version below 2.0, potential for some unsupported ' +
         'functions')

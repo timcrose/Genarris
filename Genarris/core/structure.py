@@ -20,6 +20,7 @@ import math
 import numpy
 import numpy as np
 import os, glob
+from Genarris.core import structure_handling
 
 from pymatgen import Lattice as LatticeP
 from pymatgen import Structure as StructureP
@@ -479,3 +480,29 @@ def get_struct_coll(jsons_dir, stoic):
     struct_coll = [[struct_ids[i], struct_list[i]] for i in range(len(struct_ids))]
 
     return struct_coll, struct_ids
+
+
+def translate_molecule_com_to_origin(molecule_path=None, molecule=None):
+    #First, load the struct object.
+    if molecule is None:
+        if molecule_path is not None:
+            struct = Structure()
+            struct.build_geo_from_atom_file(molecule_path)
+        else:
+            raise Exception('Needed a molecule_path or molecule')
+
+    if "lattice_vector_a" in struct.properties or \
+        "lattice_vector_b" in struct.properties or \
+        "lattice_vector_c" in struct.properties:
+        
+        raise Exception('Lattice vectors cannot be in single molecule geometry file')
+
+    #Now places the molecule's COM at the origin
+    molecule_com = structure_handling.cm_calculation(struct,
+                    range(len(struct.geometry)))
+
+    struct = structure_handling.cell_translation(struct,
+                        [-x for x in molecule_com],
+                        False)
+
+    return struct

@@ -686,24 +686,7 @@ def harris_single_molecule_prep(comm, world_comm, MPI_ANY_SOURCE, inst):
 
         control_path = inst.get(sname, 'control_path')
 
-        #First, load the struct object.
-        struct = misc.load_structure_with_inst(inst, sname,
-                                "molecule_format", molecule_path)
-
-        if "lattice_vector_a" in struct.properties or \
-            "lattice_vector_b" in struct.properties or \
-            "lattice_vector_c" in struct.properties:
-            
-            raise Exception('Lattice vectors cannot be in single molecule geometry file')
-
-        #Now places the molecule's COM at the origin
-        molecule_com = structure_handling.cm_calculation(struct,
-                        range(len(struct.geometry)))
-
-        struct = structure_handling.cell_translation(struct,
-                            [-x for x in molecule_com],
-                            False)
-
+        struct = structure.translate_molecule_com_to_origin(molecule_path)
         
         aims_output_dir = inst.get(sname, "aims_output_dir")
         struct_fname = file_utils.fname_from_fpath(molecule_path)

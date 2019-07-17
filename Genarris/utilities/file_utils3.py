@@ -8,7 +8,7 @@ Created on Tue Feb  6 19:16:48 2018
 import csv, json, os, sys, pickle
 from glob import glob
 import shutil
-from utilities import time_utils
+from Genarris.utilities import time_utils
 
 def output_from_rank(message_args, rank, mode='a', output_fpath_prefix='output_from_world_rank_'):
     output_fpath = output_fpath_prefix + str(rank)

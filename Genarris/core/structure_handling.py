@@ -793,12 +793,12 @@ def cell_modification (struct,nmpc,napm,create_duplicate=True):
 	Method found in the 2011 Lonie paper
 	Adjust the cell so that there are no angles beyond the range of 60 and 120
 	nmpc = number of molecules per cell
-	napm = number of atoms per cell
+	napm = number of atoms per molecule
 	'''
 	if create_duplicate:
 		struct=copy.deepcopy(struct)
 	if len(struct.geometry)!=nmpc*napm:
-		print("cell_modification check struct.geometry list or nmpc or napm!")
+		print("cell_modification check struct.geometry list or nmpc or napm!", flush=True)
 		return False
 	test=True
 	run=0
