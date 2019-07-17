@@ -20,7 +20,7 @@ from Genarris.core.structure import Structure
 import numpy as np
 from copy import deepcopy
 from Genarris.utilities import misc, write_log, file_utils, list_utils
-import os, random, time, socket
+import os, random, time, socket, itertools
 
 from glob import glob
 from Genarris.external_libs.filelock import FileLock
@@ -43,6 +43,32 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
+def get_axes(molecule):
+    napm = len(molecule.geometry)
+    list_of_pairwise_combinations = list(itertools.combinations(range(napm), 2))
+    all_pairs_of_axes = [[list_of_pairwise_combinations[i], list_of_pairwise_combinations[j]] for i in range(napm) for j in range(napm) if i  != j]
+    sorted_pairs_of_axes = [sorted(axes) for axes in all_pairs_of_axes]
+    unique_pairs_of_axes = []
+    for axes in sorted_pairs_of_axes:
+        if axes not in unique_pairs_of_axes:
+            unique_pairs_of_axes.append(axes)
+    for axes in unique_pairs_of_axes:
+        atom_coords_0 = np.array([molecule.geometry[axes[0][0]][i] for i in range(3)])
+        atom_coords_1 = np.array([molecule.geometry[axes[0][1]][i] for i in range(3)])
+        axis_0 = atom_coords_1 - atom_coords_0
+        atom_coords_2 = np.array([molecule.geometry[axes[1][0]][i] for i in range(3)])
+        atom_coords_3 = np.array([molecule.geometry[axes[1][1]][i] for i in range(3)])
+        axis_1 = atom_coords_3 - atom_coords_2
+        axis_2 = np.cross(axis_0, axis_1)
+        orthogonal_axes = _gram_schmidt(np.array([axis_0, axis_1, axis_2]), row_vecs=True, norm=True)
+        orthogonal_tol = 0.0001
+        if np.dot(orthogonal_axes[0], orthogonal_axes[1]) < orthogonal_tol and np.dot(orthogonal_axes[0], orthogonal_axes[2]) < orthogonal_tol and \
+            np.dot(orthogonal_axes[1], orthogonal_axes[2]) < orthogonal_tol:
+
+            return axes
+    raise Exception('Could not find a pair of axes that could be orthogonalized.')
+        
+
 def rcd_calculation(inst, comm):
     '''
     Main RCD calculation module
@@ -58,8 +84,14 @@ def rcd_calculation(inst, comm):
 
     output_dir = inst.get(sname, 'output_dir')
 
-    napm = inst.get_eval(sname, "NAPM")
-    axes = inst.get_eval(sname,"axes")
+    sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+    molecule = structure.Structure()
+    molecule.build_geo_from_atom_file(molecule_path)
+    napm = len(molecule.geometry)
+
+    axes = get_axes(molecule)
+
     close_picks = inst.get_with_default(sname, "close_picks", 16, eval=True)
     property_name = inst.get_with_default(
             sname, "property_name", "rcd")
