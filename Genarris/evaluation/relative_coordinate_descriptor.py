@@ -582,9 +582,7 @@ def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     This version requires that the closest 4 molecules be accounted for
     The difference is taken as the average between the attempts
     '''
-    print('len(v1)', len(v1))
-    print('len(v2)', len(v2))
-    print('select_pairs', select_pairs)
+    
     dist = [(x, y, _calculate_diff(v1[x], v2[y], ratio)) for y in range(len(v2))
                                                      for x in range(select_pairs)]
 
