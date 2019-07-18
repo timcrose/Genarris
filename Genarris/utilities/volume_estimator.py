@@ -164,12 +164,7 @@ def estimate_unit_cell_volume(inst, comm):
         molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
 
         molecule = read(molecule_path)
-        '''if molecule_path.endswith('.json'):
-            molecule.build_geo_from_json_file(molecule_path)
-        elif molecule_path.endswith('.in'):
-            molecule.build_geo_from_atom_file(molecule_path)
-        else:
-            raise Exception('Molecule must be json or geometry.in format. molecule_path:', molecule_path)'''
+
         vol_estimate = mve.calc(molecule)
     else:
         vol_estimate = None

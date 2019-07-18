@@ -127,7 +127,11 @@ class Genarris():
         active_comm = None
         split_comm = None
         for procedure in procedures:
-            comm.barrier()
+            if comm.rank == 0:
+                data = self.inst
+            else:
+                data = None
+            self.inst = comm.bcast(data, root=0)
             
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure
