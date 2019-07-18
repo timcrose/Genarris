@@ -86,7 +86,7 @@ def rcd_calculation(inst, comm):
 
     sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
     molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
-    molecule = structure.Structure()
+    molecule = Structure()
     molecule.build_geo_from_atom_file(molecule_path)
     napm = len(molecule.geometry)
 

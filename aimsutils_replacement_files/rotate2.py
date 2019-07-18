@@ -287,7 +287,6 @@ class Rotations(object):
             # Note that each instruction line is assigned to a base
             # molecule (via m1 or m2)
         """
-        print('inside load_rotations', flush=True)
         self.__reset__()
         rotations = []
         cell = []
@@ -326,7 +325,6 @@ class Rotations(object):
         self.title = title
         for rot, trans, mol in rotations:
             self.add_rotation(mol, rot, trans)
-        print('leaving load_rotations', flush=True)
 
 
 def _identify_rotation(*args):
