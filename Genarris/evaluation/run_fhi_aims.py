@@ -12,13 +12,16 @@ def check_type(var, desired_type):
     if type(var) is not desired_type:
         raise TypeError('var', var, 'is not type', desired_type, 'as desired')
 
-def run_aims(aims_lib_dir, comm):
+def run_aims(aims_lib_dir, comm, verbose):
         '''
         comm: mpi4py.MPI object
             MPI communicator to pass into aims
         aims_lib_dir: str
             File path to the f2py-compiled aims_w.so library file. This file included
             libaims.XXXX.scalapack.mpi.so in its compilation.
+        verbose: bool
+            True: Print debugging output
+            False: Do not print debugging output
 
         Purpose:
             Run a single instance of aims.
@@ -29,14 +32,18 @@ def run_aims(aims_lib_dir, comm):
 
         rank = comm.rank
         commf = comm.py2f()
-        print('comm.rank', comm.rank, 'entering Barrier', flush=True)
+        if verbose:
+            print('comm.rank', comm.rank, 'entering Barrier', flush=True)
         comm.Barrier()
-        print('comm.rank', comm.rank, 'about to run aims', flush=True)
+        if verbose:
+            print('comm.rank', comm.rank, 'about to run aims', flush=True)
         try:
             aims_w.aims_w(commf)
-            print('comm.rank', comm.rank, 'ran aims', flush=True)
+            if verbose:
+                print('comm.rank', comm.rank, 'ran aims', flush=True)
         except:
-            print('comm.rank', comm.rank, 'could not run aims', flush=True)
+            if verbose:
+                print('comm.rank', comm.rank, 'could not run aims', flush=True)
         sys.stdout.flush()
 
 
@@ -196,7 +203,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             aims_out = os.path.abspath(os.path.join(struct_fold, 'aims.out'))
             if not os.path.isfile(aims_out):
                 os.chdir(struct_fold)
-                run_aims(aims_lib_dir, comm)
+                run_aims(aims_lib_dir, comm, verbose)
                 if comm.rank == 0:
                     # Update struct json with energy
                     structure_files = glob('*.json')
@@ -223,21 +230,25 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
 
     if world_comm.rank == 0:
         # Output (copy) jsons to output_dir
-        print('output_dir', output_dir, flush=True)
+        if verbose:
+            print('output_dir', output_dir, flush=True)
         if output_dir is not None:
             json_flist = file_utils.glob(os.path.join(aims_output_dir, '**', '*.json'), recursive=True)
-            print('json_flist', json_flist, flush=True)
+            if verbose:
+                print('json_flist', json_flist, flush=True)
             # Only save those structures into jsons in output_dir which successfully gave an energy according to the desired control file
             for json_fpath in json_flist:
                 name = file_utils.fname_from_fpath(json_fpath)
                 aims_out = os.path.join(aims_output_dir, name, 'aims.out')
-                print('aims_out', aims_out, flush=True)
-                print('sname', sname, flush=True)
+                if verbose:
+                    print('aims_out', aims_out, flush=True)
+                    print('sname', sname, flush=True)
                 struct_dct = file_utils.get_dct_from_json(json_fpath)
                 if energy_name in struct_dct['properties'] and struct_dct['properties'][energy_name] != 'none' and \
                     (sname != 'harris_approximation_batch' or len(file_utils.grep('Reading periodic restart information from file', aims_out)) > 0):
                     
-                    print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
+                    if verbose:
+                        print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
                     file_utils.cp(json_fpath, output_dir)
                 elif verbose:
                     print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)

@@ -162,6 +162,8 @@ def estimate_unit_cell_volume(inst, comm):
         sname = 'estimate_unit_cell_volume'
         sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
         molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+        if verbose:
+            print('molecule_path', molecule_path, flush=True)
 
         molecule = read(molecule_path)
 

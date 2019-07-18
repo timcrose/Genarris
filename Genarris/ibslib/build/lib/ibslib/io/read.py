@@ -51,6 +51,8 @@ def read_file(file_path):
         struct = import_cif(file_path)
     elif '.in' == file_path[-3:]:
         struct = import_geo(file_path)
+    elif '.in.next_step' in file_path:
+        struct = import_geo(file_path)
     else:
         try: struct = import_ase(file_path)
         except: 

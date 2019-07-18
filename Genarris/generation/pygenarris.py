@@ -69,6 +69,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
 
     if os.path.isdir(output_dir):
         file_utils.rm(output_dir)
+    print('concatenating', len(outfiles), 'output files into a list of structures', flush=True)
     outfiles = file_utils.glob(file_utils.fname_from_fpath(final_filename) + '*')
     lines_list = file_utils.concatenate_files(outfiles, final_filename, return_lines=True)
     
@@ -88,8 +89,9 @@ def format_output(output_format, output_dir, final_filename, num_structures):
     
     selected_structs_list = list(np.array(structs_list)[selected_structs_idx_list])
     selected_structs_list = list(map(list, selected_structs_list))
-
+    print('done concatenating', flush=True)
     if output_format == 'json' or output_format == "both":
+        print('writing json files', flush=True)
         selected_structs_list = write_json_files(final_filename, output_dir, selected_structs_list)
     else:
         for i, struct_lines in enumerate(selected_structs_list):
@@ -99,6 +101,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
             selected_structs_list[i] = selected_structs_list[i][:2] + ['#struct_id = ' + struct_id + '\n'] + selected_structs_list[i][2:]
     
     if output_format != 'json':
+        print('writing geometry output file', flush=True)
         # Update the current geometry.out file with struct ids and chronological structure numbers
         for i, struct_lines in enumerate(selected_structs_list):
             if i == 0:

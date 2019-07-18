@@ -166,7 +166,7 @@ def harris_approximation_single(inst):
     molecule = structure.Structure()
     if molecule_path.endswith('.json'):
         molecule.build_geo_from_json_file(molecule_path)
-    elif molecule_path.endswith('.in'):
+    elif molecule_path.endswith('.in') or molecule_path.endswith('.in.next_step'):
         molecule.build_geo_from_atom_file(molecule_path)
     else:
         raise Exception('Molecule must be json or geometry.in format. molecule_path:', molecule_path)
