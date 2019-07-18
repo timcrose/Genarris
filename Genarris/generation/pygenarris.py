@@ -1,6 +1,6 @@
 import sys, os
 import numpy as np
-from cgenarris import pygenarris
+import pygenarris
 from Genarris.utilities import file_utils, list_utils
 from Genarris.core import structure
 from Genarris.core import file_handler
