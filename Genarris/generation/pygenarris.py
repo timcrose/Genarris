@@ -69,8 +69,8 @@ def format_output(output_format, output_dir, final_filename, num_structures):
 
     if os.path.isdir(output_dir):
         file_utils.rm(output_dir)
-    print('concatenating', len(outfiles), 'output files into a list of structures', flush=True)
     outfiles = file_utils.glob(file_utils.fname_from_fpath(final_filename) + '*')
+    print('concatenating', len(outfiles), 'output files into a list of structures', flush=True)
     lines_list = file_utils.concatenate_files(outfiles, final_filename, return_lines=True)
     
     indices_list = file_utils.grep('structure number', final_filename, return_line_nums=True)[1] + [len(lines_list)]
