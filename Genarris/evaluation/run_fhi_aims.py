@@ -128,11 +128,11 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
         output_dir = inst.get_or_none(sname, 'output_dir')
         aims_output_dir = inst.get(sname, 'aims_output_dir')
-        sname_list = [sname, 'relax_single_molecule', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
-        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 5)
+        sname_list = [sname, 'relax_single_molecule', 'fhi_aims_energy_evaluation', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
+        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 6, type_='dir', required=True)
 
         sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file', required=False)
 
         if sname == 'harris_single_molecule_prep' or sname == 'relax_single_molecule':
             if inst.has_option(sname, 'structure_dir'):

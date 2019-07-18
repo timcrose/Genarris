@@ -381,14 +381,22 @@ class Instruct(SafeConfigParser):
             value = self.get_eval(found_sname, option)
         else:
             value = 'none_value'
-        if (required or sname in sname_list) and value == 'none_value':
+        if required and value == 'none_value':
+            raise Exception('Could not find options', options, 'in', sname_list)
+        elif sname in sname_list and value == 'none_value':
             raise Exception('Could not find options', options, 'in', sname_list)
         
-        if (required or sname in sname_list) and \
+        if required and \
             (type_ == 'dir' and not os.path.isdir(value)) or \
             (type_ == 'file' and not os.path.isfile(value)):
 
             raise Exception('type_', type_, 'in', options, 'in', sname_list, 'DNE')
+
+        elif sname in sname_list and \
+            (type_ == 'dir' and not os.path.isdir(value)) or \
+            (type_ == 'file' and not os.path.isfile(value)):
+
+            raise Exception('type_', type_, 'in', options, 'in', sname_list, 'DNE')            
 
         return value
 

@@ -112,6 +112,7 @@ class Genarris():
                       socket.gethostname())
         
         procedures = self.inst.get_keywords([[sname,"procedures"]],True)[0]
+        procedures_with_master_slave = ['Run_FHI_Aims_Batch', 'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
         
         for section in self.inst.sections():
             #add default num_cores if section is a procedure
@@ -170,7 +171,7 @@ class Genarris():
                 except:
                     num_replicas = 1
                 if num_replicas == 1:
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         if world_rank == 0:
                             color = MPI.UNDEFINED
                         else:
@@ -183,7 +184,7 @@ class Genarris():
                     raise Exception('Cannot run more replicas than number of cores requested. ',
                                     'num_replicas = ', num_replicas, ' num_cores = ', num_cores)
                 elif num_replicas == num_cores:
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         raise Exception('Running Aims requires num_replicas to be less than num_cores '+
                                         'because one core is used for controlling the queue of jobs.')
                     else:
@@ -191,7 +192,7 @@ class Genarris():
                         split_comm = active_comm.Split(color)
                         getattr(self, procedure)(split_comm)
                 else: # 1 < num_replicas < num_cores
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         if world_rank == 0:
                             color = MPI.UNDEFINED
                         else:
@@ -209,7 +210,7 @@ class Genarris():
                     num_replicas = 1
                 if num_replicas == 1:
                     #If num_cores requested is all of then only need to split if replicas > 1
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         if world_rank == 0:
                             color = MPI.UNDEFINED
                         else:
@@ -222,7 +223,7 @@ class Genarris():
                     raise Exception('Cannot run more replicas than number of cores requested. ',
                                     'num_replicas = ', num_replicas, ' num_cores = ', num_cores)
                 elif num_replicas == num_cores:
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         raise Exception('Running Aims requires num_replicas to be less than num_cores '+
                                         'because one core is used for controlling the queue of jobs.')
                     else:
@@ -230,7 +231,7 @@ class Genarris():
                         split_comm = comm.Split(color)
                         getattr(self, procedure)(split_comm)
                 else: # 1 < num_replicas < num_cores
-                    if procedure == 'Run_FHI_Aims_Batch' or procedure == 'Harris_Single_Molecule_Prep' or procedure == 'Harris_Approximation_Batch' or procedure == 'Relax_Single_Molecule':
+                    if procedure in procedures_with_master_slave:
                         if world_rank == 0:
                             color = MPI.UNDEFINED
                         else:
@@ -288,6 +289,10 @@ class Genarris():
     def FHI_Aims_Extract(self, comm):
         from evaluation import fhi_aims_modules
         fhi_aims_modules.fhi_aims_extract(self.inst)
+
+    def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
+        from evaluation import run_fhi_aims
+        run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='fhi_aims_energy_evaluation')
 
     def FHI_Aims_Scavenge(self, comm):
         from evaluation import FHI_aims
