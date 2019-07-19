@@ -15,19 +15,32 @@ def output_from_rank(message_args, rank, mode='a', output_fpath_prefix='output_f
     with open(output_fpath, mode=mode) as f:
           print(message_args, file=f)
 
-def grep_dir_recursively(search_str, dir_path, read_mode, found_lines, return_list=True, search_from_top_to_bottom=True):
-    from file_utils import grep_single_file
-    for sub_path in glob(os.path.join(dir_path, '**'), recursive=True):
-        if not os.path.isdir(sub_path):
-            found_result = grep_single_file(search_str, sub_path, read_mode, found_lines, return_list=return_list, search_from_top_to_bottom=search_from_top_to_bottom)
-            if return_list:
-                found_lines += found_result
-            elif found_result:
-                return True
-    if return_list:
-        return found_lines
+
+def find(start_path, name_search_str=None, recursive=True):
+    '''
+    Purpose: acts like the bash "find" function
+    Notes:
+    (1) if name_search_str == '' then returns a list of directories only
+    (2) if name_search_str is None then returns all files and directories
+    '''
+    if name_search_str is None:
+        return glob(os.path.join(start_path, '**'), recursive=recursive)
     else:
-        return False
+        return glob(os.path.join(start_path, '**', name_search_str), recursive=recursive)
+
+
+def grep_dir_recursively(search_str, dir_path, read_mode):
+    from python_utils.file_utils import grep_single_file
+    found_lines = []
+    found_line_nums = []
+    found_fpaths = []
+    for sub_path in find(dir_path, recursive=True):
+        if not os.path.isdir(sub_path):
+            found_result, found_result_line_nums, found_result_fpaths = grep_single_file(search_str, sub_path, read_mode)
+            found_lines += found_result
+            found_line_nums += found_result_line_nums
+            found_fpaths += found_result_fpaths
+    return found_lines, found_line_nums, found_fpaths
     
 def write_row_to_csv(path, one_dimensional_list, mode='a', delimiter=','):
     if path[-4:] != '.csv':

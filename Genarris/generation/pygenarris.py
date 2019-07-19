@@ -138,7 +138,7 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
             molecule_path = inst.get(sname, 'molecule_path')
         elif inst.has_section('relax_single_molecule'):
             molecule_path_list = file_utils.find(os.path.abspath(inst.get('relax_single_molecule', 'aims_output_dir')), 'geometry.in.next_step')
-            if len(molecule_path) == 1:
+            if len(molecule_path_list) == 1:
                 molecule_path = molecule_path_list[0]
             else:
                 raise Exception('Cant find molecule_path in section', sname, 'or as geometry.in.next_step anywhere under', inst.get('relax_single_molecule', 'aims_output_dir'))
