@@ -241,8 +241,6 @@ def _gram_schmidt(X, row_vecs=True, norm=True):
         return Y.T
 
 def _rcd_calculation_callback(result, output_info_file):
-    print('result from _rcd_calculation_callback')
-    print(result)
     result.sort(key=lambda x : x[0].struct_id)
     message = ""
     for struct, rcd in result:
@@ -582,7 +580,7 @@ def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
     This version requires that the closest 4 molecules be accounted for
     The difference is taken as the average between the attempts
     '''
-    
+
     dist = [(x, y, _calculate_diff(v1[x], v2[y], ratio)) for y in range(len(v2))
                                                      for x in range(select_pairs)]
 

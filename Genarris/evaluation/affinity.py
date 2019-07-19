@@ -17,8 +17,6 @@ from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
 from Genarris.utilities.misc import output_pool
-from Genarris.utilities.write_log import print_time_log, write_log, \
-    print_time_warning
 from Genarris.utilities import file_utils
 from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
@@ -249,8 +247,8 @@ class APHandler():
             raise ValueError("max_sampled_preferences must be >= 1")
 
         if self.rank == 0:
-            print_time_log("Running Affinity Propagation with fixed number " +
-                "of clusters " + str(self.num_of_clusters))
+            print("Running Affinity Propagation with fixed number " +
+                "of clusters " + str(self.num_of_clusters), flush=True)
         self.enable_subdir_output = False
 
         iter_n = 0
@@ -260,7 +258,7 @@ class APHandler():
         
         while iter_n < self.max_sampled_preferences:
             if self.rank == 0:
-                print_time_log('Beginning new iteration with iter_n being ' + str(iter_n))
+                print('Beginning new iteration with iter_n being ' + str(iter_n), flush=True)
 
             self.preference = \
                     float(pref_l - pref_u) * float(self.rank + 1) / float(self.size + 1) + pref_u
@@ -295,10 +293,10 @@ class APHandler():
             success, self.preference, n, pref_l, pref_u, prev_l, prev_u = new_pref_range_result
             
             if success:
-                print_time_log('success')
+                print('success', flush=True)
                 #If not the rank that was successful:
                 if n != self.rank:
-                    print_time_log('rank ' + str(self.rank) + ' is returning')
+                    print('rank ' + str(self.rank) + ' is returning', flush=True)
                     return
                 
                 #Print results! You're done!
@@ -306,7 +304,7 @@ class APHandler():
                 
             result_num = result["num_of_clusters"]
             
-            #print_time_log("Iteration %i. Preference used: %f. "
+            #print("Iteration %i. Preference used: %f. "
             #        "Clusters generated: %i."
             #        % (iter_n, self.preference, result_num))
             self._print_result_summary(result)
@@ -314,11 +312,11 @@ class APHandler():
             iter_n += 1
             
         if success:
-            print_time_log("Affinity Propagation with fixed number of clusters "+
-                    "succeeded!")
+            print("Affinity Propagation with fixed number of clusters "+
+                    "succeeded!", flush=True)
         else:
-            print_time_log("Failed to cluster to %i clusters with tolerance %i"
-                    % (self.num_of_clusters, self.num_of_clusters_tolerance))
+            print("Failed to cluster to %i clusters with tolerance %i"
+                    % (self.num_of_clusters, self.num_of_clusters_tolerance), flush=True)
 
         if success:
             self._print_results(result, self.verbose_output)
@@ -344,7 +342,7 @@ class APHandler():
 
     def _print_results(self, result, verbose=False):
         if not self.output_file is None:
-            write_log(self.output_file, "Outputted iteration info:\n")
+            print(self.output_file, "Outputted iteration info:", flush=True)
             
             if verbose:
                 self._print_result_verbose(result)
@@ -371,7 +369,7 @@ class APHandler():
         exemplar_ids = d["exemplar_ids"]
         st += "Set of selected exemplars:\n"
         st += "\n".join(exemplar_ids)
-        write_log(self.output_file, st, time_stamp=False)
+        print(self.output_file, st, flush=True)
 
     def _print_result_summary(self, result):
         if self.output_file is None:
@@ -384,7 +382,7 @@ class APHandler():
         st += "Mean distance to exemplar: %f\n" % d["avg_distance"]
         st += "STD of distance to exemplar: %f\n" % d["std_distance"]
         st += "Max distance to exemplar: %f\n" % d["max_distance"]
-        write_log(self.output_file, st, time_stamp=False)
+        print(self.output_file, st, flush=True)
 
 
     def create_distance_matrix_from_exemplars(self):
@@ -642,17 +640,17 @@ class AffinityPropagationExecutor(PoolOperation):
                             -dist_mat[i][j] ** self._affinity_type[1]
     
     def run_single(self, preference):
-        print_time_log("Running Affinity Propagation with preference: "
-                + str(preference))
+        print("Running Affinity Propagation with preference: "
+                + str(preference), flush=True)
         # No need of subdir if only one run
         self._enable_subdir_output = False
         result = self._run(preference, enable_output=True)
         self._print_result_verbose(result)
-        print_time_log("Affinity Propagation calculation complete!")
+        print("Affinity Propagation calculation complete!", flush=True)
 
     def run_batch(self, preference_list, verbose_output=False):
-        print_time_log("Running Affinity Propagation with preference list: "
-                + str(preference_list))
+        print("Running Affinity Propagation with preference list: "
+                + str(preference_list), flush=True)
         enable_output = False
         if not self._output_dir is None:
             self._enable_subdir_output = True
@@ -663,7 +661,7 @@ class AffinityPropagationExecutor(PoolOperation):
 
         results = self.wait_for_all()
         self._print_results(results, verbose_output)
-        print_time_log("Affinity Propagation batch calculation complete!")
+        print("Affinity Propagation batch calculation complete!", flush=True)
 
     def run_fixed_num_of_clusters(self, num_of_clusters,
             preference_range, num_of_clusters_tolerance=0,
@@ -674,8 +672,8 @@ class AffinityPropagationExecutor(PoolOperation):
         if max_sampled_preferences < 1:
             raise ValueError("max_sampled_preferences must be >= 1")
 
-        print_time_log("Running Affinity Propagation with fixed number "
-                "of clusters " + str(num_of_clusters))
+        print("Running Affinity Propagation with fixed number "
+                "of clusters " + str(num_of_clusters), flush=True)
         self._enable_subdir_output = False
 
         iter_n = 0
@@ -689,9 +687,9 @@ class AffinityPropagationExecutor(PoolOperation):
                     "num_of_clusters", num_of_clusters)
 
             result_num = result[1]["num_of_clusters"]
-            print_time_log("Iteration %i. Preference used: %f. "
+            print("Iteration %i. Preference used: %f. "
                     "Clusters generated: %i."
-                    % (iter_n, pref, result_num))
+                    % (iter_n, pref, result_num), flush=True)
             self._print_result_summary(result)
 
             if result_num == num_of_clusters:
@@ -706,15 +704,15 @@ class AffinityPropagationExecutor(PoolOperation):
         success = False
         if abs(closest_result[1]["num_of_clusters"] - num_of_clusters) \
                 <= num_of_clusters_tolerance:
-            print_time_log("Affinity Propagation with fixed number of clusters "
-                    "succeeded!")
+            print("Affinity Propagation with fixed number of clusters "
+                    "succeeded!", flush=True)
             success = True
         else:
-            print_time_log("Failed to cluster to %i clusters with tolerance %i"
-                    % (num_of_clusters, num_of_clusters_tolerance))
+            print("Failed to cluster to %i clusters with tolerance %i"
+                    % (num_of_clusters, num_of_clusters_tolerance), flush=True)
             if output_without_success:
-                print_time_warning("Outputing clustered collection although "
-                        "fixed clustering failed.")
+                print("Outputing clustered collection although "
+                        "fixed clustering failed.", flush=True)
 
         if success or output_without_success:
             self._output_closest_result(closest_result)
@@ -726,8 +724,8 @@ class AffinityPropagationExecutor(PoolOperation):
             raise ValueError("Cannot run fixed silhouette with empty "
                     "preference_list")
 
-        print_time_log("Running Affinity Propagation to reach target "
-                "silhouette: " + str(target_silhouette))
+        print("Running Affinity Propagation to reach target "
+                "silhouette: " + str(target_silhouette), flush=True)
         self._enable_subdir_output = False
         
         for preference in preference_list:
@@ -745,16 +743,16 @@ class AffinityPropagationExecutor(PoolOperation):
         success = False
         if abs(closest_result[1]["silhouette_score"] - target_silhouette) \
                 <= silhouette_tolerance:
-            print_time_log("Affinity Propagation with fixed silhouette score "
-                    "succeeded!")
+            print("Affinity Propagation with fixed silhouette score "
+                    "succeeded!", flush=True)
             success = True
         else:
-            print_time_log("Failed to cluster to silhouette score %f "
+            print("Failed to cluster to silhouette score %f "
                     "with tolerance %f"
-                    % (target_silhouette, silhouette_tolerance))
+                    % (target_silhouette, silhouette_tolerance), flush=True)
             if output_without_success:
-                print_time_warning("Outputing clustered collection although "
-                        "fixed clustering failed.")
+                print("Outputing clustered collection although "
+                        "fixed clustering failed.", flush=True)
 
         if success or output_without_success:
             self._output_closest_result(closest_result)
@@ -804,7 +802,7 @@ class AffinityPropagationExecutor(PoolOperation):
                         self._exemplars_output_dir, name)
             else:
                 output_dir = self._exemplars_output_dir
-            print_time_log("Exemplar output directory set as: " + output_dir)
+            print("Exemplar output directory set as: " + output_dir, flush=True)
         else:
             output_dir = None
         return output_dir
@@ -836,7 +834,7 @@ class AffinityPropagationExecutor(PoolOperation):
         exemplar_ids = d["exemplar_ids"]
         st += "Set of selected exemplars:\n"
         st += "\n".join(exemplar_ids)
-        write_log(self._output_file, st, time_stamp=False)
+        print(self._output_file, st, flush=True)
 
     def _print_result_summary(self, result):
         if self._output_file is None: return
@@ -848,7 +846,7 @@ class AffinityPropagationExecutor(PoolOperation):
         st += "Mean distance to exemplar: %f\n" % d["avg_distance"]
         st += "STD of distance to exemplar: %f\n" % d["std_distance"]
         st += "Max distance to exemplar: %f\n" % d["max_distance"]
-        write_log(self._output_file, st, time_stamp=False)
+        print(self._output_file, st, flush=True)
 
     def _closer(self, result_1, result_2, key, target):
         if result_1 is None:
@@ -863,7 +861,7 @@ class AffinityPropagationExecutor(PoolOperation):
 
     def _output_closest_result(self, closest_result):
         if not self._output_file is None:
-            write_log(self._output_file, "Outputted iteration info:\n")
+            print(self._output_file, "Outputted iteration info:", flush=True)
         self._print_result_verbose(closest_result)
         output_pool(closest_result[0],
                 self._output_dir, self._output_format)
