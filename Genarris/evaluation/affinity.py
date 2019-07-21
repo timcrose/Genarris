@@ -17,7 +17,7 @@ from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
 from Genarris.utilities.misc import output_pool
-from Genarris.utilities import file_utils
+from Genarris.utilities import file_utils, time_utils
 from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
 from Genarris.core.structure import StoicDict, get_struct_coll
@@ -37,6 +37,8 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
+iter_n = 0
+
 class APHandler():
     def __init__(self, inst, sname, comm):
         self.comm = comm
@@ -52,9 +54,6 @@ class APHandler():
                 sname, "output_without_success")
         self.run_num = 1
         # Parameters for AP calculation
-        self.dist_mat_input_file = inst.get_inferred(sname, ['rcd_difference_folder_inner', 'rcd_calculation', sname], 
-                                                    ['diff_matrix_output', 'diff_matrix_output', 'output_dir'])
-        
         self.affinity_type = inst.get_with_default(
                 sname, "affinity_type", ["exponential",1], eval=True)
         self.damping = inst.get_with_default(
@@ -81,7 +80,7 @@ class APHandler():
                 sname, "exemplars_output_dir_2", self.exemplars_output_dir)
         self.exemplars_output_format = inst.get_with_default(
                 sname, "exemplars_output_format", "both")
-        self.verbose_output = inst.get_boolean(sname, "verbose_output")
+        self.verbose_output = inst.get_boolean(sname, "verbose")
         
         # Parameters common to pool operations
         
@@ -93,13 +92,29 @@ class APHandler():
             self.output_dir = inst.get(sname, 'output_dir_2')
             self.num_of_clusters = inst.get_eval(sname,"num_of_clusters_2")
 
+        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], 
+                                                    ['dist_mat_input_file', 'diff_matrix_output', 'diff_matrix_output'])
+
         if self.run_num == 1:
-            self.structure_dir = inst.get_inferred(sname, ['rcd_difference_folder_inner', 'rcd_calculation', sname], 'output_dir')
-        else:
+            self.structure_dir = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], ['structure_dir'] + (2 * ['output_dir']), type_='dir')
+        elif self.run_num == 2:
             self.structure_dir = inst.get(sname, 'exemplars_output_dir')
+            if not os.path.isdir(self.structure_dir):
+                raise Exception('self.structure_dir', self.structure_dir, 'path DNE')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
         self.output_format = inst.get_with_default(sname, 'output_format', 'both')
+
+        if self.run_num == 1:
+            self.cluster_on_energy = inst.get_boolean(sname, 'cluster_on_energy')
+            sname_list = [sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
+            self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name'] * len(sname_list))
+        elif self.run_num == 2:
+            self.cluster_on_energy = inst.get_inferred(sname, [sname] * 2, ['cluster_on_energy_2', 'cluster_on_energy'], type_=bool)
+            sname_list = [sname, sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
+            self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
+        #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
+        #print('self.energy_name', self.energy_name, flush=True)
         
         #Implement the affinity type desired
         self._initialize_affinity_matrix()
@@ -117,6 +132,7 @@ class APHandler():
         
         m = len(dist_mat)
         self.distance_matrix = dist_mat
+
         self.affinity_matrix = [[0] * m for x in range(m)]
         
         for i in range(m):
@@ -128,7 +144,7 @@ class APHandler():
                 elif self.affinity_type[0] == "power":
                     self.affinity_matrix[i][j] = \
                             -dist_mat[i][j] ** self.affinity_type[1]
-    
+        
     def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
         '''
         Determine if AP generated an acceptable number of clusters and if not,
@@ -237,36 +253,41 @@ class APHandler():
         of clusters has been generated or the number of iterations asked for 
         has expired.
         '''
+        #print('inside run_fixed_num_of_clusters', flush=True)
         
         if self.num_of_clusters > len(self.struct_coll):
             raise ValueError("Cannot cluster pool into more clusters " +
                     "than number of structures in it. self.num_of_clusters = " + 
                     str(self.num_of_clusters) + ", len(self.struct_coll) = " +
                     str(len(self.struct_coll)))
+        #print('self.num_of_clusters', self.num_of_clusters, flush=True)
+        #print('len(self.struct_coll)', len(self.struct_coll), flush=True)
         if self.max_sampled_preferences < 1:
             raise ValueError("max_sampled_preferences must be >= 1")
-
+        #print('self.max_sampled_preferences', self.max_sampled_preferences, flush=True)
         if self.rank == 0:
             print("Running Affinity Propagation with fixed number " +
                 "of clusters " + str(self.num_of_clusters), flush=True)
         self.enable_subdir_output = False
-
+        #print('self.enable_subdir_output', self.enable_subdir_output, flush=True)
+        #print('self.rank', self.rank, flush=True)
         iter_n = 0
         pref_l, pref_u = self.preference_range
         prev_l, prev_u = self.preference_range
         closest_result = None
         
         while iter_n < self.max_sampled_preferences:
+            #print('iter_n', iter_n, flush=True)
             if self.rank == 0:
                 print('Beginning new iteration with iter_n being ' + str(iter_n), flush=True)
-
+            print('self.preference', self.preference, flush=True)
             self.preference = \
                     float(pref_l - pref_u) * float(self.rank + 1) / float(self.size + 1) + pref_u
-            
+            #print('self.size', self.size, flush=True)
             self.struct_coll_cld, result = self._run()
-            
+            #print('type(result)', type(result), flush=True)
             num_of_clusters_gotten = result['num_of_clusters']
-            
+            #print('num_of_clusters_gotten', num_of_clusters_gotten, 'self.rank', self.rank, flush=True)
             #Package the number of clusters and preference value used by this rank
             # so that MPI communication latency is minimized.
             num_of_clusters_and_pref = [num_of_clusters_gotten, self.preference]
@@ -292,21 +313,21 @@ class APHandler():
             print('new_pref_range_result', new_pref_range_result, flush=True)
             success, self.preference, n, pref_l, pref_u, prev_l, prev_u = new_pref_range_result
             
+            result_num = result["num_of_clusters"]
+
             if success:
-                print('success', flush=True)
+                #print('success', flush=True)
                 #If not the rank that was successful:
                 if n != self.rank:
-                    print('rank ' + str(self.rank) + ' is returning', flush=True)
+                    #print('rank ' + str(self.rank) + ' is returning', flush=True)
                     return
                 
                 #Print results! You're done!
                 break
-                
-            result_num = result["num_of_clusters"]
             
-            #print("Iteration %i. Preference used: %f. "
-            #        "Clusters generated: %i."
-            #        % (iter_n, self.preference, result_num))
+            print("Iteration %i. Preference used: %f. "
+                    "Clusters generated: %i."
+                    % (iter_n, self.preference, result_num))
             self._print_result_summary(result)
 
             iter_n += 1
@@ -334,6 +355,7 @@ class APHandler():
         output_pool(pool, self.output_dir, self.output_format)
             
     def _run(self):
+        #print('type(self.affinity_matrix)', type(self.affinity_matrix), flush=True)
         return self._affinity_propagation(self.struct_coll, 
             self.distance_matrix, self.affinity_matrix,
             self.damping, self.convergence_iter, self.max_iter, self.preference,
@@ -421,29 +443,64 @@ class APHandler():
                                 convergence_iter=convergence_iter,
                                 copy=True, preference=preference,
                                 affinity="precomputed",verbose=False)
+        #print('inside _affinity_propagation', flush=True)
+        #print('len(affinity_matrix)', len(affinity_matrix), flush=True)
+        ##print('affinity_matrix', affinity_matrix, flush=True)
+        print('Fitting affinity propagation model...', flush=True)
         
         result = ap.fit(affinity_matrix)
-
-        exemplar_indices = result.cluster_centers_indices_
-        self.exemplar_indices = np.array(exemplar_indices)
+        print('AP fit complete.', flush=True)
+        #print('result of fit', type(result), flush=True)
+        num_of_clusters = len(result.cluster_centers_indices_)
         
-        exemplar_ids = [coll[x][1].struct_id for x in exemplar_indices]
-        num_of_clusters = len(exemplar_indices)
-
         assigned_cluster = result.labels_
-        assigned_exemplar_index = [exemplar_indices[x] for x in assigned_cluster]
+        
+        if self.cluster_on_energy and not (iter_n != self.max_sampled_preferences - 1 and \
+                (num_of_clusters > self.num_of_clusters + self.num_of_clusters_tolerance or \
+                num_of_clusters < self.num_of_clusters - self.num_of_clusters_tolerance)):
+
+            print('Using energy values to determine exemplars', flush=True)
+            exemplar_indices = np.zeros(num_of_clusters)
+            for i in range(num_of_clusters):
+                lowest_energy = None
+                for j,k in enumerate(assigned_cluster):
+                    if i == k:
+                        energy = float(coll[j][1].properties[self.energy_name])
+                        #print('i', i, 'j', j, 'k', k, 'energy', energy, 'lowest_energy', lowest_energy, flush=True)
+                        if lowest_energy is None or energy < lowest_energy:
+                            lowest_energy = energy
+                            #print('updated lowest_energy to', lowest_energy, flush=True)
+                            exemplar_indices[i] = j
+
+        else:
+            exemplar_indices = result.cluster_centers_indices_
+        #print('len(exemplar_indices)', len(exemplar_indices), flush=True)
+        #print('len(coll)', len(coll), flush=True)
+        #print('len(assigned_cluster)', len(assigned_cluster), flush=True)
+        self.exemplar_indices = np.array(exemplar_indices, dtype='int')
+        #print('self.exemplar_indices', self.exemplar_indices, flush=True)
+        ##print('self.exemplar_indices', self.exemplar_indices, flush=True)
+        exemplar_ids = [coll[x][1].struct_id for x in self.exemplar_indices]
+        #print(coll, self.exemplar_indices, len(coll), len(self.exemplar_indices), flush=True)
+        #print('len(coll[0])', len(coll[0]), flush=True)
+        ##print('exemplar_ids', exemplar_ids, flush=True)
+        
+        #print('num_of_clusters',num_of_clusters, flush=True)
+        #print('exemplar_ids', exemplar_ids, flush=True)
+
+        assigned_exemplar_index = [self.exemplar_indices[x] for x in assigned_cluster]
         assigned_exemplar_id = [exemplar_ids[x] for x in assigned_cluster]
 
         for x in range(len(coll)):
             coll[x][1].properties[property_key] = assigned_cluster[x]
 
-        exemplars = [coll[x][1] for x in result.cluster_centers_indices_]
+        exemplars = [coll[x][1] for x in self.exemplar_indices]
         
         #output_pool(exemplars, exemplars_output_dir, exemplars_output_format)
 
         distances_to_exemplar = \
                 [distance_matrix[x]
-                        [result.cluster_centers_indices_[result.labels_[x]]]
+                        [self.exemplar_indices[result.labels_[x]]]
                         for x in range(len(coll))]
         avg_distance = np.mean(distances_to_exemplar)
         std_distance = np.std(distances_to_exemplar)
@@ -465,7 +522,7 @@ class APHandler():
                 "assigned_exemplar_id": assigned_exemplar_id,
                 "distances_to_exemplar": distances_to_exemplar,
                 "exemplars": exemplars,
-                "exemplar_indices": exemplar_indices,
+                "exemplar_indices": self.exemplar_indices,
                 "exemplar_ids": exemplar_ids,
                 "avg_distance": avg_distance,
                 "std_distance": std_distance,
@@ -501,16 +558,25 @@ def affinity_propagation_fixed_clusters(inst, comm):
     desired number of clusters
     '''
     sname = "affinity_propagation_fixed_clusters"
+    #print('inside ap', flush=True)
     aph = APHandler(inst, sname, comm)
-    
+    #print('got aph', flush=True)
     stoic = StoicDict(int)
     jsons_dir = aph.structure_dir
-
+    #print('jsons_dir', jsons_dir, flush=True)
     aph.struct_coll, struct_ids = get_struct_coll(jsons_dir, stoic)
+    ##print('struct_ids', struct_ids, flush=True)
+    #print('len(struct_ids)', len(struct_ids), flush=True)
+    #print('type(aph.struct_coll)', type(aph.struct_coll), flush=True)
+    ##print('aph.struct_coll', aph.struct_coll, flush=True)
+    #print('len(aph.struct_coll)', len(aph.struct_coll), flush=True)
     
     aph.run_fixed_num_of_clusters()
+    #print('ran aph.run_fixed_num_of_clusters', flush=True)
     if aph.run_num == 1:
+        #print('creating distance matrix', flush=True)
         aph.create_distance_matrix_from_exemplars()
+        #print('created dist mat', flush=True)
     
     #aph.struct_coll_cld, aph.result
     
@@ -682,6 +748,8 @@ class AffinityPropagationExecutor(PoolOperation):
         while iter_n < max_sampled_preferences:
             pref = (pref_l + pref_u) / 2.0
             struct_coll_cld, result = self._run(pref, enable_output=False)
+            if result == False:
+                continue
             closest_result = self._closer(
                     closest_result, result,
                     "num_of_clusters", num_of_clusters)
