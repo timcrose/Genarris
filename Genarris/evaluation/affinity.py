@@ -107,12 +107,14 @@ class APHandler():
 
         if self.run_num == 1:
             self.cluster_on_energy = inst.get_boolean(sname, 'cluster_on_energy')
-            sname_list = [sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
-            self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name'] * len(sname_list))
+            if self.cluster_on_energy:
+                sname_list = [sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
+                self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name'] * len(sname_list))
         elif self.run_num == 2:
             self.cluster_on_energy = inst.get_inferred(sname, [sname] * 2, ['cluster_on_energy_2', 'cluster_on_energy'], type_=bool)
-            sname_list = [sname, sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
-            self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
+            if self.cluster_on_energy:
+                sname_list = [sname, sname, 'fhi_aims_energy_evaluation', 'harris_approximation_batch']
+                self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
         #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
         #print('self.energy_name', self.energy_name, flush=True)
         
