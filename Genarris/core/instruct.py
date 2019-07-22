@@ -17,7 +17,7 @@ try:
 except ImportError:
     from configparser import SafeConfigParser
 import ast, os
-
+from Genarris.utilities import list_utils
 try:
     from StringIO import StringIO
 except ImportError:
@@ -409,3 +409,13 @@ def get_random_index(seed=None):
         LENGTH_OF_INDEX = 10
         return sha1(repr(time.time())+str(seed)).hexdigest()[:LENGTH_OF_INDEX]
 
+def get_last_active_procedure_name(inst, iteration=0):
+    '''
+    iteration allows sections to be done multiple times such as AP
+    '''
+    procedures = inst.get_eval('Genarris_master', 'procedures')
+    procedure_idx = list_utils.indices(procedures, sname)[iteration]
+    if procedure_idx == 0:
+        return 'none'
+    else:
+        return procedures[procedure_idx - 1]

@@ -20,6 +20,7 @@ from Genarris.external_libs import matrix_op
 import shutil, os, copy, numpy
 from Genarris.evaluation import run_aims, utility, run_fhi_aims
 from Genarris.utilities import write_log, misc, file_utils  #, parallel_run
+from Genarris.core.instruct import get_last_active_procedure_name
 import multiprocessing
 import time
 
@@ -44,8 +45,10 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
     '''
     sname = 'harris_approximation_batch'
     aims_output_dir = inst.get(sname, 'aims_output_dir')
-    structure_dir = inst.get_inferred(sname, [sname, 'pygenarris_structure_generation', 'structure_generation_batch'], 
-                                                    ['structure_dir', 'output_dir', 'output_dir'])
+    last_section = get_last_active_procedure_name(inst)
+    sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
+    structure_dir = inst.get_inferred(sname, sname_list,
+                                            ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], required=True)
 
     output_dir = inst.get(sname, 'output_dir')
     control_path = inst.get(sname, 'control_path')

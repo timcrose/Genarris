@@ -2,6 +2,7 @@ import os, sys
 from glob import glob
 from Genarris.core.structure import Structure
 from Genarris.utilities import file_utils
+from Genarris.core.instruct import get_last_active_procedure_name
 
 def check_type(var, desired_type):
     if desired_type == 'path':
@@ -146,9 +147,10 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             if not os.path.isfile(os.path.join(structure_dir, os.path.basename(molecule_path))) and world_comm.rank == 0:
                 file_utils.cp(molecule_path, structure_dir)
         else:
-            sname_list = [sname, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
+            last_section = get_last_active_procedure_name(inst)
+            sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
             structure_dir = inst.get_inferred(sname, sname_list,
-                                                    ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], required=False)
+                                                    ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], required=False)
 
         control_path = inst.get(sname, 'control_path')
 

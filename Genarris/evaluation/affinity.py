@@ -22,7 +22,7 @@ from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
 from Genarris.core.structure import StoicDict, get_struct_coll
 from bisect import bisect
-
+from Genarris.core.instruct import get_last_active_procedure_name
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -92,17 +92,6 @@ class APHandler():
             self.output_dir = inst.get(sname, 'output_dir_2')
             self.num_of_clusters = inst.get_eval(sname,"num_of_clusters_2")
 
-        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], 
-                                                    ['dist_mat_input_file', 'diff_matrix_output', 'diff_matrix_output'])
-
-        if self.run_num == 1:
-            self.structure_dir = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], ['structure_dir'] + (2 * ['output_dir']), type_='dir')
-        elif self.run_num == 2:
-            self.structure_dir = inst.get(sname, 'exemplars_output_dir')
-            if not os.path.isdir(self.structure_dir):
-                raise Exception('self.structure_dir', self.structure_dir, 'path DNE')
-            ext_pos = self.dist_mat_input_file.find('.')
-            self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
         self.output_format = inst.get_with_default(sname, 'output_format', 'both')
 
         if self.run_num == 1:
@@ -117,6 +106,19 @@ class APHandler():
                 self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
         #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
         #print('self.energy_name', self.energy_name, flush=True)
+        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], 
+                                                    ['dist_mat_input_file', 'diff_matrix_output', 'diff_matrix_output'])
+
+        if self.run_num == 1:
+            last_section = get_last_active_procedure_name(inst, iteration=0)
+            sname_list = [sname, last_section, 'rcd_difference_folder_inner', 'rcd_calculation']
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (3 * ['output_dir']), type_='dir')
+        elif self.run_num == 2:
+            last_section = get_last_active_procedure_name(inst, iteration=1)
+            sname_list = [sname, last_section, last_section, 'rcd_difference_folder_inner', 'rcd_calculation']
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (3 * ['output_dir']), type_='dir'))
+            ext_pos = self.dist_mat_input_file.find('.')
+            self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
         
         #Implement the affinity type desired
         self._initialize_affinity_matrix()

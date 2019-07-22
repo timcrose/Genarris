@@ -29,6 +29,7 @@ from Genarris.core.structure_handling import cm_calculation, cell_modification, 
         mole_translation
 from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
+from Genarris.core.instruct import get_last_active_procedure_name
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -75,12 +76,9 @@ def rcd_calculation(inst, comm):
     '''
     sname = "rcd_calculation"
     
-    if inst.has_option(sname, 'structure_dir'):
-        structure_dir = inst.get(sname,"structure_dir")
-    elif inst.has_section('harris_approximation_batch'):
-        structure_dir = inst.get('harris_approximation_batch', 'output_dir')
-    else:
-        raise Exception('Need an input folder specified for rcd_calculation')
+    last_section = get_last_active_procedure_name(inst)
+    sname_list = [sname, last_section, 'fhi_aims_energy_evaluation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch']
+    structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (len(sname_list) - 1) * ['output_dir'], type_='dir', required=True)
 
     output_dir = inst.get(sname, 'output_dir')
 
