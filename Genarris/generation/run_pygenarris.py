@@ -1,6 +1,6 @@
 import sys, os
 import numpy as np
-import pygenarris
+from Genarris.cgenarris import pygenarris
 from Genarris.utilities import file_utils, list_utils
 from Genarris.core import structure
 from Genarris.core import file_handler
@@ -118,20 +118,21 @@ def clean_up(final_filename, comm_size, output_format):
     if output_format == 'json':
         os.remove(final_filename)
 
-def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts=None, molecule_path=None):
+def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1):
     # Currently does not support multiple instances running simultaneously. If you want more simultaneous processes, submit more MPI ranks.
     # Might support restart? (i.e. each rank pickup up from where it left off)
-    
+    previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
         sname = 'pygenarris_structure_generation'
         num_structures = inst.get_eval(sname, 'num_structures')
-        num_structures_per_allowed_SG_per_rank = inst.get_eval(sname, 'num_structures_per_allowed_SG_per_rank')
+        omp_num_threads = inst.get_with_default(sname, 'omp_num_threads', 1)
+        
         Z = inst.get_eval(sname, 'Z')
         volume_mean = inst.get_eval(sname, 'volume_mean')
         volume_std = inst.get_eval(sname, 'volume_std')
         sr = inst.get_eval(sname, 'sr')
         tol = inst.get_eval(sname, 'tol')
-        max_attempts = inst.get_eval(sname, 'max_attempts')
+        max_attempts_per_spg_per_rank = inst.get_eval(sname, 'max_attempts_per_spg_per_rank')
         final_filename = inst.get_with_default(sname, 'geometry_out_filename', 'geometry.out')
 
         if inst.has_option(sname, 'molecule_path'):
@@ -141,12 +142,16 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
             if len(molecule_path_list) == 1:
                 molecule_path = molecule_path_list[0]
             else:
-                raise Exception('Cant find molecule_path in section', sname, 'or as geometry.in.next_step anywhere under', inst.get('relax_single_molecule', 'aims_output_dir'))
+                raise Exception('Cant find molecule_path in section', sname, 'or as geometry.in.next_step anywhere under', inst.get('relax_single_molecule', 'aims_output_dir'),
+                                'Note that we are searching there because we would like to use the relaxed molecule geometry. Set molecule_path under', sname,
+                                'if you want to use a specific molecule_path.')
         output_format = inst.get_with_default(sname, 'output_format', 'json') #options are json, geometry, both
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
     else:
         final_filename = filename
     
+    os.environ['OMP_NUM_THREADS'] = omp_num_threads
+
     if comm is None:
         filename = final_filename
         set_up(molecule_path)
@@ -155,17 +160,21 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
             set_up(molecule_path)
         filename = file_utils.fname_from_fpath(final_filename) + str(comm.rank) + '.' + final_filename.split('.')[-1]
 
+    if inst.has_option(sname, 'num_structures_per_allowed_SG_per_rank'):
+        num_structures_per_allowed_SG_per_rank = inst.get_eval(sname, 'num_structures_per_allowed_SG_per_rank')
+    else:
+        num_compatible_spgs = pygenarris.num_compatible_spacegroups(Z, tol)
+        num_structures_per_allowed_SG_per_rank = int(np.ceil(float(num_structures) / (float(comm.size) * float(num_compatible_spgs))))
 
     comm.barrier()
     molecule_struct = read(molecule_path)
     mb = MoleculeBonding(molecule_struct)
     cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
-    pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts)
+    pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:
             format_output(output_format, output_dir, final_filename, num_structures)
             clean_up(final_filename, comm.size, output_format)
-    
-    
+    os.environ['OMP_NUM_THREADS'] = previous_omp_num_threads

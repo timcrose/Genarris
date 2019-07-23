@@ -38,9 +38,10 @@ shutil.copyfile(os.path.join('aimsutils_replacement_files', 'ylms.py'), os.path.
 os.chdir('aimsutils')
 os.system('python setup.py install')
 os.chdir(cwd)
-
+os.chdir('Genarris')
 if os.path.exists('cgenarris'):
     shutil.rmtree('cgenarris')
 os.system('git clone https://github.com/ritwit/cgenarris.git')
 os.chdir('cgenarris')
 os.system('python setup.py install')
+os.chdir(cwd)

@@ -339,8 +339,8 @@ class Genarris():
         pool_analysis.pool_single_structure_analysis(self.inst)
 
     def Pygenarris_Structure_Generation(self, comm):
-        from generation import pygenarris
-        pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
+        from generation import run_pygenarris
+        run_pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
 
     def Random_Value_Assignment(self, comm):
         from evaluation.pool_analysis import random_value_assignment
