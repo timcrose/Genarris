@@ -29,7 +29,7 @@ from Genarris.core.structure_handling import cm_calculation, cell_modification, 
         mole_translation
 from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
         load_batch_single_structure_operation_keywords
-from Genarris.core.instruct import get_last_active_procedure_name
+from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -82,8 +82,7 @@ def rcd_calculation(inst, comm):
 
     output_dir = inst.get(sname, 'output_dir')
 
-    sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+    molecule_path = get_molecule_path(inst, sname)
     molecule = Structure()
     molecule.build_geo_from_atom_file(molecule_path)
     napm = len(molecule.geometry)

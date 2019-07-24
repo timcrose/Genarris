@@ -22,7 +22,7 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
-
+from Genarris.utilities import file_utils
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -436,7 +436,8 @@ def get_last_active_procedure_name(inst, sname, iteration=0):
     
     Return: str
         The procedure name coming before the current procedure as specified in the
-        active procedure list. If this procedure is first, then return 'none'
+        active procedure list. If this procedure is first, then return 'none'. The procedure
+        name is made all lowercased so it is a section name.
     '''
     procedure_name = get_procedure_name_from_section_name(sname)
     procedures = inst.get_eval('Genarris_master', 'procedures')
@@ -445,4 +446,23 @@ def get_last_active_procedure_name(inst, sname, iteration=0):
     if procedure_idx == 0:
         return 'none'
     else:
-        return procedures[procedure_idx - 1]
+        return procedures[procedure_idx - 1].lower()
+
+    
+def get_molecule_path(inst, sname):
+    if inst.has_option(sname, 'molecule_path'):
+        molecule_path = inst.get(sname, 'molecule_path')
+        return molecule_path
+    elif inst.has_section('relax_single_molecule'):
+        molecule_path_list = file_utils.find(os.path.abspath(inst.get('relax_single_molecule', 'aims_output_dir')), 'geometry.in.next_step')
+        if len(molecule_path_list) == 1:
+            molecule_path = molecule_path_list[0]
+            return molecule_path
+        else:
+            last_section = get_last_active_procedure_name(inst, sname)
+            if last_section == 'relax_single_molecule':
+                raise Exception('Was not able to infer molecule_path. We do not want to use the unrelaxed geometry here.')
+    last_section = get_last_active_procedure_name(inst, sname)
+    sname_list = [sname, last_section, 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
+    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * len(sname_list), type_='file')
+    return molecule_path

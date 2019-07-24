@@ -4,6 +4,7 @@ from Genarris.cgenarris import pygenarris
 from Genarris.utilities import file_utils, list_utils
 from Genarris.core import structure
 from Genarris.core import file_handler
+from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.find_bonding import MoleculeBonding
 from ibslib.io import read
 
@@ -135,16 +136,8 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
         max_attempts_per_spg_per_rank = inst.get_eval(sname, 'max_attempts_per_spg_per_rank')
         final_filename = inst.get_with_default(sname, 'geometry_out_filename', 'geometry.out')
 
-        if inst.has_option(sname, 'molecule_path'):
-            molecule_path = inst.get(sname, 'molecule_path')
-        elif inst.has_section('relax_single_molecule'):
-            molecule_path_list = file_utils.find(os.path.abspath(inst.get('relax_single_molecule', 'aims_output_dir')), 'geometry.in.next_step')
-            if len(molecule_path_list) == 1:
-                molecule_path = molecule_path_list[0]
-            else:
-                raise Exception('Cant find molecule_path in section', sname, 'or as geometry.in.next_step anywhere under', inst.get('relax_single_molecule', 'aims_output_dir'),
-                                'Note that we are searching there because we would like to use the relaxed molecule geometry. Set molecule_path under', sname,
-                                'if you want to use a specific molecule_path.')
+        molecule_path = get_molecule_path(inst, sname)
+                
         output_format = inst.get_with_default(sname, 'output_format', 'json') #options are json, geometry, both
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
     else:

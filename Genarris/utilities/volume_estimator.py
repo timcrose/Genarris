@@ -3,7 +3,7 @@ import os
 import numpy as np
 from ase.data import vdw_radii,atomic_numbers
 from ibslib.io import read
-
+from Genarris.core.instruct import get_molecule_path
 
 class MoleculeVolumeEstimator():
     """
@@ -160,8 +160,7 @@ def estimate_unit_cell_volume(inst, comm):
     if comm.rank == 0:
         mve = MoleculeVolumeEstimator()
         sname = 'estimate_unit_cell_volume'
-        sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-        molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
+        molecule_path = get_molecule_path(inst, sname)
         if verbose:
             print('molecule_path', molecule_path, flush=True)
 
@@ -173,15 +172,16 @@ def estimate_unit_cell_volume(inst, comm):
     vol_estimate = comm.bcast(vol_estimate, root=0)
     struct_vol_estimate = Z * vol_estimate
     std_of_predicted_errors = 0.062 * struct_vol_estimate
-    vol_lower_bound = struct_vol_estimate - 3.0 * std_of_predicted_errors
-    vol_upper_bound = struct_vol_estimate + 3.0 * std_of_predicted_errors
+    std_to_use = 3.0 * std_of_predicted_errors
+    vol_lower_bound = struct_vol_estimate - std_to_use
+    vol_upper_bound = struct_vol_estimate + std_to_use
     ucv_ratio_range = [vol_lower_bound / struct_vol_estimate, vol_upper_bound / struct_vol_estimate]
     
     if inst.has_section('pygenarris_structure_generation'):
         if not inst.has_option('pygenarris_structure_generation', 'volume_mean'):
             inst.set('pygenarris_structure_generation', 'volume_mean', str(struct_vol_estimate))
         if not inst.has_option('pygenarris_structure_generation', 'volume_std'):
-            inst.set('pygenarris_structure_generation', 'volume_std', str(std_of_predicted_errors))
+            inst.set('pygenarris_structure_generation', 'volume_std', str(std_to_use))
         if comm.rank == 0:
             print('volume_mean', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
             print('volume_std', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
@@ -189,7 +189,7 @@ def estimate_unit_cell_volume(inst, comm):
         if not inst.has_option('structure_generation_batch', 'ucv_target'):
             inst.set('structure_generation_batch', 'ucv_target', str(struct_vol_estimate))
         if not inst.has_option('structure_generation_batch', 'ucv_std'):
-            inst.set('structure_generation_batch', 'ucv_std', str(std_of_predicted_errors))
+            inst.set('structure_generation_batch', 'ucv_std', str(std_to_use))
         if not inst.has_option('structure_generation_batch', 'ucv_ratio_range'):
             inst.set('structure_generation_batch', 'ucv_ratio_range', str(ucv_ratio_range))
         if comm.rank == 0:

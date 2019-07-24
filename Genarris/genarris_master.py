@@ -23,8 +23,6 @@ import time, random
 import json
 from glob import glob
 
-start_time = time.time()
-
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
 __copyright__ = "Copyright 2018, Carnegie Mellon University and "+\
                 "Fritz-Haber-Institut der Max-Planck-Gessellschaft"
@@ -63,6 +61,7 @@ class Genarris():
         '''
         Interprets the instruction and calls the respective attributes of self.
         '''
+        start_time = time.time()
         comm = MPI.COMM_WORLD
         world_rank = comm.Get_rank()
         world_size = comm.Get_size()
@@ -260,7 +259,10 @@ class Genarris():
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
         from evaluation import affinity
+        start_time = time.time()
         affinity.affinity_propagation_fixed_clusters(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for Affinity_Propagation_Fixed_Clusters', time.time() - start_time, flush=True)
 
     def Affinity_Propagation_Fixed_Silhouette(self, comm):
         from evaluation import affinity
@@ -272,7 +274,10 @@ class Genarris():
 
     def Estimate_Unit_Cell_Volume(self, comm):
         from utilities import volume_estimator
+        start_time = time.time()
         self.inst = volume_estimator.estimate_unit_cell_volume(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for Estimate_Unit_Cell_Volume', time.time() - start_time, flush=True)
 
     def Estimate_Unit_Cell_Volume_v1(self, comm):
         from generation import generation_modules
@@ -292,7 +297,10 @@ class Genarris():
 
     def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import run_fhi_aims
+        start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='fhi_aims_energy_evaluation')
+        if world_comm.rank == 0:
+            print('time taken for FHI_Aims_Energy_Evaluation', time.time() - start_time, flush=True)
 
     def FHI_Aims_Scavenge(self, comm):
         from evaluation import FHI_aims
@@ -308,7 +316,10 @@ class Genarris():
 
     def Harris_Approximation_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import harris_approximation
+        start_time = time.time()
         harris_approximation.harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, self.inst)
+        if world_comm.rank == 0:
+            print('time taken for Harris_Approximation_Batch', time.time() - start_time, flush=True)
 
     def Harris_Approximation_Single(self, comm):
         from evaluation import harris_approximation
@@ -316,7 +327,10 @@ class Genarris():
 
     def Harris_Single_Molecule_Prep(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import harris_approximation
+        start_time = time.time()
         harris_approximation.harris_single_molecule_prep(comm, world_comm, MPI_ANY_SOURCE, self.inst)
+        if world_comm.rank == 0:
+            print('time taken for Harris_Single_Molecule_Prep', time.time() - start_time, flush=True)
 
     def Interatomic_Distance_Evaluation(self, comm):
         from evaluation import interatomic_distance_evaluation
@@ -340,7 +354,10 @@ class Genarris():
 
     def Pygenarris_Structure_Generation(self, comm):
         from generation import run_pygenarris
+        start_time = time.time()
         run_pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
+        if comm.rank == 0:
+            print('time taken for Pygenarris_Structure_Generation', time.time() - start_time, flush=True)
 
     def Random_Value_Assignment(self, comm):
         from evaluation.pool_analysis import random_value_assignment
@@ -356,7 +373,10 @@ class Genarris():
 
     def RCD_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
+        start_time = time.time()
         relative_coordinate_descriptor.rcd_calculation(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for RCD_Calculation', time.time() - start_time, flush=True)
 
     def RCD_Difference_Compare_Single(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd
@@ -368,7 +388,10 @@ class Genarris():
 
     def RCD_Difference_Folder_Inner(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd
+        start_time = time.time()
         rcd.rcd_difference_folder_inner(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for RCD_Difference_Folder_Inner', time.time() - start_time, flush=True)
 
     def RCD_Difference_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
@@ -376,7 +399,10 @@ class Genarris():
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import run_fhi_aims
+        start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='relax_single_molecule')
+        if world_comm.rank == 0:
+            print('time taken for Relax_Single_Molecule', time.time() - start_time, flush=True)
 
     def Reverse_Harris_Approximation(self, comm):
         from evaluation import harris_approximation
@@ -388,7 +414,10 @@ class Genarris():
 
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import run_fhi_aims
+        start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='run_fhi_aims_batch')
+        if world_comm.rank == 0:
+            print('time taken for Run_FHI_Aims_Batch', time.time() - start_time, flush=True)
 
     def Specific_Radius_Batch(self, comm):
         from evaluation import pool_analysis
@@ -400,7 +429,10 @@ class Genarris():
     
     def Structure_Generation_Batch(self, comm):
         from generation import generation_modules
+        start_time = time.time()
         generation_modules.structure_generation_batch(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for Structure_Generation_Batch', time.time() - start_time, flush=True)
 
     def _Structure_Generation_Batch(self):
         from generation import generation_modules

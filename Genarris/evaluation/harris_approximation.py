@@ -20,7 +20,7 @@ from Genarris.external_libs import matrix_op
 import shutil, os, copy, numpy
 from Genarris.evaluation import run_aims, utility, run_fhi_aims
 from Genarris.utilities import write_log, misc, file_utils  #, parallel_run
-from Genarris.core.instruct import get_last_active_procedure_name
+from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 import multiprocessing
 import time
 
@@ -48,7 +48,7 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
     last_section = get_last_active_procedure_name(inst, sname)
     sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
     structure_dir = inst.get_inferred(sname, sname_list,
-                                            ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], required=True)
+                                            ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=True)
 
     output_dir = inst.get(sname, 'output_dir')
     control_path = inst.get(sname, 'control_path')
@@ -58,6 +58,7 @@ def harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, i
         # (1) Setup aims working dirs
         task_list = run_fhi_aims.setup_aims_dirs(aims_output_dir, structure_dir, control_path)
         if verbose:
+            print('structure_dir', structure_dir, flush=True)
             print('world_comm.size', world_comm.size, flush=True)
     world_comm.barrier()
 
@@ -152,10 +153,12 @@ def harris_approximation_single(inst):
     #Prepare the molecule_harris_info for rotations.in if the structure does not already have it
     success = False
     match_molecule_tolerance = inst.get_keywords([[sname, "match_molecule_tolerance", 1]], eval=True)[0]
+    if verbose:
+        print('match_molecule_tolerance', match_molecule_tolerance, flush=True)
     #First attempt to map the standard (COM at origin) molecule to the structure
-    sname_list = [sname, 'relax_single_molecule', 'estimate_unit_cell_volume', 'harris_single_molecule_prep', 'pygenarris_structure_generation', 'structure_generation_batch', 'harris_approximation_batch']
-    molecule_path = inst.get_inferred(sname, sname_list, ['molecule_path'] * 7, type_='file')
-
+    molecule_path = get_molecule_path(inst, sname)
+    if verbose:
+        print('molecule_path', molecule_path, flush=True)
     molecule_name = file_utils.fname_from_fpath(molecule_path)
 
     molecule_aims_output_dir = inst.get('harris_single_molecule_prep', 'aims_output_dir')
@@ -165,7 +168,7 @@ def harris_approximation_single(inst):
         molecule_aims_dir = os.path.abspath(os.path.join('..', '..', inst.get('harris_single_molecule_prep', 'aims_output_dir'), molecule_name))
 
     if verbose:
-        print('molecule_path', molecule_path, flush=True)
+        print('molecule_aims_dir', molecule_aims_dir, flush=True)
     molecule = structure.Structure()
     if molecule_path.endswith('.json'):
         molecule.build_geo_from_json_file(molecule_path)
