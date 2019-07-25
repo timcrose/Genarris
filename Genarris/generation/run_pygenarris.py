@@ -15,18 +15,41 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
     outfile_dirname = os.path.dirname(os.path.abspath(geometry_out_fpath))
     tmp_geo_fname = 'tmp_file_for_geo'
     for i, struct_lines in enumerate(structs_list):
-        properties_list = struct_lines[1].split()
-        spg = int(properties_list[properties_list.index('spg') + 2])
+        Z, number_of_atoms_in_molecule, unit_cell_volume, attempted_spg, attempted_wyckoff_position, site_symmetry_group, spg = \
+                'none', 'none', 'none', 'none', 'none', 'none', 'none'
+        for line in struct_lines:
+            if '#Z =' in line:
+                Z = int(line.split('=')[-1].split()[0])
+            elif '#number_of_atoms_in_molecule =' in line:
+                number_of_atoms_in_molecule = int(line.split('=')[-1].split()[0])
+            elif '#unit_cell_volume =' in line:
+                unit_cell_volume = float(line.split('=')[-1].split()[0])
+            elif '#attempted spacegroup =' in line:
+                attempted_spg = int(line.split('=')[-1].split()[0])
+            elif '#attempted Wyckoff position =' in line:
+                attempted_wyckoff_position = line.split('=')[-1].split()[0]
+            elif '#site_symmetry_group =' in line:
+                print('site_symmetry_group line', line, flush=True)
+                site_symmetry_group = int(line.split('=')[-1].split()[0])
+            elif '#SPGLIB detected spacegroup =' in line:
+                spg = int(line.split()[4])
+
         file_utils.write_lines_to_file(tmp_geo_fname, struct_lines, mode='w')
         struct = structure.Structure()
         struct.build_geo_from_atom_file(tmp_geo_fname)
+        struct.properties['Z'] = Z
+        struct.properties['number_of_atoms_in_molecule'] = number_of_atoms_in_molecule
+        struct.properties['unit_cell_volume'] = unit_cell_volume
+        struct.properties['attempted_spg'] = attempted_spg
+        struct.properties['attempted_wyckoff_position'] = attempted_wyckoff_position
+        struct.properties['site_symmetry_group'] = site_symmetry_group
         struct.properties['spg'] = spg
         random_str = file_handler.get_random_index()
         struct_id = file_utils.fname_from_fpath(geometry_out_fpath) + '_' + random_str
         struct.struct_id = struct_id
         outfile_path = os.path.join(outfile_dirname, output_dir, struct_id + '.json')
         file_utils.write_to_file(outfile_path, struct.dumps(), mode='w')
-        structs_list[i][0] = '#structure number = ' + str(i) + '\n'
+        structs_list[i][1] = '#structure number = ' + str(i) + '\n'
         structs_list[i] = structs_list[i][:2] + ['#struct_id = ' + struct_id + '\n'] + structs_list[i][2:]
     os.remove(tmp_geo_fname)
     return structs_list
@@ -74,7 +97,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
     print('concatenating', len(outfiles), 'output files into a list of structures', flush=True)
     lines_list = file_utils.concatenate_files(outfiles, final_filename, return_lines=True)
     
-    indices_list = file_utils.grep('structure number', final_filename, return_line_nums=True)[1] + [len(lines_list)]
+    indices_list = file_utils.grep('BEGIN STRUCTURE', final_filename, return_line_nums=True)[1] + [len(lines_list)]
     structs_list = [
                     lines_list[
                                 indices_list[i]

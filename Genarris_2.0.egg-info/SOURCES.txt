@@ -37,7 +37,7 @@ Genarris/generation/__init__.py
 Genarris/generation/generation_modules.py
 Genarris/generation/generation_util.py
 Genarris/generation/old_shared.py
-Genarris/generation/pygenarris.py
+Genarris/generation/run_pygenarris.py
 Genarris/generation/sgroup.py
 Genarris/generation/shared.py
 Genarris/ibslib/__init__.py
