@@ -171,8 +171,10 @@ def estimate_unit_cell_volume(inst, comm):
         vol_estimate = None
     vol_estimate = comm.bcast(vol_estimate, root=0)
     struct_vol_estimate = Z * vol_estimate
-    std_of_predicted_errors = 0.062 * struct_vol_estimate
-    std_to_use = 3.0 * std_of_predicted_errors
+    # Make an option but default is from underlying distribution
+
+    std_of_predicted_errors = inst.get_with_default(sname, 'std_of_predicted_errors', 0.025, eval=True)
+    std_to_use = 3.0 * std_of_predicted_errors * struct_vol_estimate
     vol_lower_bound = struct_vol_estimate - std_to_use
     vol_upper_bound = struct_vol_estimate + std_to_use
     ucv_ratio_range = [vol_lower_bound / struct_vol_estimate, vol_upper_bound / struct_vol_estimate]

@@ -89,7 +89,7 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
     print('Setting working directories up', flush=True)
     # Setup aims working dirs
     os.makedirs(aims_output_dir)
-    structure_files = glob(os.path.join(structure_dir, '*.json')) + glob(os.path.join(structure_dir, '*.in'))
+    structure_files = glob(os.path.join(structure_dir, '*.json')) + glob(os.path.join(structure_dir, '*.in')) + glob(os.path.join(structure_dir, '*.in.next_step'))
     for structure_file in structure_files:
         name = file_utils.fname_from_fpath(structure_file)
         struct_fold = os.path.join(aims_output_dir, name)
@@ -97,7 +97,7 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
         struct = Structure()
         if '.json' in structure_file:
             struct.build_geo_from_json_file(structure_file)
-        elif '.in' in structure_file:
+        elif '.in' in structure_file or '.in.next_step' in structure_file:
             struct.build_geo_from_atom_file(structure_file)
             file_utils.write_to_file(os.path.join(struct_fold, name + '.json'), struct.dumps(), mode='w')
             #struct_dct = file_utils.get_dct_from_json(structure_file)
@@ -154,6 +154,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         control_path = inst.get(sname, 'control_path')
 
     if world_comm.rank == 0:
+        print('run_fhi_aims_batch using molecule_path', molecule_path, flush=True)
         # creates the working dirs if DNE. Gets them ready to restart otherwise.
         task_list = setup_aims_dirs(aims_output_dir, structure_dir, control_path)
         if verbose:

@@ -419,10 +419,11 @@ def get_procedure_name_from_section_name(sname):
 
     Purpose: provide the procedure name from a given section name
     Notes: Requires the format of procedure names to be the capital letter
-        of every portion of sname that is delimited by an underscore. The exception is
-        the portion "fhi" which should be "FHI" in its procedure name.
+        of every portion of sname that is delimited by an underscore. Some procedures
+        are execptions like 'fhi' should be 'FHI' and 'rcd' should be 'RCD'
     '''
-    return '_'.join(['FHI' if portion == 'fhi' else portion.capitalize() for portion in sname.split('_')])
+    all_caps_list = ['fhi', 'rcd']
+    return '_'.join([portion.upper() if portion in all_caps_list else portion.capitalize() for portion in sname.split('_')])
 
 
 def get_last_active_procedure_name(inst, sname, iteration=0):
@@ -441,7 +442,7 @@ def get_last_active_procedure_name(inst, sname, iteration=0):
     '''
     procedure_name = get_procedure_name_from_section_name(sname)
     procedures = inst.get_eval('Genarris_master', 'procedures')
-    
+
     procedure_idx = list_utils.indices(procedures, procedure_name)[iteration]
     if procedure_idx == 0:
         return 'none'

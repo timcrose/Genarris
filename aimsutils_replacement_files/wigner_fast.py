@@ -49,7 +49,7 @@ def construct_np_C(l):
                     element = (-1)**(l-(l-m))
                 elif np.sign(m) == -1 and np.sign(m2) == 1:
                     # upper right, m<0 + m2 > 0
-                    element = -1j*(-1)**(l-(l-m))
+                    element = -1j*(-1)**(l-(l-m2))
 
             C[m+l, m2+l] = element
     C = (1/sqrt2(2))*C

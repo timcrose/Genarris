@@ -132,6 +132,7 @@ class Genarris():
             else:
                 data = None
             self.inst = comm.bcast(data, root=0)
+            comm.barrier()
             
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure

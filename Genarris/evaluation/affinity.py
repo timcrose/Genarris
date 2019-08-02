@@ -116,7 +116,7 @@ class APHandler():
         elif self.run_num == 2:
             last_section = get_last_active_procedure_name(inst, sname, iteration=1)
             sname_list = [sname, last_section, last_section, 'rcd_difference_folder_inner', 'rcd_calculation']
-            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (3 * ['output_dir']), type_='dir'))
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (3 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
         

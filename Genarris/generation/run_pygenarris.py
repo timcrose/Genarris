@@ -1,7 +1,7 @@
 import sys, os
 import numpy as np
 from Genarris.cgenarris import pygenarris
-from Genarris.utilities import file_utils, list_utils
+from Genarris.utilities import file_utils, list_utils, time_utils
 from Genarris.core import structure
 from Genarris.core import file_handler
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
@@ -24,15 +24,14 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
                 number_of_atoms_in_molecule = int(line.split('=')[-1].split()[0])
             elif '#unit_cell_volume =' in line:
                 unit_cell_volume = float(line.split('=')[-1].split()[0])
-            elif '#attempted spacegroup =' in line:
+            elif '#attempted_spacegroup =' in line:
                 attempted_spg = int(line.split('=')[-1].split()[0])
-            elif '#attempted Wyckoff position =' in line:
+            elif '#attempted_wyckoff_position =' in line:
                 attempted_wyckoff_position = line.split('=')[-1].split()[0]
             elif '#site_symmetry_group =' in line:
-                print('site_symmetry_group line', line, flush=True)
-                site_symmetry_group = int(line.split('=')[-1].split()[0])
-            elif '#SPGLIB detected spacegroup =' in line:
-                spg = int(line.split()[4])
+                site_symmetry_group = line.split('=')[-1].split()[0]
+            elif '#SPGLIB_detected_spacegroup =' in line:
+                spg = int(line.split('=')[-1].split()[0])
 
         file_utils.write_lines_to_file(tmp_geo_fname, struct_lines, mode='w')
         struct = structure.Structure()
@@ -49,7 +48,7 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
         struct.struct_id = struct_id
         outfile_path = os.path.join(outfile_dirname, output_dir, struct_id + '.json')
         file_utils.write_to_file(outfile_path, struct.dumps(), mode='w')
-        structs_list[i][1] = '#structure number = ' + str(i) + '\n'
+        structs_list[i][1] = '#structure_number = ' + str(i) + '\n'
         structs_list[i] = structs_list[i][:2] + ['#struct_id = ' + struct_id + '\n'] + structs_list[i][2:]
     os.remove(tmp_geo_fname)
     return structs_list
@@ -106,14 +105,17 @@ def format_output(output_format, output_dir, final_filename, num_structures):
                                 ]
                     for i in range(len(indices_list) - 1)
                     ]
+    print(len(structs_list), 'total structures were output by pygenarris. We will try to select the desired', num_structures, 'structures from this pool.', flush=True)
     if num_structures >= len(indices_list):
         selected_structs_idx_list = np.arange(len(structs_list))
     else:
         selected_structs_idx_list = np.random.choice(len(structs_list), num_structures, replace=False)
+
+    print('num_structures', num_structures, 'len(indices_list)', len(indices_list), 'len(selected_structs_idx_list)',len(selected_structs_idx_list), flush=True)
     
     selected_structs_list = list(np.array(structs_list)[selected_structs_idx_list])
     selected_structs_list = list(map(list, selected_structs_list))
-    print('done concatenating', flush=True)
+    print('done concatenating and selected', len(selected_structs_list), 'structures', flush=True)
     if output_format == 'json' or output_format == "both":
         print('writing json files', flush=True)
         selected_structs_list = write_json_files(final_filename, output_dir, selected_structs_list)
@@ -121,7 +123,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
         for i, struct_lines in enumerate(selected_structs_list):
             random_str = file_handler.get_random_index()
             struct_id = file_utils.fname_from_fpath(final_filename) + '_' + random_str
-            selected_structs_list[i][0] = '#structure number = ' + str(i) + '\n'
+            selected_structs_list[i][0] = '#structure_number = ' + str(i) + '\n'
             selected_structs_list[i] = selected_structs_list[i][:2] + ['#struct_id = ' + struct_id + '\n'] + selected_structs_list[i][2:]
     
     if output_format != 'json':
@@ -165,7 +167,6 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
     else:
         final_filename = filename
-    
     os.environ['OMP_NUM_THREADS'] = omp_num_threads
 
     if comm is None:
@@ -173,7 +174,9 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
         set_up(molecule_path)
     else:
         if comm.rank == 0:
+            print('molecule_path in run_pygenarris is', molecule_path, flush=True)
             set_up(molecule_path)
+        comm.barrier()
         filename = file_utils.fname_from_fpath(final_filename) + str(comm.rank) + '.' + final_filename.split('.')[-1]
 
     if inst.has_option(sname, 'num_structures_per_allowed_SG_per_rank'):
@@ -181,13 +184,15 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     else:
         num_compatible_spgs = pygenarris.num_compatible_spacegroups(Z, tol)
         num_structures_per_allowed_SG_per_rank = int(np.ceil(float(num_structures) / (float(comm.size) * float(num_compatible_spgs))))
-
-    comm.barrier()
+            
     molecule_struct = read(molecule_path)
     mb = MoleculeBonding(molecule_struct)
     cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
+    start_pygenarris_time = time_utils.gtime()
     pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
+    if comm is not None and comm.rank == 0:
+        print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, flush=True)
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:
