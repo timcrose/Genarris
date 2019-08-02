@@ -1,6 +1,10 @@
 import os, shutil
 from setuptools import find_packages
 from setuptools import setup
+if os.path.exists('build'):
+    shutil.rmtree('build')
+if os.path.exists('Genarris_2.0.egg-info'):
+    shutil.rmtree('Genarris_2.0.egg-info')
 os.system('pip install spherical-functions')
 setup(name = 'Genarris_2.0',
       description = 'Generation of Molecular Crystal Structures',
