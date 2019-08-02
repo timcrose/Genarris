@@ -114,14 +114,11 @@ class Genarris():
         procedures_with_master_slave = ['Run_FHI_Aims_Batch', 'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
         
         for section in self.inst.sections():
-            #add default num_cores if section is a procedure
-            if section in procedures:
-                self.inst.get_with_default(section, 'num_cores', comm.size, eval=True)
-            #print(section)
-            #print(self.inst.options(section))
-            #for option in self.inst.options(section):
-            #    print(self.inst.get(section,option))
-            #print(' ')
+            print(section, flush=True)
+            print(self.inst.options(section), flush=True)
+            for option in self.inst.options(section):
+                print(self.inst.get(section,option), flush=True)
+            print(' ', flush=True)
         
         #for procedure in list of procedures, run that procedure
         active_comm = None
@@ -148,7 +145,8 @@ class Genarris():
                     pass
             #See if splitting the communicator is necessary. It will be necessary
             # if num_cores != world_size
-            num_cores = int(self.inst.get(procedure.lower(), 'num_cores'))
+            #default num_cores is all available cores
+            num_cores = self.inst.get_with_default(procedure.lower(), 'num_cores', comm.size, eval=True)
             if num_cores != world_size:
                 if world_rank < num_cores:
                     #This rank will be used in the procedure
