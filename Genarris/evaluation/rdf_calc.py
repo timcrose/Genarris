@@ -5,8 +5,8 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from Genarris.core.instruct import get_last_active_procedure_name
 
-def rdf_calc(comm=None, structure_path, device=torch.device("cpu"),
-                 acsf_kwargs =
+def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
+                 acsf_kwargs=
                      {
                         "n_D_inter": 12,
                         "init_scheme": "shifted",
@@ -15,7 +15,7 @@ def rdf_calc(comm=None, structure_path, device=torch.device("cpu"),
                         "Rs_range": [0.1,12],
                         "learn_rep": False
                      }, pdist_distance_type='cosine', dist_mat_fpath='rdf_distance_matrix.npy',
-                     output_dir='no_new_output_dir')
+                     output_dir='no_new_output_dir'):
     '''
     comm: MPI communicator or None
 
@@ -130,4 +130,4 @@ def run_rdf_calc(inst, comm):
                         "learn_rep": learn_rep
                      }
 
-    rdf_calc(comm, structure_dir, device=torch.device(device), acsf_kwargs=acsf_kwargs, pdist_distance_type=pdist_distance_type, dist_mat_fpath=dist_mat_fpath, output_dir=output_dir)
+    rdf_calc(structure_dir, comm=comm, device=torch.device(device), acsf_kwargs=acsf_kwargs, pdist_distance_type=pdist_distance_type, dist_mat_fpath=dist_mat_fpath, output_dir=output_dir)

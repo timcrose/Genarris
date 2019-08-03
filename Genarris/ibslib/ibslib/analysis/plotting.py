@@ -260,10 +260,10 @@ def plot_IP_hist_dict(struct_dict,
                        labelpad=35, fontsize = label_size)
             
         elif type(deduce_sg) == list:
-            hist2 = plt.hist(allowed_sg[0], alpha=0.33,
+            hist2 = ax2.hist(allowed_sg[0], alpha=0.33,
                                  color='tab:orange',
                                  **hist_kwargs)
-            hist3 = plt.hist(allowed_sg[1], alpha=0.33,
+            hist3 = ax2.hist(allowed_sg[1], alpha=0.33,
                                  color='tab:red',
                                  **hist_kwargs)
             ax2.set_yticks([])
