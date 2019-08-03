@@ -37,7 +37,6 @@ def format_ticks(ax,
                    tick_width=d_tick_width,
                    tick_size=d_tick_size,
                    grid=d_grid):
-    ax.ticklabel_format(useOffset=False,linewidth=3)
     ax.spines['top'].set_linewidth(tick_width)
     ax.spines['right'].set_linewidth(tick_width)
     ax.spines['bottom'].set_linewidth(tick_width)

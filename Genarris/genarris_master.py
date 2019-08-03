@@ -16,7 +16,7 @@ import os
 import sys,socket
 from core import instruct
 #from utilities import parallel_run, write_log
-from utilities import write_log
+from utilities import write_log, mpi_utils
 from mpi4py import MPI
 import time, random
 
@@ -123,13 +123,17 @@ class Genarris():
         #for procedure in list of procedures, run that procedure
         active_comm = None
         split_comm = None
-        for procedure in procedures:
+        for i, procedure in enumerate(procedures):
+            if i > 0 and procedure[i - 1] == 'Pygenarris_Structure_Generation' and \
+                    self.inst.get_with_default('pygenarris_structure_generation', 'omp_num_threads', 1, eval=True) > 1:
+                mpi_utils.barrier(comm, tag=2277437, sleep=60)
+            else:
+                comm.barrier()
             if comm.rank == 0:
                 data = self.inst
             else:
                 data = None
             self.inst = comm.bcast(data, root=0)
-            comm.barrier()
             
             #free the active communicator: the communicator with ranks that 
             # execute a given procedure
@@ -362,14 +366,6 @@ class Genarris():
         from evaluation.pool_analysis import random_value_assignment
         random_value_assignment(self.inst)
 
-    def RDF_Descriptor_By_Bin(self, comm):
-        from evaluation import radial_distribution_function
-        radial_distribution_function.rdf_descriptor_by_bin(self.inst)
-
-    def RDF_Descriptor_By_Point(self, comm):
-        from evaluation import radial_distribution_function
-        radial_distribution_function.rdf_descriptor_by_point(self.inst)
-
     def RCD_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
         start_time = time.time()
@@ -395,6 +391,21 @@ class Genarris():
     def RCD_Difference_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
         relative_coordinate_descriptor.rcd_difference_calculation(self.inst)
+
+    def Run_Rdf_Calc(self, comm):
+        from evaluation import rdf_calc
+        start_time = time.time()
+        rdf_calc.run_rdf_calc(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for Run_Rdf_Calc', time.time() - start_time, flush=True)
+
+    def RDF_Descriptor_By_Bin(self, comm):
+        from evaluation import radial_distribution_function
+        radial_distribution_function.rdf_descriptor_by_bin(self.inst)
+
+    def RDF_Descriptor_By_Point(self, comm):
+        from evaluation import radial_distribution_function
+        radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         from evaluation import run_fhi_aims

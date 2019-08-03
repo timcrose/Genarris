@@ -12,13 +12,8 @@ from ase.neighborlist import NeighborList,natural_cutoffs
 from ase.data import atomic_masses_iupac2016,atomic_numbers
 from pymatgen.symmetry.analyzer import PointGroupAnalyzer as pga
 
-# This is for development purposes. Can import Structure class that's in 
-#   development into name-space 
-try: Structure
-except: from ibslib import Structure
-
+from ibslib import Structure
 from ibslib.io import read,write,output_geo
-from ibslib.descriptor.distance_matrix import calc_euclidean_dist_vectorized
 
 
 """
@@ -26,8 +21,13 @@ It will be better overall to break these complex operations into classes
 which will be easier to use and have a more intuitive API.
 """
 
-def get_molecules(struct):
+def get_molecules(struct, mult=1):
     """ 
+    
+    Arguments
+    ---------
+    mult: float
+        Multiplicative factor to use for natural_cutoffs
     
     Returns
     -------
@@ -35,7 +35,7 @@ def get_molecules(struct):
     molecule representation.
     
     """
-    molecule_list = find_molecules(struct)
+    molecule_list = find_molecules(struct, mult=mult)
     molecule_struct_list = extract_molecules(struct, molecule_list)
     if len(molecule_struct_list) == 0:
         raise Exception("No molecules found for structure {}."
@@ -43,7 +43,7 @@ def get_molecules(struct):
     return molecule_struct_list
 
 
-def find_molecules(struct):
+def find_molecules(struct, mult=1):
     """ 
     Identify molecular fragments in struct
     
@@ -53,7 +53,7 @@ def find_molecules(struct):
     
     """
     atoms = struct.get_ase_atoms()
-    cutOff = natural_cutoffs(atoms)
+    cutOff = natural_cutoffs(atoms, mult=mult)
     neighborList = NeighborList(cutOff)
     neighborList.update(atoms)
     matrix = neighborList.get_connectivity_matrix()

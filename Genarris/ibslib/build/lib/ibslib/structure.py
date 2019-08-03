@@ -401,8 +401,14 @@ class Structure(object):
         if type(pymatgen_obj) == Molecule:
             self.from_geo_array(geometry,species)
             
-        elif type(pymatgen_obj) == Lattice:
+        elif type(pymatgen_obj) == LatticeP:
             raise Exception('Lattice conversion not implemented yet')
+        
+        elif type(pymatgen_obj) == StructureP:
+            self.from_geo_array(geometry,species)
+            self.set_lattice_vectors(pymatgen_obj.lattice.matrix)
+            
+        
 
 
     def get_lattice_angles(self):

@@ -106,22 +106,44 @@ class APHandler():
                 self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
         #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
         #print('self.energy_name', self.energy_name, flush=True)
-        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'rcd_difference_folder_inner', 'rcd_calculation'], 
-                                                    ['dist_mat_input_file', 'diff_matrix_output', 'diff_matrix_output'])
+        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
+                                                    ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'])
 
         if self.run_num == 1:
             last_section = get_last_active_procedure_name(inst, sname, iteration=0)
-            sname_list = [sname, last_section, 'rcd_difference_folder_inner', 'rcd_calculation']
-            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (3 * ['output_dir']), type_='dir')
+            sname_list = [sname, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (4 * ['output_dir']), type_='dir')
         elif self.run_num == 2:
             last_section = get_last_active_procedure_name(inst, sname, iteration=1)
-            sname_list = [sname, last_section, last_section, 'rcd_difference_folder_inner', 'rcd_calculation']
-            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (3 * ['output_dir']), type_='dir')
+            sname_list = [sname, last_section, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
         
         #Implement the affinity type desired
-        self._initialize_affinity_matrix()
+        if '.np' in self.dist_mat_input_file:
+            self._initialize_affinity_matrix_rdf()    
+        else:
+            self._initialize_affinity_matrix()
+
+
+
+    def _initialize_affinity_matrix_rdf(self):
+        dist_mat = np.load(self.dist_mat_input_file)
+        if dist_mat.shape[0] != dist_mat.shape[1]:
+            raise ValueError("Distance matrix is not a square matrix: "
+                    + self.dist_mat_input_file)
+
+        self.distance_matrix = dist_mat
+
+        if self.affinity_type[0]=="exponential":
+            self.affinity_matrix = -np.exp(dist_mat * self.affinity_type[1])
+        elif self.affinity_type[0] == "power":
+            self.affinity_matrix = -dist_mat ** self.affinity_type[1])
+
+        else:
+            raise Exception('Unsuppored affinity_type. Got:', self.affinity_type[0])
+
 
     def _initialize_affinity_matrix(self):
         f = open(self.dist_mat_input_file, "r")
@@ -683,6 +705,7 @@ class AffinityPropagationExecutor(PoolOperation):
                     "to number of input structures")
 
         self._structure_list.sort(key=lambda x: x.struct_id)
+
 
     def _initialize_affinity_matrix(self):
         f = open(self._dist_mat_input_file, "r")

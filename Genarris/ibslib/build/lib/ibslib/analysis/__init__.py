@@ -2,6 +2,6 @@
 
 __author__ = 'Manny Bier'
 
-from .diversity import DiversityAnalysis
+from .dictops import get
 
-__all__ = ["DiversityAnalysis"]
+__all__ = ["get"]

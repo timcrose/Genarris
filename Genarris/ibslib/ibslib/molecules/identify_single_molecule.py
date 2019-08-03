@@ -14,15 +14,20 @@ class UniqueMolecules():
     """
     Class for identifying unique molecules in a structure
     """
-    def __init__(self, struct):
+    def __init__(self, struct, mult=1):
         """
         For now, struct is argument for class and will automatically
         identify molecules and save as parameter of class.
+        
+        Arguments
+        ---------
+        mult: float
+            Multiplicative factor to multiply ase.neighborlist.natural_cutoff.
         """
         self.struct = struct
         # Reconstruct with whole molecules because it will make all further 
         # calculations faster
-        self.molecule_struct_list = get_molecules(self.struct)
+        self.molecule_struct_list = get_molecules(self.struct, mult=mult)
         self.unique_molecule_list = find_unique_molecules(self.molecule_struct_list)
         self.rstruct = self._reconstruct_structure()
         

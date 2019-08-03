@@ -11,7 +11,7 @@ from textwrap import wrap
 
 from ibslib.analysis import pltlib
 
-from ibslib.io import import_structures
+from ibslib.io import read,write
 from ibslib.sgroup.sgroup import SpaceGroupManager
 from ibslib.motif.utils import eval_motif,implemented_motifs
 from ibslib.analysis.pltlib import format_ticks,format_axis
@@ -139,7 +139,12 @@ def correct_energy(energy_list, nmpc=4, global_min=None):
 #   group distribution                                                        #
 ###############################################################################
 
-def plot_IP_hist(user_input, **kwargs):
+def plot_IP_hist(user_input, kwargs, 
+                 hist_kwargs={"density": False,
+                              "bins": "auto",
+                              "edgecolor": "k"
+                              }
+                 ):
     '''
     Purpose:
         Plots the intial pool histogram for a path to a structure directory
@@ -150,22 +155,29 @@ def plot_IP_hist(user_input, **kwargs):
         prop: String of the property of interest.              
    '''
     if type(user_input) == dict:
-        plot_IP_hist_dict(user_input, **kwargs)
+        plot_IP_hist_dict(user_input, hist_kwargs, **kwargs)
     elif type(user_input) == str:
-        plot_IP_hist_dir(user_input, **kwargs)
+        s = read(user_input)
+        plot_IP_hist_dict(s, hist_kwargs, **kwargs)
     
 def plot_IP_hist_dir(struct_dir, **kwargs):
     '''
     Purpose:
         Plots for a directory of structures.
     '''
-    struct_dict = import_structures(struct_dir)
+    struct_dict = read(struct_dir)
     plot_IP_hist_dict(struct_dict, **kwargs)
     
 
-def plot_IP_hist_dict(struct_dict,prop='space_group',nmpc=2,bins='auto',
+def plot_IP_hist_dict(struct_dict,
+                      hist_kwargs={"density": False,
+                                   "bins": "auto",
+                                   "edgecolor": "k"
+                                   },
+                      prop='space_group',nmpc=2,
+                      deduce_sg=False,
                       xlabel='Space Group', ylabel='Observed Distribution',
-                      figname=None, density=False, 
+                      figname=None,  
                       GAtor_IP=False,
                       label_size=24, tick_size=18, figure_size=(12,8),
                       tick_width=3):
@@ -190,16 +202,19 @@ def plot_IP_hist_dict(struct_dict,prop='space_group',nmpc=2,bins='auto',
             values = [x for x in values if x is not None]
         
     
-    if prop == 'space_group':
-        allowed_sg = deduce_allowed_sg(nmpc)
-        bins = max(allowed_sg) - min(allowed_sg) + 1
+    if type(deduce_sg) == bool:
+        if deduce_sg:
+            allowed_sg = deduce_allowed_sg(nmpc)
+            bins = max(allowed_sg) - min(allowed_sg) + 1
+    elif type(deduce_sg) == list:
+        allowed_sg = deduce_sg
     
     
     # Standard formatting 
     fig = plt.figure(figsize=figure_size)
     ax1 = fig.add_subplot(111)
     ax1 = fig.gca()
-    ax1.ticklabel_format(useOffset=False,linewidth=3)
+
     ax1.spines['top'].set_linewidth(tick_width)
     ax1.spines['right'].set_linewidth(tick_width)
     ax1.spines['bottom'].set_linewidth(tick_width)
@@ -220,12 +235,12 @@ def plot_IP_hist_dict(struct_dict,prop='space_group',nmpc=2,bins='auto',
         ax1.set_xlabel('Space Group', fontsize=label_size)
         return
 
-    hist1 = plt.hist(values, bins=bins, density=density, color='b')
+    hist1 = plt.hist(values, **hist_kwargs)
     plt.xlabel(xlabel, fontsize=label_size)
     plt.ylabel(ylabel, fontsize=label_size, labelpad=25)
     
-    if prop == 'space_group' and GAtor_IP==False:
-        # Easy way to make plots that share an x axis with a new y-axis
+    if deduce_sg and GAtor_IP==False:
+    # Easy way to make plots that share an x axis with a new y-axis
         ax2 = ax1.twinx()
         # Example of useful tick params
 #        ax2.tick_params(
@@ -236,11 +251,24 @@ def plot_IP_hist_dict(struct_dict,prop='space_group',nmpc=2,bins='auto',
 #            labelbottom=False) # labels along the bottom edge are off
         ax2.tick_params(axis='both', which='major', labelsize=tick_size)
         ax2.tick_params(which='both', width=4, length=7)
-        hist2 = plt.hist(allowed_sg, bins=bins, density=density, alpha=0.33,
-                             color='tab:orange')
-        ax2.set_yticks([])
-        ax2.set_ylabel('All Possible Space Groups', rotation=270,
-                   labelpad=35, fontsize = label_size)
+        if type(deduce_sg) == bool:
+            hist2 = plt.hist(allowed_sg, alpha=0.33,
+                                 color='tab:orange',
+                                 **hist_kwargs)
+            ax2.set_yticks([])
+            ax2.set_ylabel('All Possible Space Groups', rotation=270,
+                       labelpad=35, fontsize = label_size)
+            
+        elif type(deduce_sg) == list:
+            hist2 = plt.hist(allowed_sg[0], alpha=0.33,
+                                 color='tab:orange',
+                                 **hist_kwargs)
+            hist3 = plt.hist(allowed_sg[1], alpha=0.33,
+                                 color='tab:red',
+                                 **hist_kwargs)
+            ax2.set_yticks([])
+            ax2.set_ylabel('All Possible Space Groups', rotation=270,
+                       labelpad=35, fontsize = label_size)
         
 
     
@@ -249,6 +277,7 @@ def plot_IP_hist_dict(struct_dict,prop='space_group',nmpc=2,bins='auto',
         fig.savefig(figname)
     
     plt.show()
+    return ax1
 
 
 def deduce_allowed_sg(nmpc, is_chiral=None, is_racemic=None):
@@ -259,7 +288,9 @@ def deduce_allowed_sg(nmpc, is_chiral=None, is_racemic=None):
     '''
     SGM = SpaceGroupManager(nmpc, is_chiral, is_racemic)
     SGM._deduce_allowed_space_groups()
-    return SGM._space_group_range
+    sgs = SGM._space_group_range
+    
+    return sgs
 
 
 def list_struct_without_prop(struct_dict, key):
@@ -319,7 +350,7 @@ def plot_GA_prop(struct_dir, prop_key, energy_key, nmpc,
         False: No change to plot
     
     '''
-    struct_dict = import_structures(struct_dir)
+    struct_dict = read(struct_dir)
     
     struct_dict = clean_struct_dict_prop(struct_dict, prop_key)
     GAtor_struct_dict, IP_struct_dict = separate_IP(struct_dict, init_str)
@@ -532,7 +563,7 @@ def plot_many_property_vs_energy(struct_dir_list, prop_key_list,
     '''
     struct_dict_list = []
     for struct_dir in struct_dir_list:
-        struct_dict = import_structures(struct_dir)
+        struct_dict = read(struct_dir)
         struct_dict_list.append(struct_dict)   
     plot_many_property_vs_energy_dict(struct_dict_list, prop_key_list, 
                                       energy_key_list, legend_list,
@@ -626,7 +657,7 @@ def motif_prop_plot(struct_dir, property_key, error=True, label_kwargs={},
     
     """
     
-    struct_dict = import_structures(struct_dir)
+    struct_dict = read(struct_dir)
     struct_dict = clean_struct_dict_prop(struct_dict, property_key)
     
     motif_list = np.array(implemented_motifs())
@@ -685,7 +716,7 @@ def motif_dist_plot(struct_dir, label_kwargs={},
     
     """
     
-    struct_dict = import_structures(struct_dir)
+    struct_dict = read(struct_dir)
     struct_dict = clean_struct_dict_prop(struct_dict, 'motif')
     
     if len(struct_dict) == 0:

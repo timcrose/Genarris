@@ -213,20 +213,21 @@ def struct_R(R):
 
 
 if __name__ == "__main__":
-    from ibslib.io import read,write
-#    dimer_path = "C:\\Users\\manny\\Research\\Datasets\\Hab_Dimers\\FUQJIK_4mpc_tight\\dimers"
-#    dimer_dict = read(dimer_path)
-#    test_struct = dimer_dict["00e3c7641c_d_07RaEM"]
-    
-    test = AtomicPairDistance(p_type="structure")
-    test.calculate(test_struct)
-    R = test_struct.get_property("R")
-    temp = {}
-    for key,value in R.items():
-        temp[key] = {}
-        for nkey,nvalue in value.items():
-            temp[key][nkey] = nvalue.tolist()
-    test_struct.set_property("R",temp)
-    write("C:\\Users\\manny\\Research\\Datasets\\Hab_Dimers\\FUQJIK_4mpc_tight\\test.json", test_struct,
-          overwrite=True)
-    
+    pass
+#    from ibslib.io import read,write
+##    dimer_path = "C:\\Users\\manny\\Research\\Datasets\\Hab_Dimers\\FUQJIK_4mpc_tight\\dimers"
+##    dimer_dict = read(dimer_path)
+##    test_struct = dimer_dict["00e3c7641c_d_07RaEM"]
+#    
+#    test = AtomicPairDistance(p_type="structure")
+#    test.calculate(test_struct)
+#    R = test_struct.get_property("R")
+#    temp = {}
+#    for key,value in R.items():
+#        temp[key] = {}
+#        for nkey,nvalue in value.items():
+#            temp[key][nkey] = nvalue.tolist()
+#    test_struct.set_property("R",temp)
+#    write("C:\\Users\\manny\\Research\\Datasets\\Hab_Dimers\\FUQJIK_4mpc_tight\\test.json", test_struct,
+#          overwrite=True)
+#    

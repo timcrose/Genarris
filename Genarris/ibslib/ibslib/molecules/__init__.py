@@ -3,11 +3,11 @@
 __author__ = 'Manny Bier'
 
 from ibslib.molecules.find_bonding import MoleculeBonding
-from ibslib.molecules.label_molecule_atoms import LabelAtoms
-from ibslib.molecules.identify_single_molecule import UniqueMolecules
 from ibslib.molecules.volume_estimator import MoleculeVolumeEstimator
-__all__ = ["MoleculeBonding","UniqueMolecules","MoleculeVolumeEstimator",
-           "LabelAtoms"]
+from ibslib.molecules.intermolecular_dist import intermolecular_dist
+
+__all__ = ["MoleculeBonding","MoleculeVolumeEstimator",
+           "intermolecular_dist"]
 
 def check_molecule(struct):
     # Check for valid molecule_struct
@@ -18,4 +18,4 @@ def check_molecule(struct):
                 "without lattice vectors should be passed to "+
                 "MoleculeBonding.")
     else:
-        return
+        return True

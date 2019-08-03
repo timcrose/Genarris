@@ -2,6 +2,12 @@
 
 import numpy as np
 from ase.data import vdw_radii,atomic_numbers
+from ase.data.colors import jmol_colors
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+from ibslib.descriptor import BondNeighborhood
 
 
 class MoleculeVolumeEstimator():
@@ -16,11 +22,12 @@ class MoleculeVolumeEstimator():
         Maximum number of iterations to converge.
     batch: int
         Number of samples to process in MC method at a single time. 
+        This is also the number for which convergence is tested. 
     vdW: numpy.array
         Array of vdW volumes index by the atomic number.
         
     """
-    def __init__(self, tol=1e-2, iterations=1e7, batch=1000, vdW=vdw_radii):
+    def __init__(self, tol=1e-2, iterations=1e8, batch=100000, vdW=vdw_radii):
         # Change vdW radii
         self.iterations = int(iterations)
         self.batch = int(batch)
@@ -40,7 +47,7 @@ class MoleculeVolumeEstimator():
         return volume
     
     
-    def linear_correction(volume):
+    def linear_correction(self,volume):
         """
         Applies linear correction to the input volume from CSD analysis.
         """
@@ -74,8 +81,11 @@ class MoleculeVolumeEstimator():
         
         # Keep track of in an out
         self.vdW_in = 0
-        self.vdW_out = 0
+        self.total_samples = 0
         self.volume_tracking = []
+        self.var_tracking = []
+        self.points_inside = []
+        self.c = []
         for batch_size in batchs:
             points = self._sample_points(batch_size)
             # Pairwise distance between points and all atoms in geometry
@@ -84,14 +94,23 @@ class MoleculeVolumeEstimator():
             
             # Find which samples were within a vdW radii from any atom
             vdW_dist = distances - self.radii
+            
+            self.vdW_dist = vdW_dist
+            r_idx,in_idx = np.where(vdW_dist <= 0)
+            self.points_inside.append(points[in_idx])
+            self.c.append(self._define_colors(self.struct.geometry["element"][r_idx]))
+            
             vdW_in = vdW_dist <= 0
             vdW_in = np.sum(vdW_in, axis=0)
             vdW_in = np.where(vdW_in >= 1)[0]
             vdW_in = vdW_in.shape[0]
             self.vdW_in += vdW_in
-            self.vdW_out += batch_size - vdW_in
+            self.total_samples += batch_size
             self.volume_tracking.append(
-                    (self.vdW_in / self.vdW_out) * self.region_volume)
+                    (self.vdW_in / self.total_samples) * self.region_volume)
+            self.var_tracking.append(self.volume_tracking[-1] * \
+                            (self.region_volume - self.volume_tracking[-1]) \
+                            / self.total_samples)
             
             # Check for convergence
             if len(self.volume_tracking) > 2:
@@ -101,7 +120,12 @@ class MoleculeVolumeEstimator():
                 else:
                     break
         
-        self.molecule_volume = (self.vdW_in / self.vdW_out) * self.region_volume
+        self.molecule_volume = (self.vdW_in / self.total_samples) * self.region_volume
+        
+        # Saving points and colors for plotting 
+        self.points_inside = np.vstack(self.points_inside).reshape(-1,3)
+        self.c = np.vstack(self.c)
+        
         return self.molecule_volume
 
     
@@ -143,136 +167,55 @@ class MoleculeVolumeEstimator():
             return False
         else:
             return True
-
-
-"""
-From: https://blog.levilentz.com/integrated-charge-density-from-cube-file/
-"""
-
-class Cube_Class():
-    """
-    Class for running molecule volume estimation using a CUBE file
-    """
-    def __init__(self, cube_path, charge_tol=1e-3):
-        """
-        charge_tol: float
-            Value which determines separation between molecule and vacuum
-        """
-        self.charge_tol = charge_tol
-
-        ######  These are all set in _read   ######
-        # N = number of incremenets in each direction
-        self.N = np.zeros(3)
-        # N_matrix = 3x3 of increment vectors stored in rows
-        self.N_matrix = np.zeros((3,3))
-        # Atom coordinates from cube file
-        self.atom_coords = np.array([])
-        # Atom elements as atomic number
-        self.atom_ele = []
-        # Atom charges
-        self.atom_charge = []
-        # 3D grid will be constructed using these values in _read
-        self.charge_grid = np.array([])
-        # Total volume of cube file
-        self.total_volume = 1
-
-        # Read in cube file info
-        self._read(cube_path)
-
-    
-    def _read(self, cube_path):
-        """
-        From: https://blog.levilentz.com/integrated-charge-density-from-cube-file/
-        """
-        with open(cube_path,'r') as f:
-            # Skip first two lines
-            next(f)
-            next(f)
-
-            # NAtoms, X-Origin, Y-Origin, Z-Origin
-            line = next(f)
-            split_line = line.split()
-            self.n_atoms = int(split_line[0])
-
-            # Next three lines have format: 
-            # N1, X1, Y1, Z1   increments in first direction
-            for i in range(0,3):
-                line = next(f).split()
-                self.N[i] = int(line[0])
-                for j in range(1,4):
-                    self.N_matrix[i][j-1] = float(line[j])
-            
-            # Initialize atom_coords and read in positions
-            self.atom_coords = np.zeros((self.n_atoms,3))
-            for i in range(0,self.n_atoms):
-                line = next(f).split()
-                self.atom_ele.append(int(line[0]))
-                self.atom_charge.append(float(line[1]))
-                for j in range(0,3):
-                    self.atom_coords[i][j] = float(line[j+2])
-            
-            # Reading grid in
-            lines = f.readlines()
-            lines = [x.split() for x in lines]
-            cube_grid = []
-            for line in lines:
-                for value in line:
-                    cube_grid.append(float(value))
-            cube_grid = np.array(cube_grid)
-            cube_grid = cube_grid.ravel()
-            # Reshaping based on N 
-            columns = np.arange(0,self.N[2])
-            rows = np.arange(0,self.N[1])*self.N[2]
-            depth = np.arange(0,self.N[0])*(self.N[1]*self.N[2])
-            broadcast = depth[:,None,None] + rows[:,None] + columns
-            self.cube_grid = np.take(cube_grid, broadcast.astype(int))
         
-        for i in range(0,3):
-            self.total_volume *= self.N[i]*np.linalg.norm(self.N_matrix[i,:])
-    
-    
-    def run_MC(self, n_iter=1e7, n_batch=100000):
+
+    def plot_MC(self, elev=0, azim=0, figname=""):
         """
-        MC iterations can be performed in batches to speed up calculation. 
-
-        Arguments
-        ---------
-        n_inter: int
-            Number of iterations to perform
-        n_batch: int
-            Number of batches to perform at a single time. Limiting factor 
-            will be the memory of the machine being used. Allocated matrix
-            of samples has to fit in memory. 
-
-        """
-        # Iteration counter
-        batch_iter = int(n_iter / n_batch) + 1
-        self.n_in = 0
-        self.n_out = 0
-        for i in range(batch_iter):
-            samples = self._sample_point(n_batch)
-            results = self.cube_grid[samples[:,0],
-                                     samples[:,1],
-                                     samples[:,2]]
-
-            # updating counts based on results
-            n_in = np.sum(results > self.charge_tol)
-            n_out = n_batch - n_in
-            self.n_in += n_in
-            self.n_out += n_out
+        Plot the points which were found to be inside the molecule. Useful
+        for visualizing the volume which is found by MC method.
         
-        self.molecule_volume = (self.n_in / (self.n_in + self.n_out)) * self.total_volume
-        return self.molecule_volume
-
-    
-    def _sample_point(self, n_batch=1000):
-        """ Perform batch sampling
         """
-        x = np.random.random_integers(0,int(self.N[0])-1, size=(n_batch,1))
-        y = np.random.random_integers(0,int(self.N[1])-1, size=(n_batch,1))
-        z = np.random.random_integers(0,int(self.N[2])-1, size=(n_batch,1))
-        return np.concatenate((x,y,z),axis=1)
+        fig = plt.figure(figsize=(8,6))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.w_xaxis.set_pane_color((0., 0., 0., 1.0))
+        ax.w_yaxis.set_pane_color((0., 0., 0., 1.0))
+        ax.w_zaxis.set_pane_color((0., 0., 0., 1.0))
+        ax.scatter(self.points_inside[:,0],
+                   self.points_inside[:,1],
+                   self.points_inside[:,2], alpha=0.1,
+                   c = self.c)
+        ax.grid(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+#        for ii in xrange(0,360,10):
+        ax.view_init(elev=elev, azim=azim) 
+        plt.tight_layout()
+        if len(figname) > 0:
+            fig.savefig(figname, bbox_inches='tight',
+                        transparent=True, pad_inches=0)
+        
+    
+    def _define_colors(self,elements):
+        idx = [atomic_numbers[x] for x in elements]
+        return jmol_colors[idx]
+    
     
     
 if __name__ == "__main__":
-   
+    pass
+#    from ibslib.io import read,write
+#    import matplotlib.pyplot as plt
+#    struct_dict = read("Single_Molecules/json")
+#    
+#    x = []
+#    y = []
+#    mve = MoleculeVolumeEstimator()
+#    for struct_id,struct in struct_dict.items():
+#        exp_volume = struct.get_property("molecule_volume")
+#        pred_volume = mve.calc(struct)
+#        print("{} {} {}".format(exp_volume, pred_volume, exp_volume-pred_volume))
+#        x.append(exp_volume)
+#        y.append(pred_volume)
+#    
+#    plt.scatter(x,y)
