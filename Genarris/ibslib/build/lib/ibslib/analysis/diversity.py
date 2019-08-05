@@ -5,7 +5,7 @@ import torch
 from ibslib import Structure,StructDict
 from ibslib.io import read,write
 from ibslib.descriptor.R_descriptor import AtomicPairDistance
-from mlcsp.representation import ACSF
+from ibslib.descriptor.rdf import ACSF
 
 
 class DiversityAnalysis():

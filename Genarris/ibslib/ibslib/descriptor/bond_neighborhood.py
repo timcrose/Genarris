@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 
 from ibslib.io import read,write
-from ibslib.molecules import MoleculeBonding
+from ibslib.molecules.find_bonding import MoleculeBonding
+
+import matplotlib.pyplot as plt
 
 
 class BondNeighborhood():
@@ -30,7 +32,7 @@ class BondNeighborhood():
         
     """
     def __init__(self, radius=1, 
-                       mb_kwargs={"natural_cutoff_mult": 1.2,
+                       mb_kwargs={"natural_cutoff_mult": 1.3,
                                   "skin": 0}
                 ):
         self.radius = radius
@@ -510,10 +512,218 @@ class construct_bond_neighborhood_model():
                     "with r=True before calling regularize. " +
                     "Either call regularize prior to get_neighborhood_vector "+
                     "or set r=False.")
+    
+    
+    def plot_results(self,result_df):
+        """
+        Quickly plots the results from the constructed model for the results
+        dataframe.
+        """
+        pass
+    
+    
+    def plot_hist(self, neighborhood_df, 
+                  exclude_add_prop=True, 
+                  figname='',
+                  regressor=None, 
+                  most_important=-1, 
+                  add_coef=False,
+                  add_coef_text_kwargs =  {
+                                            "whitespace_pad": 1.15,
+                                            "labelpad_y": 10,
+                                            "labelpad_x": -0.065,
+                                            "fontsize": 16,
+                                            "color": "tab:red",                                            
+                                          },
+                  add_obs=False,
+                  add_obs_text_kwargs =   {
+                                            "whitespace_pad": 1.15,
+                                            "labelpad_y": 35,
+                                            "labelpad_x": -0.075,
+                                            "fontsize": 16,
+                                            "color": "tab:purple"
+                                          },
+                  figsize=(12,8),
+                  tick_params_kwargs_both={
+                                             "axis": "both",
+                                             "width": 3,
+                                             "labelsize": 16,
+                                             "length": 8,
+                                           },
+                  tick_params_kwargs_x =  {
+                                             "axis": "x",
+                                             "labelsize": 16,
+                                             "labelrotation": 90,
+                                          },
+                  y_label_kwargs =        {
+                                             "ylabel": "Number of Observations",
+                                             "labelpad": 0,
+                                             "fontsize": 18,
+                                             "labelpad": 15,
+                                          },
+                  bar_kwargs =            {
+                                            "edgecolor": "k",
+                                            "linewidth": 2,
+                                          },
+                  ):
+        """
+        Plots a histogram of the frequency of bond neighborhoods identified
+        in the input neighborhood dataframe
+        
+        Arguments
+        ---------
+        neighborhood_df: pandas.DataFrame
+            Neighborhood dataframe from which to construct the histogram.
+        exclude_add_prop: bool
+            Whether to use columns from add prop in the histogram
+        figname: str
+            If a figname is provided, then the file is saved using this 
+            string.
+        Regressor: regressor object
+            If a regressor is provided, then the histogram is constructed using
+            only the N first most important bond neighborhoods.
+        most_important: int
+            If a values greater than 0 is provided, then the regressor must 
+            also be provide. Uses on the N most_important features in 
+            construction of historgram if greater than 0.
+        add_coef: bool
+            Adds the coefficient values from the regressor to the top of each
+            bar plot.
+        add_coef_text_kwargs: dict
+            Keyword arguments for the ax.text call for the coeficient values.
+        add_obs: bool
+            Adds the number of observations for each plotted neighborhood
+            to the top of each bar plot.
+        add_obs_text_kwargs: dict
+            Keyword arguments for the ax.text call for the observation values.
+        figsize: (int,int)
+            Figure size to pass into matplotlib.
+        tick_params_kwargs_both: dict
+            Dictionary of keyword arguments to pass to ax.tick_params
+        tick_params_kwargs_both: dict
+            Another dictionary of keyword arguments to pass to ax.tick_params.
+            Idea here is that the *_both is used to format both axes while 
+            this dictionary is used to format the x axis.
+        y_label_kwargs: dict
+            Dictionary of keyword arguments to control the label for the 
+            y axis of the plot. 
+        bar_kwargs: dict
+            Dictionary of keyword arguments to control aesthetics of the bar
+            plot such as color, opacity, and linewidth.
+        
+        """
+        if exclude_add_prop:
+            column_idx = np.arange(len(self.add_prop), 
+                                   len(neighborhood_df.columns),
+                                   1)
+        else:
+            column_idx = np.arange(0,
+                                   len(neighborhood_df.columns),
+                                   1)
+        
+        if most_important > 0:
+            if not regressor:
+                raise Exception("Argument most_important to plot_hist was {}."
+                        .format(most_important) +
+                        "However a regressor was not provided. Please provide "+
+                        "A trained regressor object from sklearn.")
+            
+            if len(regressor.coef_.ravel()) != len(neighborhood_df.columns.values):
+                raise Exception("The length of the regressor coeficients was {} "
+                        .format(len(regressor.coef_)) +
+                        "which does not match the number of columns of the "+
+                        "the input neighborhood dataframe {}"
+                        .format(len(neighborhood_df.columns.values)))
+                
+            coef = np.abs(regressor.coef_.ravel()[column_idx])
+            important_idx = np.argsort(coef)[::-1]
+            important_idx = important_idx[0:most_important]
+            
+            # Now reset column_idx to only be these most important indices
+            column_idx = column_idx[important_idx]
+                       
+        column_names = neighborhood_df.columns.values[column_idx]
+        sub_array = neighborhood_df.values[:,column_idx]
+        column_totals = np.sum(sub_array, axis=0)
+        
+        sort_idx = np.argsort(column_totals)[::-1]
+        column_idx = column_idx[sort_idx]
+        column_totals = column_totals[sort_idx]
+        column_names = column_names[sort_idx]
+        x = np.arange(0,len(column_names),1)
+        
+        #### Making figure
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+        ax.bar(x, column_totals, **bar_kwargs)
+        ax.set_xticks(x)
+        ax.set_xticklabels(column_names)
+        ## Edit ticks
+        ax.tick_params(**tick_params_kwargs_both)
+        ax.tick_params(**tick_params_kwargs_x)
+        
+        # ylabel kwargs
+        ax.set_ylabel(**y_label_kwargs)
+        
+        # Set outside of plot same size as tick_width
+        outline_width = tick_params_kwargs_both["width"]
+        ax.spines['top'].set_linewidth(outline_width)
+        ax.spines['right'].set_linewidth(outline_width)
+        ax.spines['bottom'].set_linewidth(outline_width)
+        ax.spines['left'].set_linewidth(outline_width)
+        
+        if add_coef:
+            # Increase the height of the whitespace in the plot
+            whitespace_mult = add_coef_text_kwargs.pop("whitespace_pad")
+            max_obs = np.max(column_totals)
+            max_y = max_obs*whitespace_mult
+            ax.set_ylim([0,max_y])
+            
+            # Get distance to add to each text y position
+            labelpad_y = add_coef_text_kwargs.pop("labelpad_y")
+            # Get distance for each text x position depending on the length
+            # of the string. Because its a function of the length, this helps
+            # to center the string perfectly.
+            labelpad_x = add_coef_text_kwargs.pop("labelpad_x")
+            for i,value in enumerate(regressor.coef_.ravel()[column_idx]):
+                print_string = "{:.2f}".format(value)
+                pos_x = x[i] + len(print_string)*labelpad_x
+                pos_y = column_totals[i] + labelpad_y
+                ax.text(pos_x,pos_y,print_string,
+                        **add_coef_text_kwargs)
+        
+        # Now add coef if true
+        if add_obs:
+            # Increase the height of the whitespace in the plot
+            whitespace_mult = add_obs_text_kwargs.pop("whitespace_pad")
+            max_obs = np.max(column_totals)
+            max_y = max_obs*whitespace_mult
+            ax.set_ylim([0,max_y])
+            
+            # Get distance to add to each text y position
+            labelpad_y = add_obs_text_kwargs.pop("labelpad_y")
+            # Get distance for each text x position depending on the length
+            # of the string. Because its a function of the length, this helps
+            # to center the string perfectly.
+            labelpad_x = add_obs_text_kwargs.pop("labelpad_x")
+            for i,value in enumerate(column_totals):
+                print_string = "{}".format(int(value))
+                pos_x = x[i] + len(print_string)*labelpad_x
+                pos_y = value + labelpad_y
+                ax.text(pos_x,pos_y,print_string,
+                        **add_obs_text_kwargs)
+                
+                
+        plt.tight_layout()
+        if len(figname) > 0:
+            fig.savefig(figname)
+            
         
         
 
 if __name__ == "__main__":
+    pass 
+
 #    from sklearn.linear_model import Ridge
 #    regressor = Ridge()
 #    
@@ -523,7 +733,16 @@ if __name__ == "__main__":
 #    constructor.set_train(s_conquest)
 #    constructor.regularize(tol=40)
 #    constructor.set_test(s_paper)
+#    
+#    train_df,test_df = constructor.fit_model(regressor)
+#    train_err = np.abs(train_df["molecule_volume"] - train_df["predicted_molecule_volume"]) / train_df["predicted_molecule_volume"]
+#    test_err = np.abs(test_df["molecule_volume"] - test_df["predicted_molecule_volume"]) / test_df["predicted_molecule_volume"]
     
-    train_df,test_df = constructor.fit_model(regressor)
-    train_err = np.abs(train_df["molecule_volume"] - train_df["predicted_molecule_volume"]) / train_df["predicted_molecule_volume"]
-    test_err = np.abs(test_df["molecule_volume"] - test_df["predicted_molecule_volume"]) / test_df["predicted_molecule_volume"]
+#    constructor.regularize(tol=40)
+#    constructor_test = construct_bond_neighborhood_model(bn,add_prop=["MC_volume"], 
+#                                              target_prop=["molecule_volume"])
+#    constructor_test.plot_hist(constructor.neighborhood_df_r, 
+#                              regressor=regressor,
+#                              most_important=10,
+#                              add_coef=True,
+#                              add_obs=True)

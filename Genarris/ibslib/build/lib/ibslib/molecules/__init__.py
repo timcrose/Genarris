@@ -2,12 +2,9 @@
 
 __author__ = 'Manny Bier'
 
-from ibslib.molecules.find_bonding import MoleculeBonding
-from ibslib.molecules.volume_estimator import MoleculeVolumeEstimator
-from ibslib.molecules.intermolecular_dist import intermolecular_dist
+from .volume_estimator import MoleculeVolumeEstimator
 
-__all__ = ["MoleculeBonding","MoleculeVolumeEstimator",
-           "intermolecular_dist"]
+__all__ = ["MoleculeVolumeEstimator"]
 
 def check_molecule(struct):
     # Check for valid molecule_struct

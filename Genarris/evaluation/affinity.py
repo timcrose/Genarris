@@ -61,7 +61,7 @@ class APHandler():
         self.convergence_iter = inst.get_with_default(
                 sname, "convergence_iter", 15, eval=True)
         self.max_iter = inst.get_with_default(
-                sname, "max_iter", 200, eval=True)
+                sname, "max_iter", 1000, eval=True)
         self.preference = inst.get_with_default(
                 sname, 'preference', None, eval=True)
         self.property_key = inst.get_with_default(
@@ -139,8 +139,9 @@ class APHandler():
         if self.affinity_type[0]=="exponential":
             self.affinity_matrix = -np.exp(dist_mat * self.affinity_type[1])
         elif self.affinity_type[0] == "power":
-            self.affinity_matrix = -dist_mat ** self.affinity_type[1])
-
+            self.affinity_matrix = -dist_mat ** self.affinity_type[1]
+        elif self.affinity_type[0] == 'multiplicative':
+            self.affinity_matrix = -dist_mat * self.affinity_type[1]
         else:
             raise Exception('Unsuppored affinity_type. Got:', self.affinity_type[0])
 
@@ -441,28 +442,23 @@ class APHandler():
             distance matrix to have a new distance matrix for 
             that second AP run.
         '''
-        f = open(self.dist_mat_input_file, "r")
-        lines = f.read().split("\n")
-        while lines[-1] == "":
-            lines.pop()
-        dist_mat = [np.array([float(x) for x in y.split()]) for y in lines]
-        f.close()
+
+        dist_mat = np.array(self.distance_matrix)
         
-        if len(dist_mat) != len(dist_mat[0]):
-            raise ValueError("Distance matrix is not a square matrix: "
-                    + self.dist_mat_input_file)
-        
-        dist_mat = np.array(dist_mat)
         dist_mat = dist_mat[self.exemplar_indices,:][:,self.exemplar_indices]
-        dist_mat = list(map(list, dist_mat))
 
         ext_pos = self.dist_mat_input_file.find('.')
         self.dist_mat_input_file_2 = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
-        file_utils.write_rows_to_csv(self.dist_mat_input_file_2, dist_mat, mode='w', delimiter=' ')
+
+        if '.np' in self.dist_mat_input_file:
+            np.save(self.dist_mat_input_file_2, dist_mat)
+        else:
+            dist_mat = list(map(list, dist_mat))
+            file_utils.write_rows_to_csv(self.dist_mat_input_file_2, dist_mat, mode='w', delimiter=' ')
 
 
     def _affinity_propagation(self, coll, distance_matrix, affinity_matrix,
-            damping=0.5, convergence_iter=15, max_iter=20, preference=None,
+            damping=0.5, convergence_iter=15, max_iter=1000, preference=None,
             property_key="AP_cluster",
             exemplars_output_dir=None, exemplars_output_format="json"):
         ap = AffinityPropagation(damping=damping, max_iter=max_iter, 
@@ -503,6 +499,7 @@ class APHandler():
         #print('len(exemplar_indices)', len(exemplar_indices), flush=True)
         #print('len(coll)', len(coll), flush=True)
         #print('len(assigned_cluster)', len(assigned_cluster), flush=True)
+        print('assigned_cluster', assigned_cluster, flush=True)
         self.exemplar_indices = np.array(exemplar_indices, dtype='int')
         #print('self.exemplar_indices', self.exemplar_indices, flush=True)
         ##print('self.exemplar_indices', self.exemplar_indices, flush=True)
@@ -646,7 +643,7 @@ def get_affinity_propagation_executor(inst, section):
     convergence_iter = inst.get_with_default(
             section, "convergence_iter", 15, eval=True)
     max_iter = inst.get_with_default(
-            section, "max_iter", 200, eval=True)
+            section, "max_iter", 1000, eval=True)
     property_key = inst.get_with_default(
             section, "property_key", "AP_cluster")
     output_file = inst.get_with_default(
@@ -670,7 +667,7 @@ def get_affinity_propagation_executor(inst, section):
 class AffinityPropagationExecutor(PoolOperation):
     def __init__(self, dist_mat_input_file,
             affinity_type=["exponential",1], damping=0.5,
-            convergence_iter=15, max_iter=200,
+            convergence_iter=15, max_iter=1000,
             property_key="AP_cluster",
             output_file="./AP_cluster.info",
             exemplars_output_dir=None, exemplars_output_format="json",

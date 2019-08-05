@@ -7,7 +7,7 @@ from ase.data.colors import jmol_colors
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from ibslib.descriptor import BondNeighborhood
+from ibslib.descriptor.bond_neighborhood import BondNeighborhood
 
 
 class MoleculeVolumeEstimator():

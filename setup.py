@@ -23,7 +23,12 @@ try:
     __import__(package)
 except ImportError:
     os.system('pip install https://bitbucket.org/mpi4py/mpi4py/get/master.tar.gz')
-os.chdir(os.path.join('Genarris', 'ibslib'))
+ibslib_path = os.path.join('Genarris', 'ibslib')
+if os.path.exists(ibslib_path):
+    shutil.rmtree(ibslib_path)
+os.chdir(os.path.dirname(ibslib_path))
+os.system('git clone https://github.com/manny405/ibslib.git')
+os.chdir(os.path.basename(ibslib_path))
 os.system('python setup.py install')
 os.chdir(cwd)
 str_py_version = str(int(python_version * 10))
