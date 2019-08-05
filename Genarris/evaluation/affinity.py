@@ -119,6 +119,9 @@ class APHandler():
             self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
+
+        if self.num_of_clusters < 1:
+                self.num_of_clusters *= len(file_utils.glob(os.path.join(self.structure_dir, '*.json')))
         
         #Implement the affinity type desired
         if '.np' in self.dist_mat_input_file:

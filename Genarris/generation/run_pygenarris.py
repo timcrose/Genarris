@@ -77,8 +77,8 @@ def format_output(output_format, output_dir, final_filename, num_structures):
         File name used to derive the file name for each core. It is the file name that
         the concatenated file (if output_format != json) will have.
 
-    num_structures: int
-        Number of structures in the final raw pool.
+    num_structures: int or None
+        Number of structures in the final raw pool or if None, output them all
 
     Return: None
 
@@ -106,7 +106,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
                     for i in range(len(indices_list) - 1)
                     ]
     print(len(structs_list), 'total structures were output by pygenarris. We will try to select the desired', num_structures, 'structures from this pool.', flush=True)
-    if num_structures >= len(indices_list):
+    if num_structures is None or num_structures >= len(indices_list):
         selected_structs_idx_list = np.arange(len(structs_list))
     else:
         selected_structs_idx_list = np.random.choice(len(structs_list), num_structures, replace=False)
@@ -146,11 +146,10 @@ def clean_up(final_filename, comm_size, output_format):
 
 def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1):
     # Currently does not support multiple instances running simultaneously. If you want more simultaneous processes, submit more MPI ranks.
-    # Might support restart? (i.e. each rank pickup up from where it left off)
     previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
         sname = 'pygenarris_structure_generation'
-        num_structures = inst.get_eval(sname, 'num_structures')
+        num_structures = inst.get_or_none(sname, 'num_structures', eval=True)
         omp_num_threads = inst.get_with_default(sname, 'omp_num_threads', 1)
         
         Z = inst.get_eval(sname, 'Z')
@@ -181,6 +180,8 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
 
     if inst.has_option(sname, 'num_structures_per_allowed_SG_per_rank'):
         num_structures_per_allowed_SG_per_rank = inst.get_eval(sname, 'num_structures_per_allowed_SG_per_rank')
+    elif num_structures is None:
+        num_structures_per_allowed_SG_per_rank = 1
     else:
         num_compatible_spgs = pygenarris.num_compatible_spacegroups(Z, tol)
         num_structures_per_allowed_SG_per_rank = int(np.ceil(float(num_structures) / (float(comm.size) * float(num_compatible_spgs))))
