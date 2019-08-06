@@ -191,6 +191,12 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
     start_pygenarris_time = time_utils.gtime()
+    if comm.rank == 0:
+        seed_time = int(time_utils.gtime() * 1000)
+    else:
+        seed_time = None
+    seed_time = comm.bcast(seed_time, root=0)
+    seed = seed_time * comm.rank
     pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
     if comm is not None and comm.rank == 0:
         print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, flush=True)
