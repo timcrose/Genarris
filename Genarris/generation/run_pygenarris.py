@@ -62,7 +62,7 @@ def set_up(molecule_path):
     file_utils.cp(molecule_path, '.', dest_fname='geometry.in')
 
 
-def format_output(output_format, output_dir, final_filename, num_structures):
+def format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures):
     '''
     output_format: str
         "json" for outputting a folder of json files - each containing a structure
@@ -79,6 +79,10 @@ def format_output(output_format, output_dir, final_filename, num_structures):
 
     num_structures: int or None
         Number of structures in the final raw pool or if None, output them all
+
+    truncate_to_num_structures: bool
+        If more structures were generated than num_structures, then only keep num_structures of them if
+        truncate_to_num_structures is True, otherwise, keep them all.
 
     Return: None
 
@@ -106,7 +110,7 @@ def format_output(output_format, output_dir, final_filename, num_structures):
                     for i in range(len(indices_list) - 1)
                     ]
     print(len(structs_list), 'total structures were output by pygenarris. We will try to select the desired', num_structures, 'structures from this pool.', flush=True)
-    if num_structures is None or num_structures >= len(indices_list):
+    if truncate_to_num_structures or num_structures is None or num_structures >= len(indices_list):
         selected_structs_idx_list = np.arange(len(structs_list))
     else:
         selected_structs_idx_list = np.random.choice(len(structs_list), num_structures, replace=False)
@@ -144,12 +148,13 @@ def clean_up(final_filename, comm_size, output_format):
     if output_format == 'json':
         os.remove(final_filename)
 
-def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1):
+def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1, truncate_to_num_structures=False):
     # Currently does not support multiple instances running simultaneously. If you want more simultaneous processes, submit more MPI ranks.
     previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
         sname = 'pygenarris_structure_generation'
         num_structures = inst.get_or_none(sname, 'num_structures', eval=True)
+        truncate_to_num_structures = inst.get_boolean(sname, 'truncate_to_num_structures')
         omp_num_threads = inst.get_with_default(sname, 'omp_num_threads', 1)
         
         Z = inst.get_eval(sname, 'Z')
@@ -217,6 +222,6 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:
-            format_output(output_format, output_dir, final_filename, num_structures)
+            format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures)
             clean_up(final_filename, comm.size, output_format)
     os.environ['OMP_NUM_THREADS'] = previous_omp_num_threads
