@@ -204,10 +204,16 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     #seed = comm.rank + comm.rank * random.randint(1,500)
     seed = comm.rank
     print('seed', seed, flush=True)
+    print('num_structures_per_allowed_SG_per_rank', num_structures_per_allowed_SG_per_rank, flush=True)
+    print('Z', Z, flush=True)
+    print('volume_mean', volume_mean, flush=True)
+    print('volume_std', volume_std, flush=True)
+    print('tol', tol, flush=True)
+    print('max_attempts_per_spg_per_rank', max_attempts_per_spg_per_rank, flush=True)
     time_utils.sleep(0.01 * comm.rank)
     pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, seed, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
-    if comm is not None and comm.rank == 0:
-        print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, flush=True)
+    if comm is not None:
+        print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, 'comm.rank', comm.rank,  flush=True)
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:
