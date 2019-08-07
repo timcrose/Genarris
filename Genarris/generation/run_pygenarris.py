@@ -201,7 +201,9 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     seed_time = comm.bcast(seed_time, root=0)
     seed = seed_time + comm.rank
     '''
-    seed = comm.rank + comm.rank * random.randint(1,500)
+    #seed = comm.rank + comm.rank * random.randint(1,500)
+    #print('seed', seed, flush=True)
+    seed = comm.rank
     time_utils.sleep(0.01 * comm.rank)
     pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, seed, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
     if comm is not None and comm.rank == 0:
