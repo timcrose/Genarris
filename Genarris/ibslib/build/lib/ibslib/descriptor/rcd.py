@@ -15,7 +15,7 @@ Assigns a new descriptor to crystal structures,
 and conducts Affinity Propagation for pools
 '''
 
-from ibslib.structures import Structure
+from ibslib import Structure
 import numpy as np
 from copy import deepcopy
 import os, random, time, socket

@@ -27,7 +27,7 @@ class MoleculeVolumeEstimator():
         Array of vdW volumes index by the atomic number.
         
     """
-    def __init__(self, tol=1e-2, iterations=1e8, batch=100000, vdW=vdw_radii):
+    def __init__(self, tol=1e-3, iterations=1e8, batch=200000, vdW=vdw_radii):
         # Change vdW radii
         self.iterations = int(iterations)
         self.batch = int(batch)
@@ -43,17 +43,58 @@ class MoleculeVolumeEstimator():
         """
         volume = self.MC(molecule_struct)
         # Adjust volume based on CSD analysis
-        volume = self.linear_correction(volume)
+        volume = self.bond_neighberhood_model(molecule_struct,volume)
         return volume
     
     
-    def linear_correction(self,volume):
+    def bond_neighberhood_model(self,molecule_struct,MC_volume):
         """
         Applies linear correction to the input volume from CSD analysis.
         """
-        slope = 1.3357455
-        intercept = -0.00037431
-        return volume*slope + intercept
+        ### Model definition
+        required_fragments = np.array(
+        ['MC_volume', 'HC', 'HOC', 'OOCC', 'HHHCC', 'ON', 'OC', 'CCCC', 'OCCO',
+       'HCCC', 'ClC', 'NC', 'CCCN', 'OONC', 'NPP', 'HHNC', 'HNCC', 'HCNN',
+       'FC', 'BrC', 'NCN', 'ICCC', 'CCC', 'HHHCN', 'HNCS', 'HCCS', 'HHHCSi',
+       'HB', 'NCC', 'CCNN', 'SC', 'HHHCS', 'NCO', 'HNCN', 'ClP', 'IC', 'OCP',
+       'NNN', 'CNNN', 'HHHNC', 'HHCCS', 'NCCC', 'HHCC', 'NCCN', 'CNNS', 'SP',
+       'SCN', 'HCCNO', 'SCS', 'HHCOO', 'HHCNN', 'OCSi', 'CCCSe', 'CCCTe',
+       'ONN', 'HHCCN', 'ONCC', 'OONN', 'HOCC', 'HO', 'HHCCP', 'HCCOO', 'CCCS',
+       'CCCSi'],
+         dtype=object)
+        coef = np.array(
+        [1.38732781,  1.09273374,  0.01984596, -5.83779431,  3.03098325,
+        -2.44819463, -3.19448159,  0.60461945,  5.70153497, -0.22730391,
+         2.68279888,  0.34512353, -0.11118681,  3.00057338,  4.59332838,
+        -0.23272109,  2.78659772, -2.87304195,  0.89258333,  2.23787589,
+         1.93557232,  5.16266751,  1.84458424,  2.74767878,  5.54271523,
+         0.10956046,  4.38654368,  1.03917423,  2.81809621, -2.52236071,
+         1.09844288,  0.4967574 ,  2.73880443, -0.49803522,  1.68784377,
+        -0.27383809,  3.54043547,  0.63538187, -3.11453747, -5.11258648,
+        -1.01933284,  1.5332678 ,  0.32195421,  1.79623041,  1.83284527,
+         6.25311953, -4.88660802, -3.14142807, -1.63444334, -7.94330151,
+        -2.25539996, -0.41931587, -1.11906979, -2.25206549, -1.55124899,
+        -0.4613776 ,  0.5797792 , -0.8123834 ,  2.7653278 , -3.49700741,
+         1.37890689, -0.02064372,  1.74777657,  7.82082655,  0])        
+        
+        # Initialize feature vector for structure
+        neighborhood_vector = np.zeros(required_fragments.shape[0]+1)
+        # Add MC Volume
+        neighborhood_vector[0] = MC_volume
+        neighborhood_vector[-1] = 1
+        
+        # Calc structure fragments and counts
+        bn = BondNeighborhood()
+        f,c = bn.calc(molecule_struct)
+        # Check which fragments in struct are in fragment list and return
+        # the index of their location
+        f_idx,c_idx = np.nonzero(required_fragments[:,None] == f)
+        
+        # Populate feature vector 
+        neighborhood_vector[f_idx] = c[c_idx]
+        volume = np.sum(np.dot(neighborhood_vector,coef))
+        
+        return volume
         
     
     def MC(self, molecule_struct):

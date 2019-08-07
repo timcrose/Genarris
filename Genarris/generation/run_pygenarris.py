@@ -192,7 +192,9 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
     start_pygenarris_time = time_utils.gtime()
     if comm.rank == 0:
-        seed_time = int(time_utils.gtime() * 1000)
+        # Subtract a large number and divide by size so we don't overflow the int type in pygenarris.
+        seed_time = int((time_utils.gtime() * 1000.0 - 1565048296236.5325) / float(comm.size))
+        print('seed_time', seed_time, flush=True)
     else:
         seed_time = None
     seed_time = comm.bcast(seed_time, root=0)

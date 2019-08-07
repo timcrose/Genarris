@@ -3,6 +3,8 @@
 import networkx as nx
 import numpy as np 
 import pandas as pd
+from scipy.spatial.distance import pdist,squareform
+from scipy.spatial.distance import __all__ as implemented_metrics
 
 from ibslib.io import read,write
 from ibslib.molecules.find_bonding import MoleculeBonding
@@ -153,9 +155,12 @@ class BondNeighborhood():
 
 class construct_bond_neighborhood_model():
     """
-    Manages the construction of a regularized bond neighborhood model. Can 
-    be used for any user defined target value. Current use case is for the 
-    prediction of solid state volumes of molecules.
+    Manages the construction of a regularized bond neighborhood model. Also
+    has many functions which can be used to perform analysis of the learned
+    model or on the dataset which was used, such as computing similarity of 
+    molecules across the dataset. Models can be trained using any user defined 
+    target value. Current use case is for the prediction of solid form volumes 
+    of molecules from the Cambridge Structural Database. 
     
     Usage
     -----
@@ -176,6 +181,11 @@ class construct_bond_neighborhood_model():
     4. Call fit_model with a regressor object. This will return a dataframe 
        for the training set and testing set which contains the target values 
        and the predicted values. 
+       
+     
+    Model Analysis
+    --------------
+    Functions which perform model analysis.
     
     Arguments
     ---------
@@ -297,7 +307,8 @@ class construct_bond_neighborhood_model():
         temp_columns = ["fragments", "counts"]
         temp_columns += self.add_prop
         struct_keys = [x for x in struct_dict.keys()]
-        temp_df = pd.DataFrame(data=np.zeros((len(struct_dict),2+len(self.add_prop)),
+        temp_df = pd.DataFrame(data=np.zeros((len(struct_dict),
+                                              2+len(self.add_prop)),
                                              dtype=object),
                                index=struct_keys,
                                columns=temp_columns)
@@ -415,6 +426,125 @@ class construct_bond_neighborhood_model():
                     drop_list.append(name)
         
         self.neighborhood_df_r = self.neighborhood_df.drop(drop_list,axis=1)
+    
+    
+    def model_complexity_analysis(self, regressor, choose_n_features=-1,
+                                  cross_validation=0,
+                                  neighborhood_df_train=pd.DataFrame(),
+                                  target_train = pd.DataFrame(),
+                                  neighborhood_df_test=pd.DataFrame(),
+                                  target_test = pd.DataFrame()):
+        """
+        Generates results testing how the training and testing error
+        change as a function of the number of features included in the model, 
+        otherwise called the model complexity. Idea here is that as model
+        complexity increases, the training error will decrease monoatomically,
+        however, at some point, the testing error should increase indicating 
+        overfitting of the model. Features are added to the model in a forward,
+        greedy way. 
+        
+        Arguments
+        ---------
+        regressor: object
+            Supervised learning estimator with a fit method that provides
+            information about the feature importance either through a coef_ or
+            feature_importances_ attribute. 
+        cross_validation: int
+            Number of cross validation calculations to be performed for each
+            point of the model complexity testing. If set to 0 or 1, no
+            cross validation will be used. If greater than 1, then a standard
+            deviation of the predicted error can be computed. 
+        choose_n_features: 
+            Number of features which will be chosen greedily. 
+        neighborhood_df_train/test: pd.DataFrame
+            Allows users to pass in their desired dataframe. Otherwise, resorts
+            to the default behavior, which is to use the dataframes stored in 
+            self.neighborhood_df/self.neighborhood_df_t for train/test.
+            
+        """
+        if len(neighborhood_df_train) == 0:
+            if len(self.neighborhood_df) == 0:
+                raise Exception("Called constructor.model_complexity_analysis "+
+                        "without setting a training dataset.")
+            neighborhood_df_train = self.neighborhood_df
+            target_train = self.target_df.values
+        else:
+            pass
+        if len(neighborhood_df_test) == 0:
+            if len(self.neighborhood_df_t) == 0:
+                raise Exception("Called constructor.model_complexity_analysis "+
+                        "without setting a testing dataset." +
+                        "Note that one could use the same training and testing "+
+                        "dataset by calling set_train with the trainig set.")
+            neighborhood_df_test = self.neighborhood_df_t
+            target_test = self.target_df_t
+        else:
+            pass
+        
+        # Defines default behavior for choose_n_features
+        if choose_n_features <= 0:
+            choose_n_features = len(neighborhood_df_train)
+        if choose_n_features > len(neighborhood_df_train):
+            choose_n_features = len(neighborhood_df_train)
+            
+        # Build greedy feature model
+        greedy_features = pd.DataFrame()
+        greedy_model_err = np.zeros((choose_n_features,2))
+        train = neighborhood_df_train
+        target = target_train
+        test = neighborhood_df_test
+        target_t = target_test.values
+        for n in range(0,choose_n_features):
+            # Reset greedy values to begin process of adding a new feature
+            model_err = []
+            if n == 0:
+                greedy_values = np.zeros((len(train.index),1))
+            else:
+                # Add column for new feature
+                greedy_values = np.zeros((greedy_features.values.shape[0],
+                                          greedy_features.values.shape[1]+1))
+                greedy_values[:,0:-1] = greedy_features.values
+                
+            for j,feature in enumerate(train.columns):
+                print(n, j,len(train.columns),feature)
+                train_temp = train.iloc[:,j].values
+                
+                # Add new feature from training set to greedy values
+                greedy_values[:,-1] = train_temp
+                
+                regressor.fit(greedy_values,target)
+                pred = regressor.predict(greedy_values)
+                err = np.mean(np.abs(target - pred) / pred)
+                model_err.append(err)
+            
+            # Choose best new feature to add
+            best_new_feature_idx = np.argmin(model_err)
+            feature_name = train.columns[best_new_feature_idx]
+            feature_values = train[feature_name].values
+            
+            # Remove this feature from future consideration in the train set
+            train = train.drop(feature_name,axis=1)
+            
+            if n == 0:
+                greedy_features = pd.DataFrame(data=feature_values,
+                                               index=train.index,
+                                               columns=[feature_name])
+            else:
+                greedy_features[feature_name] = feature_values
+            
+            # Now use testing set with the new greedy features
+            regressor.fit(greedy_features.values,target)
+            pred_t = regressor.predict(test.loc[:,greedy_features.columns])
+            err_t = np.mean(np.abs(target_t - pred_t) / pred_t)
+            
+            # Store error
+            greedy_model_err[n,0] = model_err[best_new_feature_idx]
+            greedy_model_err[n,1] = err_t
+            
+            print(greedy_model_err[n,:])
+            
+        return greedy_features,greedy_model_err
+        
     
     
     def get_neighborhood_vector(self, struct, r=True):
@@ -717,13 +847,130 @@ class construct_bond_neighborhood_model():
         plt.tight_layout()
         if len(figname) > 0:
             fig.savefig(figname)
+        
+    
+    def similarity_matrix(self,neighborhood_df,metric="TC",
+                          exclude_add_prop=True,
+                          low_memory=False):
+        """
+        Constructs similarity matrix using the input neighborhood_df and 
+        the input metric. 
+        
+        neighborhood_df: pandas.DataFrame
+            Dataframe created by the constructor class. 
+        metric: 
+            Can be any scipy pdist metric or TC. 
+        low_memory: bool
+            Recommended to be true if using for a large number of molecules 
+            (> 1000). If True, uses a low memory method should be used in the 
+            computation of the TC metric. 
+            
+        """
+        if "TC" not in implemented_metrics:   
+            implemented_metrics.append("TC")
+        if metric not in implemented_metrics:
+            raise Exception("User used metric {} for similarity matrix. "
+                    .format(metric) +
+                    "Please use on of the implemented metrics: {}."
+                    .format(implemented_metrics))
+            
+        if exclude_add_prop:
+            column_idx = np.arange(len(self.add_prop), 
+                                   len(neighborhood_df.columns),
+                                   1)
+        else:
+            column_idx = np.arange(0,
+                                   len(neighborhood_df.columns),
+                                   1)
+            
+        values = neighborhood_df.values[:,column_idx]
+            
+        # Using any metric which is implemented for scipy pdist
+        if metric != "TC":
+            diff_matrix = squareform(pdist(values, metric=metric))
+        
+        # Using Tanimato Coefficient to compute similarity
+        else: 
+            diff_matrix = np.zeros((len(neighborhood_df.index),
+                                    len(neighborhood_df.index)))
+            if not low_memory:
+                # First find NxN pairwise matrix of the number of fragments for 
+                # each pair of molecules
+                total_fragments = np.sum(values, axis=1)
+                total_fragments_matrix = total_fragments + total_fragments[:,None]
+                
+                # Find where both have a nonzero value for the fragment
+                nonzero_vectors = np.logical_and(values,values[:,None])
+                # Find which has the minimum value for nonzero because that's  
+                # the maximum number which can actually match 
+                max_of_fragments = np.minimum(values,values[:,None])
+                                
+                # Mask maximum fragments by the nonzero mask
+                c_array = np.ma.masked_array(max_of_fragments, 
+                                             mask=nonzero_vectors, 
+                                             fill_value=0).data
+                
+                # Now some the matching fragments for each pair of structure
+                c_array = np.sum(c_array,axis=-1)
+                
+                # Compute the TC matrix as the diff_df
+                diff_matrix = c_array / (total_fragments_matrix - c_array)
+            
+            # Low memory version follows the same steps as the above code
+            # but loops over rows of the value matrix instead of computing
+            # all similarities in memory at the same time.
+            else:
+                
+                for i,row in enumerate(values):
+                    print(i)
+                    row = row[None,:]
+                    total_fragments = np.sum(row)
+                    # Get pairwise number of total fragments between the row
+                    # and the rest of the molecules
+                    total_fragments_matrix = total_fragments + np.sum(values,-1)
+                    
+                    # Find where the row and the other molecules have matching
+                    # nonzero fragment values
+                    nonzero_vectors = np.logical_and(row,values)
+                                        
+                    max_of_fragments = np.minimum(row,values)
+                    c_array = np.ma.masked_array(max_of_fragments, 
+                                             mask=nonzero_vectors, 
+                                             fill_value=0).data
+                                                 
+                    c_array = np.sum(c_array,axis=-1)
+                    if np.sum(c_array) == 0:
+                        diff_matrix[i,:] = np.zeros(values.shape[0])
+                    else:
+                        diff_matrix[i,:] = c_array / (total_fragments_matrix - 
+                                                      c_array)
+                
+        diff_df = pd.DataFrame(data=diff_matrix,
+                               columns=neighborhood_df.index,
+                               index=neighborhood_df.index)
+        
+        return diff_df
+    
+    
+    def plot_similarity(self, diff_df, figname='',figsize=(10,10)):
+        """
+        Plot a similarity matrix as a color matrix. 
+        """
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+        im = ax.imshow(diff_df.values,interpolation='nearest')
+        fig.colorbar(im)
+        
+        if len(figname) > 0:
+            fig.savefig(figname)
             
         
         
 
 if __name__ == "__main__":
     pass 
-
+    
+    ########## Initialization of model
 #    from sklearn.linear_model import Ridge
 #    regressor = Ridge()
 #    
@@ -731,18 +978,425 @@ if __name__ == "__main__":
 #    constructor = construct_bond_neighborhood_model(bn,add_prop=["MC_volume"], 
 #                                              target_prop=["molecule_volume"])
 #    constructor.set_train(s_conquest)
-#    constructor.regularize(tol=40)
+#    constructor.regularize(tol=30)
 #    constructor.set_test(s_paper)
 #    
 #    train_df,test_df = constructor.fit_model(regressor)
 #    train_err = np.abs(train_df["molecule_volume"] - train_df["predicted_molecule_volume"]) / train_df["predicted_molecule_volume"]
 #    test_err = np.abs(test_df["molecule_volume"] - test_df["predicted_molecule_volume"]) / test_df["predicted_molecule_volume"]
-    
+#    
 #    constructor.regularize(tol=40)
 #    constructor_test = construct_bond_neighborhood_model(bn,add_prop=["MC_volume"], 
 #                                              target_prop=["molecule_volume"])
+#    
+#    
+    ######### Plotting a histogrtam
 #    constructor_test.plot_hist(constructor.neighborhood_df_r, 
 #                              regressor=regressor,
 #                              most_important=10,
 #                              add_coef=True,
 #                              add_obs=True)
+    
+    ########## Constructing a similarity matrix
+#    diff_df = constructor_test.similarity_matrix(constructor.neighborhood_df_r,
+#                                                 metric="TC",
+#                                                 low_memory=True)
+#    constructor_test.plot_similarity(diff_df)
+    
+#    from matplotlib.pyplot import cm
+#    import matplotlib.colors as clr
+#    import matplotlib.pyplot as plt
+#    from matplotlib.colors import Normalize
+#    from sklearn.decomposition import PCA
+#    from sklearn.manifold import TSNE
+#    pca = PCA(n_components=2)
+##    pca = TSNE(n_components=2)
+#    
+#    reduced = pca.fit_transform(diff_df)
+#    prop_values = constructor.target_df.values.ravel()
+#    
+#    # Set colormap to use
+#    cmap = cm.hot
+#    # Get min and max values
+#    vmin = np.min(prop_values)
+#    vmax = np.max(prop_values)
+#    # Get normalized values for RGB conversion
+#    norm = Normalize(vmin, vmax)
+#    # Convert to RGB and use cmap in plotting
+#    colors = norm(prop_values)
+#    # Set scalar mappable to use when adding colorbar
+#    SM = cm.ScalarMappable(norm, cmap)
+#    # Set array for scalar mappable for colorbar on plot
+#    SM.set_array(prop_values)
+#    
+#    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    ax.scatter(reduced[:,0],reduced[:,1], 
+#                cmap=cmap, c=prop_values)
+#    ax.set_title("Difference Matrix")
+#    cbar_obj = plt.colorbar(SM)
+#    cbar_obj.ax.set_ylabel('Molecule Volume, $\AA^3$', 
+#                           rotation=270,
+#                           labelpad=25)
+    
+    
+    ################# Computing the complexity graph
+#    from sklearn.linear_model import Ridge
+#    regressor = Ridge(alpha=100)
+#    
+#    bn = BondNeighborhood()
+#    constructor = construct_bond_neighborhood_model(bn,add_prop=["MC_volume"], 
+#                                              target_prop=["molecule_volume"])
+#    constructor.set_train(s_conquest)
+#    constructor.regularize(10)
+#    constructor.set_test(s_19,r=True)
+#    
+#    greedy_features,greedy_model_err = constructor.model_complexity_analysis(
+#                                        regressor,
+#                                        choose_n_features=500,
+#                                        neighborhood_df_train=constructor.neighborhood_df_r,
+#                                        target_train=constructor.target_df,
+#                                        neighborhood_df_test=constructor.neighborhood_df_t,
+#                                        target_test=constructor.target_df_t)
+#    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    ax.plot(np.arange(0,greedy_model_err.shape[0]),greedy_model_err[:,0])
+#    ax.plot(np.arange(0,greedy_model_err.shape[0]),greedy_model_err[:,1])
+#    ax.set_xlim([00,450])
+    
+#    regressor.fit(greedy_features, constructor.target_df)
+#    sort_idx = np.argsort(np.abs(regressor.coef_[0]))[::-1]
+#    features_sorted = greedy_features.columns[sort_idx]
+#    coef_sorted = regressor.coef_[0,sort_idx]         
+    
+#    regressor = Ridge(alpha=100)
+#    temp_features = pd.DataFrame(data=greedy_features.values[:,0],
+#                                 index=greedy_features.index,
+#                                 columns=[greedy_features.columns[0]])
+#    
+#    test_df = constructor.neighborhood_df_t
+#    target_t = constructor.target_df_t.values
+#    
+#    regressor.fit(temp_features,target)
+#    pred = regressor.predict(temp_features)
+#    pred_t = regressor.predict(test_df.loc[:,temp_features.columns])
+#    err_temp = [np.mean(np.abs(target - pred) / pred)]
+#    err_temp_test = [np.mean(np.abs(target_t - pred_t) / pred_t)]
+#    total = len(greedy_features.columns)
+##    
+#    for column in greedy_features.columns[1:]:
+#        temp_features[column] = greedy_features[column]
+#        regressor.fit(temp_features,target)
+#        pred = regressor.predict(temp_features)
+#        pred_t = regressor.predict(test_df.loc[:,temp_features.columns])
+#        err_temp.append(np.mean(np.abs(target - pred) / pred))
+#        err_temp_test.append(np.mean(np.abs(target_t - pred_t) / pred_t))
+#        total -= 1
+#        print(total, regressor.coef_[0,0])
+#
+    
+    
+    
+    ######### Making some nice plots
+#    from ibslib.analysis.pltlib import format_ticks
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    x=np.arange(0,len(greedy_features.columns),1)
+#    ax.plot(x,np.array(err_temp)*100, linewidth=3,
+#            label="Train")
+#    ax.plot(x,np.array(err_temp_test)*100, linewidth=3,
+#            label="Test")          
+#    format_ticks(ax,tick_size=14)
+#    ax.set_xlabel("Fragments in Model", fontsize=18)
+#    ax.set_ylabel("Percent MAE",fontsize=18)
+#    ax.axvline(64,c="tab:purple",linestyle="--",alpha=0.75,
+#               label="Model")
+#    ax.axvline(109,c="tab:red",linestyle="--",alpha=0.75,
+#               label="Overfit")
+#    plt.legend(bbox_to_anchor=(0.1,1))
+#    
+#    fig = plt.figure(figsize=(3,6))
+#    ax = fig.add_subplot(111)
+#    ax.set_xticks([])
+#    ax.set_yticks([])
+#    ax.set_xlim([0,1])
+#    ax.set_ylim([0,1])
+#    format_ticks(ax)
+#    
+#    num_top_features = 10
+#    start=0.85
+#    stop=0
+#    spacing=(start-stop) / num_top_features
+#    xcol_1 = 0.05
+#    xcol_2 = 0.55
+#    
+#    fontsize=13
+#    ax.text(xcol_1,0.925,"Feature",fontsize=fontsize)
+#    ax.text(0.495,0.925,"Coefficient",fontsize=fontsize)
+#    for i,value in enumerate(greedy_features.columns[0:10]):
+#        xloc = xcol_1
+#        yloc = start - i*spacing
+#        print(yloc)
+#        if value == "MC_volume": value = "MC"
+#        ax.text(xloc,yloc,value,fontsize=fontsize)
+#        
+#        xloc = xcol_2
+#        ax.text(xloc,yloc,"{:.2f}".format(regressor.coef_[0,i]),
+#                fontsize=fontsize)
+#    ax.axvline(0.45, color='k', linestyle="--")
+#    ax.axhline(0.91, color='k', linestyle="--")
+#    plt.show()
+        
+    # Calc structure fragments and counts
+    struct = s_paper_r["GLYCIN_from_crystal"]
+    f,c = bn.calc(struct)
+    # Check which fragments in struct are in fragment list and return
+    # the index of their location
+    final_features = greedy_features.columns[0:]
+    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
+    # Populate feature vector 
+    neighborhood_vector = np.zeros(final_features.shape[0])
+    neighborhood_vector[f_idx] = c[c_idx]
+    neighborhood_vector[0] = struct.properties["MC_volume"]
+    for i in range(500):
+        greedy_features.loc["GLYCIN_{}".format(i)] = neighborhood_vector
+        constructor.target_df.loc["GLYCIN_{}".format(i)] = 78
+        
+    # Calc structure fragments and counts
+    struct = s_paper_r["benzene_relaxed_geometry"]
+    f,c = bn.calc(struct)
+    # Check which fragments in struct are in fragment list and return
+    # the index of their location
+    final_features = greedy_features.columns[0:]
+    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
+    # Populate feature vector 
+    neighborhood_vector = np.zeros(final_features.shape[0])
+    neighborhood_vector[f_idx] = c[c_idx]
+    neighborhood_vector[0] = struct.properties["MC_volume"]
+    for i in range(2000):
+        greedy_features.loc["BENZEN_{}".format(i)] = neighborhood_vector
+        constructor.target_df.loc["BENZEN_{}".format(i)] = 120
+    
+    final_features = greedy_features.columns[0:64]
+    
+    n=100
+    err_list = np.zeros(n)
+    g_err_list = np.zeros(n)
+    target = constructor.target_df.values
+    
+    for i in range(0,n):
+        regressor = Ridge(alpha=i,fit_intercept=False)
+#        regressor.fit(test_df.loc[:,final_features],target_t)
+        regressor.fit(greedy_features.loc[:,final_features],target)
+        sort_idx = np.argsort(np.abs(regressor.coef_[0]))[::-1]
+        features_sorted = final_features[sort_idx]
+        coef_sorted = regressor.coef_[0,sort_idx]   
+        pred = regressor.predict(greedy_features.loc[:,final_features])
+        err_list[i] = np.std(np.abs(target - pred)/pred)
+        
+        glycine_pred = regressor.predict(neighborhood_vector[None,:64])
+        diff = np.abs(glycine_pred - 78) / 78
+        g_err_list[i] = diff
+    
+    ################# Computing greedy model with CV
+#    from sklearn.linear_model import Ridge
+#    from sklearn.model_selection import KFold
+#    regressor = Ridge(alpha=100)
+#    kf = KFold(n_splits=1,shuffle=False,random_state=1)
+#    
+#    train_dict = s_conquest
+#    test_dict = s_19
+#    
+#    bn = BondNeighborhood()
+#    constructor = construct_bond_neighborhood_model(bn,add_prop=["MC_volume"], 
+#                                              target_prop=["molecule_volume"])
+#    constructor.set_train(train_dict)
+#    
+#    constructor.regularize(tol=1)
+#    temp_features = constructor.neighborhood_df_r
+#    greedy_features_list = []
+#    greedy_model_err_list = []
+#    for train_index,val_index in kf.split(temp_features):
+#        x_train = temp_features.iloc[train_index,:]
+#        train_target = target[train_index,:]
+#        
+#        temp_dict = {}
+#        for struct_id in x_train.index:
+#            temp_dict[struct_id] = s_conquest[struct_id]
+#        
+#        constructor.set_train(temp_dict)
+#        constructor.regularize(tol=1)
+#        constructor.set_test(test_dict,r=True)
+#        greedy_features,greedy_model_err = constructor.model_complexity_analysis(
+#                                    regressor,
+#                                    choose_n_features=500,
+#                                    neighborhood_df_train=constructor.neighborhood_df_r,
+#                                    neighborhood_df_test=constructor.neighborhood_df_t)
+#        greedy_features_list.append(greedy_features)
+#        greedy_model_err_list.append(greedy_model_err)
+##    
+#    sizes = [x.shape[0] for x in greedy_model_err_list]
+#    same_size_train = [x[0:np.min(sizes),0][:,None] for x in greedy_model_err_list]
+#    same_size_test = [x[0:np.min(sizes),1][:,None] for x in greedy_model_err_list]
+#    greedy_model_err_array_train = np.hstack(same_size_train)
+#    greedy_model_err_array_test = np.hstack(same_size_test)
+#    
+#    mean_train = np.zeros(np.min(sizes))
+#    mean_test = np.zeros(np.min(sizes))
+#    std_train = np.zeros(np.min(sizes))
+#    std_test = np.zeros(np.min(sizes))
+#    for i,err in enumerate(greedy_model_err_array_train[0:np.min(sizes)]):
+#        mean_train[i] = np.mean(err)
+#        std_train[i] = np.std(err)
+#    for i,err in enumerate(greedy_model_err_array_test[0:np.min(sizes)]):
+#        mean_test[i] = np.mean(err)
+#        std_test[i] = np.std(err)
+#        
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    x = np.arange(0,np.min(sizes))
+#    ax.plot(x,mean_train)
+#    ax.fill_between(x,mean_train-std_train,mean_train+std_train,
+#                    alpha=0.5)
+#    ax.plot(x,mean_test)
+#    ax.fill_between(x,mean_test-std_test,mean_test+std_test,
+#                    alpha=0.5)
+##    ax.set_xlim([0,200])
+#    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    x = np.arange(0,np.min(sizes))
+#    ax.plot(x,mean_train)
+#    ax.fill_between(x,mean_train-std_train,mean_train+std_train,
+#                    alpha=0.5)
+#    ax.plot(x,mean_test)
+#    ax.fill_between(x,mean_test-std_test,mean_test+std_test,
+#                    alpha=0.5)
+#    ax.set_xlim([-2.5,50])
+#    
+#    first_100_columns = [x.columns[0:50] for x in greedy_features_list]
+#    shared_1_2 = np.intersect1d(first_100_columns[0], first_100_columns[1])
+#    shared_2_3 = np.intersect1d(first_100_columns[1], first_100_columns[2])
+#    shared_all = np.intersect1d(shared_1_2, shared_2_3)
+#    
+#    final_features = constructor.neighborhood_df.loc[:,shared_all]
+#    
+#    regressor.fit(final_features.values, constructor.target_df.values)
+#    pred = regressor.predict(final_features)
+#    final_err = np.abs(pred - constructor.target_df.values) / pred
+#    
+#    final_test = constructor.neighborhood_df_t.loc[:,shared_all]
+#    pred_test = regressor.predict(final_test)
+#    final_err_test = np.abs(pred_test - 
+#                            constructor.target_df_t.values) / pred_test
+#    
+#    sort_idx = np.argsort(np.abs(regressor.coef_[0]))[::-1]
+#    features_sorted = final_test.columns[sort_idx]
+#    coef_sorted = regressor.coef_[0,sort_idx]                        
+    
+    
+    
+    ########### TEMP
+    
+    ### Will the greedy features constructed, I can make any graph I want
+    ### with the regressor by iteratively adding columns to the model.
+    ### However, I think the reason I'm not seeing overfitting is due to model
+    ### Regularization. If the model is well regularized on the training set
+    ### then it may not be overfit w.r.t. the testing set. Try again but 
+    ### without the regularized model.
+    
+#    from sklearn.linear_model import LinearRegression,Lasso,Ridge
+#    from sklearn.model_selection import KFold
+#    regressor = Ridge(alpha=100)
+#    
+#    temp_features = pd.DataFrame(data=greedy_features.values[:,0],
+#                                 index=greedy_features.index,
+#                                 columns=[greedy_features.columns[0]])
+#    
+#    target = constructor.target_df.values
+#    test_df = constructor.neighborhood_df_t
+#    target_t = constructor.target_df_t.values
+#    
+#    regressor.fit(temp_features,target)
+#    pred = regressor.predict(temp_features)
+#    pred_t = regressor.predict(test_df.loc[:,temp_features.columns])
+#    err_temp = [np.mean(np.abs(target - pred) / pred)]
+#    err_temp_test = [np.mean(np.abs(target_t - pred_t) / pred_t)]
+#    total = len(greedy_features.columns)
+#    
+#    n_splits=3
+#    kf = KFold(n_splits=n_splits,shuffle=False,random_state=1)
+#    err_train_std = []
+#    err_train_mean = []
+#    err_test_std = []
+#    err_test_mean = []
+#    err_val_std = []
+#    err_val_mean = []
+#    
+#    
+#    for column in greedy_features.columns:
+#        temp_features[column] = greedy_features[column]
+#        
+#        #### Performing splitting of training set to construct std
+#        err_train_for_std = []
+#        err_test_for_std = []
+#        err_val_for_std = []
+#        for train_index,val_index in kf.split(temp_features):
+#            x_train = temp_features.iloc[train_index,:]
+#            train_target = target[train_index,:]
+#            regressor.fit(x_train,train_target)
+#            pred = regressor.predict(x_train)
+#            train_err = np.mean(np.abs(train_target - pred) / pred)
+#            err_train_for_std.append(train_err)
+#            
+#            pred_t = regressor.predict(test_df.loc[:,temp_features.columns])
+#            test_err = np.mean(np.abs(target_t - pred_t) / pred_t)
+#            err_test_for_std.append(test_err)
+#            
+#            x_val = temp_features.iloc[val_index,:]
+#            val_target = target[train_index,:]
+#            pred_v = regressor.predict(x_val)
+#            val_err = np.mean(np.abs(train_target - pred) / pred)
+#            err_val_for_std.append(val_err)
+#            
+#            
+#        err_train_std.append(np.std(err_train_for_std))
+#        err_train_mean.append(np.mean(err_train_for_std))
+#        err_test_std.append(np.std(err_test_for_std))
+#        err_test_mean.append(np.mean(err_test_for_std))
+#        err_val_std.append(np.std(err_val_for_std))
+#        err_val_mean.append(np.mean(err_val_for_std))
+#        
+#        
+#        regressor.fit(temp_features,target)
+#        pred = regressor.predict(temp_features)
+#        pred_t = regressor.predict(test_df.loc[:,temp_features.columns])
+#        err_temp.append(np.mean(np.abs(target - pred) / pred))
+#        err_temp_test.append(np.mean(np.abs(target_t - pred_t) / pred_t))
+#        total -= 1
+#        print(total, regressor.coef_[0,0])
+    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    ax.plot(np.arange(0,len(err_temp_test),1),err_temp)
+#    ax.plot(np.arange(0,len(err_temp_test),1),err_temp_test)
+#    
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    err_train_mean = np.array(err_train_mean)
+#    err_train_std = np.array(err_train_std)
+#    err_test_mean = np.array(err_test_mean)
+#    err_test_std = np.array(err_test_std)
+#    x=np.arange(0,len(err_temp_test)-1,1)
+#    ax.plot(x,err_train_mean)
+#    ax.fill_between(x,err_train_mean-err_train_std,err_train_mean+err_train_std,
+#                    alpha=0.5)
+#    ax.plot(x,err_test_mean)
+#    ax.fill_between(x,err_test_mean-err_test_std,err_test_mean+err_test_std,
+#                    alpha=0.5)
+#    ax.plot(x,err_val_mean)
+#    ax.fill_between(x,err_val_mean-err_val_std,err_val_mean+err_val_std,
+#                    alpha=0.5)
+    
