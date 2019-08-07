@@ -110,7 +110,7 @@ def format_output(output_format, output_dir, final_filename, num_structures, tru
                     for i in range(len(indices_list) - 1)
                     ]
     print(len(structs_list), 'total structures were output by pygenarris. We will try to select the desired', num_structures, 'structures from this pool.', flush=True)
-    if truncate_to_num_structures or num_structures is None or num_structures >= len(indices_list):
+    if truncate_to_num_structures is False or num_structures is None or num_structures >= len(indices_list):
         selected_structs_idx_list = np.arange(len(structs_list))
     else:
         selected_structs_idx_list = np.random.choice(len(structs_list), num_structures, replace=False)
