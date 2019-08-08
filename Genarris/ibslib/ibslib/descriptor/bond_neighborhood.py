@@ -255,7 +255,7 @@ class construct_bond_neighborhood_model():
         
         #### Construct dataframe to return for the training dataframe
         pred_columns = ["predicted_"+ x for x in 
-                        constructor.target_df.columns.tolist()]
+                        self.target_df.columns.tolist()]
         df_columns = self.target_df.columns.tolist() + pred_columns
         train_df = pd.DataFrame(data=np.zeros((self.target_df.shape[0],
                                                self.target_df.shape[1]*2)),
@@ -1100,105 +1100,102 @@ if __name__ == "__main__":
     
     
     ######### Making some nice plots
-#    from ibslib.analysis.pltlib import format_ticks
-#    fig = plt.figure()
-#    ax = fig.add_subplot(111)
-#    x=np.arange(0,len(greedy_features.columns),1)
-#    ax.plot(x,np.array(err_temp)*100, linewidth=3,
-#            label="Train")
-#    ax.plot(x,np.array(err_temp_test)*100, linewidth=3,
-#            label="Test")          
-#    format_ticks(ax,tick_size=14)
-#    ax.set_xlabel("Fragments in Model", fontsize=18)
-#    ax.set_ylabel("Percent MAE",fontsize=18)
-#    ax.axvline(64,c="tab:purple",linestyle="--",alpha=0.75,
-#               label="Model")
-#    ax.axvline(109,c="tab:red",linestyle="--",alpha=0.75,
-#               label="Overfit")
-#    plt.legend(bbox_to_anchor=(0.1,1))
-#    
-#    fig = plt.figure(figsize=(3,6))
-#    ax = fig.add_subplot(111)
-#    ax.set_xticks([])
-#    ax.set_yticks([])
-#    ax.set_xlim([0,1])
-#    ax.set_ylim([0,1])
-#    format_ticks(ax)
-#    
-#    num_top_features = 10
-#    start=0.85
-#    stop=0
-#    spacing=(start-stop) / num_top_features
-#    xcol_1 = 0.05
-#    xcol_2 = 0.55
-#    
-#    fontsize=13
-#    ax.text(xcol_1,0.925,"Feature",fontsize=fontsize)
-#    ax.text(0.495,0.925,"Coefficient",fontsize=fontsize)
-#    for i,value in enumerate(greedy_features.columns[0:10]):
-#        xloc = xcol_1
-#        yloc = start - i*spacing
-#        print(yloc)
-#        if value == "MC_volume": value = "MC"
-#        ax.text(xloc,yloc,value,fontsize=fontsize)
+    from ibslib.analysis.pltlib import format_ticks
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    x=np.arange(0,len(greedy_features.columns),1)
+    ax.plot(x,np.array(err_temp)*100, linewidth=3,
+            label="Train")
+    ax.plot(x,np.array(err_temp_test)*100, linewidth=3,
+            label="Test")          
+    format_ticks(ax,tick_size=14)
+    ax.set_xlabel("Fragments in Model", fontsize=18)
+    ax.set_ylabel("Percent MAE",fontsize=18)
+    ax.axvline(64,c="tab:purple",linestyle="--",alpha=0.75,
+               label="Model")
+    ax.axvline(109,c="tab:red",linestyle="--",alpha=0.75,
+               label="Overfit")
+    plt.legend(bbox_to_anchor=(0.1,1))
+    plt.tight_layout()
+    fig.savefig("model_complexity.pdf")
+    
+    fig = plt.figure(figsize=(3,6))
+    ax = fig.add_subplot(111)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlim([0,1])
+    ax.set_ylim([0,1])
+    format_ticks(ax)
+    
+    
+    num_top_features = 10
+    start=0.85
+    stop=0
+    spacing=(start-stop) / num_top_features
+    xcol_1 = 0.05
+    xcol_2 = 0.55
+    
+    fontsize=13
+    ax.text(xcol_1,0.925,"Feature",fontsize=fontsize+2)
+    ax.text(0.495,0.925,"Coefficient",fontsize=fontsize+2)
+    for i,value in enumerate(greedy_features.columns[0:10]):
+        xloc = xcol_1
+        yloc = start - i*spacing
+        print(yloc)
+        if value == "MC_volume": value = "MC"
+        ax.text(xloc,yloc,value,fontsize=fontsize)
+        
+        xloc = xcol_2
+        ax.text(xloc,yloc,"{:.2f}".format(regressor.coef_[0,i]),
+                fontsize=fontsize)
+    ax.axvline(0.45, color='k', linestyle="--")
+    ax.axhline(0.91, color='k', linestyle="--")
+    plt.show()
+        
+    ######### Calc structure fragments and counts
+#    struct = s_paper_r["GLYCIN_from_crystal"]
+#    f,c = bn.calc(struct)
+#    # Check which fragments in struct are in fragment list and return
+#    # the index of their location
+#    final_features = greedy_features.columns[0:]
+#    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
+#    # Populate feature vector 
+#    neighborhood_vector = np.zeros(final_features.shape[0])
+#    neighborhood_vector[f_idx] = c[c_idx]
+#    neighborhood_vector[0] = struct.properties["MC_volume"]
+#
 #        
-#        xloc = xcol_2
-#        ax.text(xloc,yloc,"{:.2f}".format(regressor.coef_[0,i]),
-#                fontsize=fontsize)
-#    ax.axvline(0.45, color='k', linestyle="--")
-#    ax.axhline(0.91, color='k', linestyle="--")
-#    plt.show()
-        
-    # Calc structure fragments and counts
-    struct = s_paper_r["GLYCIN_from_crystal"]
-    f,c = bn.calc(struct)
-    # Check which fragments in struct are in fragment list and return
-    # the index of their location
-    final_features = greedy_features.columns[0:]
-    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
-    # Populate feature vector 
-    neighborhood_vector = np.zeros(final_features.shape[0])
-    neighborhood_vector[f_idx] = c[c_idx]
-    neighborhood_vector[0] = struct.properties["MC_volume"]
-    for i in range(500):
-        greedy_features.loc["GLYCIN_{}".format(i)] = neighborhood_vector
-        constructor.target_df.loc["GLYCIN_{}".format(i)] = 78
-        
-    # Calc structure fragments and counts
-    struct = s_paper_r["benzene_relaxed_geometry"]
-    f,c = bn.calc(struct)
-    # Check which fragments in struct are in fragment list and return
-    # the index of their location
-    final_features = greedy_features.columns[0:]
-    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
-    # Populate feature vector 
-    neighborhood_vector = np.zeros(final_features.shape[0])
-    neighborhood_vector[f_idx] = c[c_idx]
-    neighborhood_vector[0] = struct.properties["MC_volume"]
-    for i in range(2000):
-        greedy_features.loc["BENZEN_{}".format(i)] = neighborhood_vector
-        constructor.target_df.loc["BENZEN_{}".format(i)] = 120
-    
-    final_features = greedy_features.columns[0:64]
-    
-    n=100
-    err_list = np.zeros(n)
-    g_err_list = np.zeros(n)
-    target = constructor.target_df.values
-    
-    for i in range(0,n):
-        regressor = Ridge(alpha=i,fit_intercept=False)
-#        regressor.fit(test_df.loc[:,final_features],target_t)
-        regressor.fit(greedy_features.loc[:,final_features],target)
-        sort_idx = np.argsort(np.abs(regressor.coef_[0]))[::-1]
-        features_sorted = final_features[sort_idx]
-        coef_sorted = regressor.coef_[0,sort_idx]   
-        pred = regressor.predict(greedy_features.loc[:,final_features])
-        err_list[i] = np.std(np.abs(target - pred)/pred)
-        
-        glycine_pred = regressor.predict(neighborhood_vector[None,:64])
-        diff = np.abs(glycine_pred - 78) / 78
-        g_err_list[i] = diff
+#    # Calc structure fragments and counts
+#    struct = s_paper_r["benzene_relaxed_geometry"]
+#    f,c = bn.calc(struct)
+#    # Check which fragments in struct are in fragment list and return
+#    # the index of their location
+#    final_features = greedy_features.columns[0:]
+#    f_idx,c_idx = np.nonzero(final_features.values[:,None] == f)
+#    # Populate feature vector 
+#    neighborhood_vector = np.zeros(final_features.shape[0])
+#    neighborhood_vector[f_idx] = c[c_idx]
+#    neighborhood_vector[0] = struct.properties["MC_volume"]
+#
+#    
+#    n=100
+#    err_list = np.zeros(n)
+#    g_err_list = np.zeros(n)
+#    target = constructor.target_df.values
+#    
+#    for i in range(0,n):
+#        regressor = Ridge(alpha=i,fit_intercept=False)
+##        regressor.fit(test_df.loc[:,final_features],target_t)
+#        regressor.fit(greedy_features.loc[:,final_features],target)
+#        sort_idx = np.argsort(np.abs(regressor.coef_[0]))[::-1]
+#        features_sorted = final_features[sort_idx]
+#        coef_sorted = regressor.coef_[0,sort_idx]   
+#        pred = regressor.predict(greedy_features.loc[:,final_features])
+#        err_list[i] = np.std(np.abs(target - pred)/pred)
+#        
+#        glycine_pred = regressor.predict(neighborhood_vector[None,:64])
+#        diff = np.abs(glycine_pred - 78) / 78
+#        g_err_list[i] = diff
     
     ################# Computing greedy model with CV
 #    from sklearn.linear_model import Ridge

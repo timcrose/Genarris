@@ -121,7 +121,7 @@ class APHandler():
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
 
         if self.num_of_clusters < 1:
-                self.num_of_clusters *= len(file_utils.glob(os.path.join(self.structure_dir, '*.json')))
+                self.num_of_clusters = int(self.num_of_clusters * len(file_utils.glob(os.path.join(self.structure_dir, '*.json'))))
         
         #Implement the affinity type desired
         if '.np' in self.dist_mat_input_file:
@@ -474,9 +474,10 @@ class APHandler():
         print('Fitting affinity propagation model...', flush=True)
         
         result = ap.fit(affinity_matrix)
-        print('AP fit complete.', flush=True)
+        
         #print('result of fit', type(result), flush=True)
         num_of_clusters = len(result.cluster_centers_indices_)
+        print('num_of_clusters gotten on this fit', num_of_clusters, flush=True)
         
         assigned_cluster = result.labels_
         
