@@ -44,18 +44,18 @@ class APHandler():
         self.comm = comm
         self.rank = comm.Get_rank()
         self.size = comm.Get_size()
-        self.num_of_clusters = inst.get_eval(sname,"num_of_clusters")
+        self.num_of_clusters = inst.get_with_default(sname,"num_of_clusters", 0.1, eval=True)
         self.preference_range = inst.get_eval(sname, "preference_range")
         self.num_of_clusters_tolerance = inst.get_with_default(
                 sname, "num_of_clusters_tolerance", 0, eval=True)
         self.max_sampled_preferences = inst.get_with_default(
-                sname, "max_sampled_preferences", 10, eval=True)
+                sname, "max_sampled_preferences", 100, eval=True)
         self.output_without_success = inst.get_boolean(
                 sname, "output_without_success")
         self.run_num = 1
         # Parameters for AP calculation
         self.affinity_type = inst.get_with_default(
-                sname, "affinity_type", ["exponential",1], eval=True)
+                sname, "affinity_type", ["multiplicative",1000], eval=True)
         self.damping = inst.get_with_default(
                 sname, "damping", 0.5, eval=True)
         self.convergence_iter = inst.get_with_default(
@@ -90,7 +90,7 @@ class APHandler():
         if os.path.exists(self.output_dir):
             self.run_num = 2
             self.output_dir = inst.get(sname, 'output_dir_2')
-            self.num_of_clusters = inst.get_eval(sname,"num_of_clusters_2")
+            self.num_of_clusters = inst.get_with_default(sname,"num_of_clusters_2", 0.1, eval=True)
 
         self.output_format = inst.get_with_default(sname, 'output_format', 'both')
 
