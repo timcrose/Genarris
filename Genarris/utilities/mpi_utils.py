@@ -1,4 +1,4 @@
-from python_utils import file_utils, time_utils
+from Genarris.utilities import file_utils, time_utils
 
 def file_system_barrier(comm):
     '''
