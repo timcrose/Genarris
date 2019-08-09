@@ -74,10 +74,9 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
         struct_folds = glob(os.path.join(aims_output_dir, '*/'))
         for struct_fold in struct_folds:
             aims_out = os.path.join(struct_fold, 'aims.out')
-            geometry_in = os.path.join(struct_fold, 'geometry.in')
             geometry_in_next_step = os.path.join(struct_fold, 'geometry.in.next_step')
             if os.path.isfile(geometry_in_next_step):
-                file_utils.cp(geometry_in_next_step, geometry_in)
+                file_utils.cp(geometry_in_next_step, struct_fold, dest_fname='geometry.in')
             if os.path.isfile(aims_out):
                 # If still running or didn't converge then don't rerun it.
                 task_list.append(1)
