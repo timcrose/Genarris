@@ -264,14 +264,15 @@ class APHandler():
                 print('i', i, 'pref_l',pref_l, 'pref_u', pref_u, 'prev_l', prev_l, 'prev_u', prev_u, 'pref_list', pref_list, flush=True)
         if self.size != 1:
             prev_l, prev_u = min(pref_list), max(pref_list)
-            resample_prob = 0.2
+            resample_prob = 0.01
         else:
-            resample_prob = 0.02
-        if ((sorted(num_clusters_list) != num_clusters_list or \
-                num_clusters_list == [num_clusters_list[0]] * len(num_clusters_list)) and\
+            resample_prob = 0.001
+        if sorted(num_clusters_list) != num_clusters_list:
+            resample_prob *= 2
+        if (num_clusters_list == [num_clusters_list[0]] * len(num_clusters_list) and\
                     self.size != 1) or\
                  random.random() < resample_prob or\
-                     pref_u - pref_l < 0.00001:
+                     pref_u - pref_l < 0.000001:
             pref_l -= 50.0
             pref_u += 50.0
             prev_l -= 50.0
