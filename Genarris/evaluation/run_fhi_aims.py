@@ -254,7 +254,33 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     file_utils.cp(json_fpath, output_dir)
                 elif verbose:
                     print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
+        plot_histograms = inst.get_boolean(sname, 'plot_histograms')
+        if plot_histograms:
+            prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
+            prop_figname = inst.get_with_default(sname, 'prop_figname', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+            prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
+            prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
+            prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
+            prop_label_size = inst.get_with_default(sname, 'prop_label_size', 24, eval=True)
+            prop_tick_size = inst.get_with_default(sname, 'prop_tick_size', 18, eval=True)
+            prop_tick_width = inst.get_with_default(sname, 'prop_tick_width', 3, eval=True)
+            prop_GAtor_IP = inst.get_boolean(sname, 'prop_GAtor_IP')
 
+            pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
+            spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+            spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
+            spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
+            spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')
+            spg_bar_title = inst.get_or_none(sname, 'spg_bar_title')
+            spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
+
+            plot_property(output_dir, prop=prop, nmpc=Z, figname=figname, 
+                                xlabel=xlabel, ylabel=ylabel, figure_size=figure_size,
+                                label_size=label_size, tick_size=tick_size, tick_width=tick_width, GAtor_IP=GAtor_IP)
+
+            plot_spg_bar_chart(output_dir, pygenarris_outfile=pygenarris_outfile, spg_bar_chart_fname=spg_bar_chart_fname,
+                                width=spg_bar_width, ylabel=spg_bar_ylabel, xlabel=spg_bar_xlabel,
+                                title=spg_bar_title, tick_rotation=spg_bar_tick_rotation)
 
 
 if __name__ == '__main__':
