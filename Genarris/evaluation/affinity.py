@@ -107,7 +107,7 @@ class APHandler():
         #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
         #print('self.energy_name', self.energy_name, flush=True)
         self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
-                                                    ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'])
+                                                    ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'], type_='file')
 
         if self.run_num == 1:
             last_section = get_last_active_procedure_name(inst, sname, iteration=0)
@@ -122,6 +122,36 @@ class APHandler():
 
         if self.num_of_clusters < 1:
                 self.num_of_clusters = int(self.num_of_clusters * len(file_utils.glob(os.path.join(self.structure_dir, '*.json'))))
+
+
+        self.plot_histograms = inst.get_boolean(sname, 'plot_histograms')
+        if self.plot_histograms:
+            self.prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
+            if self.run_num == 1:
+                self.prop_figname = inst.get_with_default(sname, 'prop_figname', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+            else:
+                self.prop_figname = inst.get_with_default(sname, 'prop_figname_2', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+            self.prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
+            self.prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
+            self.prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
+            self.prop_label_size = inst.get_with_default(sname, 'prop_label_size', 24, eval=True)
+            self.prop_tick_size = inst.get_with_default(sname, 'prop_tick_size', 18, eval=True)
+            self.prop_tick_width = inst.get_with_default(sname, 'prop_tick_width', 3, eval=True)
+            self.prop_GAtor_IP = inst.get_boolean(sname, 'prop_GAtor_IP')
+
+            self.pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
+            if self.run_num == 1:
+                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+            else:
+                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname_2', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+            self.spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
+            self.spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
+            self.spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')
+            if self.run_num == 1:
+                self.spg_bar_title = inst.get_or_none(sname, 'spg_bar_title')
+            else:
+                self.spg_bar_title = inst.get_or_none(sname, 'spg_bar_title_2')
+            self.spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
         
         #Implement the affinity type desired
         if '.np' in self.dist_mat_input_file:
@@ -617,4 +647,13 @@ def affinity_propagation_fixed_clusters(inst, comm):
         #print('created dist mat', flush=True)
     
     #aph.struct_coll_cld, aph.result
+    if comm.rank == 0 and aph.plot_histograms:
+        plot_property(aph.exemplars_output_dir, prop=aph.prop, figname=aph.prop_figname, 
+                        xlabel=aph.prop_xlabel, ylabel=aph.prop_ylabel, figure_size=aph.prop_figure_size,
+                        label_size=aph.prop_label_size, tick_size=aph.prop_tick_size, 
+                        tick_width=aph.prop_tick_width, GAtor_IP=aph.prop_GAtor_IP)
+
+        plot_spg_bar_chart(aph.exemplars_output_dir, pygenarris_outfile=aph.pygenarris_outfile, spg_bar_chart_fname=aph.spg_bar_chart_fname,
+                            width=aph.spg_bar_width, ylabel=aph.spg_bar_ylabel, xlabel=aph.spg_bar_xlabel,
+                            title=aph.spg_bar_title, tick_rotation=aph.spg_bar_tick_rotation)
     

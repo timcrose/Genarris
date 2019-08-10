@@ -6,6 +6,7 @@ from Genarris.core import structure
 from Genarris.core import file_handler
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.find_bonding import MoleculeBonding
+from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
 from ibslib.io import read
 
 def write_json_files(geometry_out_fpath, output_dir, structs_list):
@@ -148,7 +149,9 @@ def clean_up(final_filename, comm_size, output_format):
     if output_format == 'json':
         os.remove(final_filename)
 
-def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1, truncate_to_num_structures=False):
+def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, 
+                                    volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1, 
+                                    truncate_to_num_structures=False):
     # Currently does not support multiple instances running simultaneously. If you want more simultaneous processes, submit more MPI ranks.
     previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
@@ -169,6 +172,26 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
                 
         output_format = inst.get_with_default(sname, 'output_format', 'json') #options are json, geometry, both
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
+
+        plot_histograms = inst.get_boolean(sname, 'plot_histograms')
+        if plot_histograms:
+            prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
+            prop_figname = inst.get_with_default(sname, 'prop_figname', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+            prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
+            prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
+            prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
+            prop_label_size = inst.get_with_default(sname, 'prop_label_size', 24, eval=True)
+            prop_tick_size = inst.get_with_default(sname, 'prop_tick_size', 18, eval=True)
+            prop_tick_width = inst.get_with_default(sname, 'prop_tick_width', 3, eval=True)
+            prop_GAtor_IP = inst.get_boolean(sname, 'prop_GAtor_IP')
+
+            pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
+            spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+            spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
+            spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
+            spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')
+            spg_bar_title = inst.get_or_none(sname, 'spg_bar_title')
+            spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
     else:
         final_filename = filename
     os.environ['OMP_NUM_THREADS'] = omp_num_threads
@@ -224,4 +247,12 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
         if comm.rank == 0:
             format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures)
             clean_up(final_filename, comm.size, output_format)
+            if plot_histograms:
+                plot_property(output_dir, prop=prop, nmpc=Z, figname=figname, 
+                                xlabel=xlabel, ylabel=ylabel, figure_size=figure_size,
+                                label_size=label_size, tick_size=tick_size, tick_width=tick_width, GAtor_IP=GAtor_IP)
+
+                plot_spg_bar_chart(output_dir, pygenarris_outfile=pygenarris_outfile, spg_bar_chart_fname=spg_bar_chart_fname,
+                                    width=spg_bar_width, ylabel=spg_bar_ylabel, xlabel=spg_bar_xlabel,
+                                    title=spg_bar_title, tick_rotation=spg_bar_tick_rotation)
     os.environ['OMP_NUM_THREADS'] = previous_omp_num_threads
