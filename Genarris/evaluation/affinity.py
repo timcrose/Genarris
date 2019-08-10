@@ -128,9 +128,9 @@ class APHandler():
         if self.plot_histograms:
             self.prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
             if self.run_num == 1:
-                self.prop_figname = inst.get_with_default(sname, 'prop_figname', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+                self.prop_figname = inst.get_with_default(sname, 'prop_figname', 'raw_pool_volume_histogram.pdf')
             else:
-                self.prop_figname = inst.get_with_default(sname, 'prop_figname_2', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+                self.prop_figname = inst.get_with_default(sname, 'prop_figname_2', 'raw_pool_volume_histogram.pdf')
             self.prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
             self.prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
             self.prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
@@ -141,9 +141,9 @@ class APHandler():
 
             self.pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
             if self.run_num == 1:
-                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', 'raw_pool_spg_bar_chart.pdf')
             else:
-                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname_2', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+                self.spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname_2', 'raw_pool_spg_bar_chart.pdf')
             self.spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
             self.spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
             self.spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')

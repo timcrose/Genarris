@@ -257,7 +257,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         plot_histograms = inst.get_boolean(sname, 'plot_histograms')
         if plot_histograms:
             prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
-            prop_figname = inst.get_with_default(sname, 'prop_figname', str(Z) + 'mpc_raw_pool_volume_histogram.pdf')
+            prop_figname = inst.get_with_default(sname, 'prop_figname', 'raw_pool_volume_histogram.pdf')
             prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
             prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
             prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
@@ -267,7 +267,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             prop_GAtor_IP = inst.get_boolean(sname, 'prop_GAtor_IP')
 
             pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
-            spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', str(Z) + '_raw_pool_spg_bar_chart.pdf')
+            spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', 'raw_pool_spg_bar_chart.pdf')
             spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
             spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
             spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')
