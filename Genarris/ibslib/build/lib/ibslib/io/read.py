@@ -15,8 +15,24 @@ implemented_file_formats = ["geo", "geometry", "aims", "json", "cif",
 
 def read(struct_path, file_format=''):
     """ 
-    Wrapper which will call loading a directory or loading a file depending 
-    on the input type. 
+    Read a single structure file or entire structure directory. The file format
+    by default is automatically detected by using the file extension. 
+    Alternatively, the user can specify a file format. 
+    
+    Arguments
+    ---------
+    struct_path: str
+        Path to a structure file or a directory of structure files. 
+    file_format: str
+        File format to use. Can be any accepted ase file format. 
+    
+    Returns
+    -------
+    Structure or StructDict
+        Returns a Structure object if the struct_path was pointed at a single 
+        file.
+        Returns a StructDict if the struct_path was pointed at a directory.
+        
     """
     # If file format is used, check if it's an accepted value
     if len(file_format) > 0:

@@ -14,7 +14,7 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
                         "eta_range": [0.05,0.5],
                         "Rs_range": [0.1,12],
                         "learn_rep": False
-                     }, pdist_distance_type='euclidean', dist_mat_fpath='rdf_distance_matrix.npy',
+                     }, pdist_distance_type='euclidean', dist_mat_fpath='rdf_distance_matrix.dat',
                      output_dir='no_new_output_dir', save_envs=False, normalize_rdf_vectors=True,
                      standardize_distance_matrix=True):
     '''
@@ -45,7 +45,7 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         input parameter for the pdist function
 
     dist_mat_fpath: str
-        path to file to write distance matrix to. It should end in .npy or .npz
+        path to file to write distance matrix to.
 
     output_dir: str
         Path of directory to write structures to (will create if it DNE). If 'no_new_output_dir' then
@@ -182,7 +182,9 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         dist_mat = dist_mat / np.max(dist_mat)
     #print('dist_mat', dist_mat, flush=True)
     #print('type(dist_mat)', type(dist_mat), flush=True)
-    np.save(dist_mat_fpath, dist_mat)
+    fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
+    fp[:] = dist_mat[:]
+    #np.save(dist_mat_fpath, dist_mat)
 
 
 def run_rdf_calc(inst, comm):
@@ -200,7 +202,7 @@ def run_rdf_calc(inst, comm):
     learn_rep = inst.get_boolean(sname, 'learn_rep')
     pdist_distance_type = inst.get_with_default(sname, 'pdist_distance_type', 'euclidean')
     device = inst.get_with_default(sname, 'device', 'cpu')
-    dist_mat_fpath = inst.get_with_default(sname, 'dist_mat_fpath', 'rdf_distance_matrix.npy')
+    dist_mat_fpath = inst.get_with_default(sname, 'dist_mat_fpath', 'rdf_distance_matrix.dat')
     output_dir = inst.get_with_default(sname, 'output_dir', 'no_new_output_dir')
     save_envs = inst.get_boolean(sname, 'save_envs')
     normalize_rdf_vectors = inst.get_with_default(sname, 'normalize_rdf_vectors', 'TRUE')

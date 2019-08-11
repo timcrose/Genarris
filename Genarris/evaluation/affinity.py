@@ -23,6 +23,7 @@ from Genarris.evaluation.evaluation_util import PoolOperation, \
 from Genarris.core.structure import StoicDict, get_struct_coll
 from bisect import bisect
 from Genarris.core.instruct import get_last_active_procedure_name
+from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"
@@ -109,6 +110,7 @@ class APHandler():
         self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
                                                     ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'], type_='file')
 
+        self.affinity_matrix_path = inst.get_with_default(sname, affinity_matrix_path, 'affinity_matrix.dat')
         if self.run_num == 1:
             last_section = get_last_active_procedure_name(inst, sname, iteration=0)
             sname_list = [sname, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
@@ -119,6 +121,8 @@ class APHandler():
             self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
+            ext_pos = self.affinity_matrix_path.find('.')
+            self.affinity_matrix_path = self.affinity_matrix_path[:ext_pos] + '1' + self.affinity_matrix_path[ext_pos:]
 
         if self.num_of_clusters < 1:
                 self.num_of_clusters = int(self.num_of_clusters * len(file_utils.glob(os.path.join(self.structure_dir, '*.json'))))
@@ -153,58 +157,72 @@ class APHandler():
                 self.spg_bar_title = inst.get_or_none(sname, 'spg_bar_title_2')
             self.spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
         
-        #Implement the affinity type desired
-        if '.np' in self.dist_mat_input_file:
-            self._initialize_affinity_matrix_rdf()    
+        if self.rank == 0:
+            self.make_affinity_matrix()
         else:
-            self._initialize_affinity_matrix()
+            self.distance_matrix_shape = None
+        self.distance_matrix_shape = self.comm.bcast(self.distance_matrix_shape, root=0)
+        while not os.path.exists(self.affinity_matrix_path):
+            time_utils.sleep(1)
+        self.get_affinity_and_distance_matrix()
 
 
-
-    def _initialize_affinity_matrix_rdf(self):
-        dist_mat = np.load(self.dist_mat_input_file)
-        if dist_mat.shape[0] != dist_mat.shape[1]:
+    def get_affinity_and_distance_matrix(self):
+        if '.dat' in self.dist_mat_input_file:
+            self.distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r', shape=self.distance_matrix_shape)
+        elif '.np' in self.dist_mat_input_file:
+            self.distance_matrix = np.load(self.dist_mat_input_file)
+        elif '.info' in self.dist_mat_input_file:
+            f = open(self.dist_mat_input_file, "r")
+            lines = f.read().split("\n")
+            while lines[-1] == "":
+                lines.pop()
+            self.distance_matrix = np.array([[float(x) for x in y.split()] for y in lines])
+        
+        if len(self.distance_matrix) != len(self.distance_matrix[0]):
             raise ValueError("Distance matrix is not a square matrix: "
                     + self.dist_mat_input_file)
 
-        self.distance_matrix = dist_mat
-
-        if self.affinity_type[0]=="exponential":
-            self.affinity_matrix = -np.exp(dist_mat * self.affinity_type[1])
-        elif self.affinity_type[0] == "power":
-            self.affinity_matrix = -dist_mat ** self.affinity_type[1]
-        elif self.affinity_type[0] == 'multiplicative':
-            self.affinity_matrix = -dist_mat * self.affinity_type[1]
-        else:
-            raise Exception('Unsuppored affinity_type. Got:', self.affinity_type[0])
-
-
-    def _initialize_affinity_matrix(self):
-        f = open(self.dist_mat_input_file, "r")
-        lines = f.read().split("\n")
-        while lines[-1] == "":
-            lines.pop()
-        dist_mat = [[float(x) for x in y.split()] for y in lines]
+        self.affinity_matrix = np.memmap(self.affinity_matrix_path, dtype='float32', mode='r', shape=self.distance_matrix_shape)
         
-        if len(dist_mat) != len(dist_mat[0]):
+
+    def make_affinity_matrix(self):
+        if '.dat' in self.dist_mat_input_file:
+            distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r')
+            m = np.sqrt(len(distance_matrix))
+            if m != int(m):
+                raise ValueError("Distance matrix is not a square matrix: "
+                    + self.dist_mat_input_file)
+            m = int(m)
+
+            distance_matrix.resize((m,m))
+            self.distance_matrix_shape = distance_matrix.shape
+        elif '.np' in self.dist_mat_input_file:
+            distance_matrix = np.load(self.dist_mat_input_file)
+        elif '.info' in self.dist_mat_input_file:
+            f = open(self.dist_mat_input_file, "r")
+            lines = f.read().split("\n")
+            while lines[-1] == "":
+                lines.pop()
+            distance_matrix = np.array([[float(x) for x in y.split()] for y in lines])
+        
+        if len(distance_matrix) != len(distance_matrix[0]):
             raise ValueError("Distance matrix is not a square matrix: "
                     + self.dist_mat_input_file)
-        
-        m = len(dist_mat)
-        self.distance_matrix = dist_mat
 
-        self.affinity_matrix = [[0] * m for x in range(m)]
-        
-        for i in range(m):
-            for j in range(m):
-                if self.affinity_type[0]=="exponential":
-                    self.affinity_matrix[i][j] = \
-                            -np.exp(dist_mat[i][j] *
-                                    self.affinity_type[1])
-                elif self.affinity_type[0] == "power":
-                    self.affinity_matrix[i][j] = \
-                            -dist_mat[i][j] ** self.affinity_type[1]
-        
+        if affinity_type[0]=="exponential":
+            affinity_matrix = -np.exp(distance_matrix * affinity_type[1])
+        elif affinity_type[0] == "power":
+            affinity_matrix = -distance_matrix ** affinity_type[1]
+        elif affinity_type[0] == 'multiplicative':
+            affinity_matrix = -distance_matrix * affinity_type[1]
+        else:
+            raise Exception('Unsuppored affinity_type. Got:', affinity_type[0])
+
+        # Write affinity matrix
+        fp = np.memmap(filename, dtype='float32', mode='w+', shape=affinity_matrix.shape)
+        fp[:] = affinity_matrix[:]
+
     def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
         '''
         Determine if AP generated an acceptable number of clusters and if not,
@@ -324,13 +342,13 @@ class APHandler():
         '''
         #print('inside run_fixed_num_of_clusters', flush=True)
         
-        if self.num_of_clusters > len(self.struct_coll):
+        if self.num_of_clusters > len(self.coll):
             raise ValueError("Cannot cluster pool into more clusters " +
                     "than number of structures in it. self.num_of_clusters = " + 
-                    str(self.num_of_clusters) + ", len(self.struct_coll) = " +
-                    str(len(self.struct_coll)))
+                    str(self.num_of_clusters) + ", len(self.coll) = " +
+                    str(len(self.coll)))
         #print('self.num_of_clusters', self.num_of_clusters, flush=True)
-        #print('len(self.struct_coll)', len(self.struct_coll), flush=True)
+        #print('len(self.coll)', len(self.coll), flush=True)
         if self.max_sampled_preferences < 1:
             raise ValueError("max_sampled_preferences must be >= 1")
         #print('self.max_sampled_preferences', self.max_sampled_preferences, flush=True)
@@ -354,7 +372,7 @@ class APHandler():
                     float(pref_l - pref_u) * float(self.rank + 1) / float(self.size + 1) + pref_u
             print('self.preference', self.preference, flush=True)
             #print('self.size', self.size, flush=True)
-            self.struct_coll_cld, result = self._run()
+            result = self._run()
             #print('type(result)', type(result), flush=True)
             num_of_clusters_gotten = result['num_of_clusters']
             #print('num_of_clusters_gotten', num_of_clusters_gotten, 'self.rank', self.rank, flush=True)
@@ -385,16 +403,21 @@ class APHandler():
             
             result_num = result["num_of_clusters"]
 
-            if success:
+            if success or (self.output_without_success and iter_n == self.max_sampled_preferences - 1):
                 self.preference = place_holder_preference
                 #print('success', flush=True)
                 #If not the rank that was successful:
                 if n != self.rank:
+                    self.successful_rank = False
                     #print('rank ' + str(self.rank) + ' is returning', flush=True)
                     return
+                else:
+                    self.successful_rank = True
                 
                 #Print results! You're done!
                 break
+            else:
+                self.successful_rank = False
             
             print("Iteration %i. Preference used: %f. "
                     "Clusters generated: %i."
@@ -421,17 +444,13 @@ class APHandler():
         
         #Unzip the 2-dimensional list which is the structure collection. The
         # second element in is the Structure object.
-        pool = list(zip(*self.struct_coll_cld))[1]
+        pool = list(zip(*self.coll))[1]
         #In the future, parallelize the writing of structures to output_dir
         output_pool(pool, self.output_dir, self.output_format)
             
     def _run(self):
         #print('type(self.affinity_matrix)', type(self.affinity_matrix), flush=True)
-        return self._affinity_propagation(self.struct_coll, 
-            self.distance_matrix, self.affinity_matrix,
-            self.damping, self.convergence_iter, self.max_iter, self.preference,
-            self.property_key,
-            self.exemplars_output_dir, self.exemplars_output_format)
+        return self._affinity_propagation()
 
     def _print_results(self, result, verbose=False):
         if not self.output_file is None:
@@ -447,16 +466,16 @@ class APHandler():
             raise IOError('output_file is None, cannot write output')
 
         self._print_result_summary(result)
-        coll = self.struct_coll_cld; d = result
+        d = result
         assigned_cluster = d["assigned_cluster"]
         assigned_exemplar_id = d["assigned_exemplar_id"]
         distances_to_exemplar = d["distances_to_exemplar"]
 
         st = "List of assigned cluster, exemplar id, " \
                 "and distance to exemplar:\n"
-        for i in range(len(coll)):
+        for i in range(len(self.coll)):
             st += "%s %i %s %f\n" % (
-                    coll[i][1].struct_id, assigned_cluster[i],
+                    self.coll[i][1].struct_id, assigned_cluster[i],
                     assigned_exemplar_id[i], distances_to_exemplar[i])
 
         exemplar_ids = d["exemplar_ids"]
@@ -486,39 +505,37 @@ class APHandler():
             distance matrix to have a new distance matrix for 
             that second AP run.
         '''
-
-        dist_mat = np.array(self.distance_matrix)
         
-        dist_mat = dist_mat[self.exemplar_indices,:][:,self.exemplar_indices]
+        self.distance_matrix = self.distance_matrix[self.exemplar_indices,:][:,self.exemplar_indices]
 
         ext_pos = self.dist_mat_input_file.find('.')
         self.dist_mat_input_file_2 = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
 
-        if '.np' in self.dist_mat_input_file:
-            np.save(self.dist_mat_input_file_2, dist_mat)
-        else:
-            dist_mat = list(map(list, dist_mat))
-            file_utils.write_rows_to_csv(self.dist_mat_input_file_2, dist_mat, mode='w', delimiter=' ')
+        if '.dat' in self.dist_mat_input_file:
+            fp = np.memmap(self.dist_mat_input_file_2, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
+            fp[:] = self.distance_matrix[:]
+        elif '.np' in self.dist_mat_input_file:
+            np.save(self.dist_mat_input_file_2, self.distance_matrix)
+        elif '.info' in self.dist_mat_input_file:
+            self.distance_matrix = list(map(list, self.distance_matrix))
+            file_utils.write_rows_to_csv(self.dist_mat_input_file_2, self.distance_matrix, mode='w', delimiter=' ')
 
 
-    def _affinity_propagation(self, coll, distance_matrix, affinity_matrix,
-            damping=0.5, convergence_iter=15, max_iter=1000, preference=None,
-            property_key="AP_cluster",
-            exemplars_output_dir=None, exemplars_output_format="json"):
-        ap = AffinityPropagation(damping=damping, max_iter=max_iter, 
-                                convergence_iter=convergence_iter,
-                                copy=True, preference=preference,
-                                affinity="precomputed",verbose=False)
+    def _affinity_propagation(self):
+        ap = AffinityPropagation(damping=self.damping, max_iter=self.max_iter, 
+                                convergence_iter=self.convergence_iter,
+                                copy=True, preference=self.preference,
+                                affinity="precomputed",verbose=self.verbose_output)
         #print('inside _affinity_propagation', flush=True)
         #print('len(affinity_matrix)', len(affinity_matrix), flush=True)
         ##print('affinity_matrix', affinity_matrix, flush=True)
         print('Fitting affinity propagation model...', flush=True)
         
-        result = ap.fit(affinity_matrix)
+        result = ap.fit(self.affinity_matrix)
         
         #print('result of fit', type(result), flush=True)
         num_of_clusters = len(result.cluster_centers_indices_)
-        print('num_of_clusters gotten on this fit', num_of_clusters, 'preference', preference, flush=True)
+        print('num_of_clusters gotten on this fit', num_of_clusters, 'preference', self.preference, flush=True)
         
         assigned_cluster = result.labels_
         
@@ -532,7 +549,7 @@ class APHandler():
                 lowest_energy = None
                 for j,k in enumerate(assigned_cluster):
                     if i == k:
-                        energy = float(coll[j][1].properties[self.energy_name])
+                        energy = float(self.coll[j][1].properties[self.energy_name])
                         #print('i', i, 'j', j, 'k', k, 'energy', energy, 'lowest_energy', lowest_energy, flush=True)
                         if lowest_energy is None or energy < lowest_energy:
                             lowest_energy = energy
@@ -548,7 +565,7 @@ class APHandler():
         self.exemplar_indices = np.array(exemplar_indices, dtype='int')
         #print('self.exemplar_indices', self.exemplar_indices, flush=True)
         ##print('self.exemplar_indices', self.exemplar_indices, flush=True)
-        exemplar_ids = [coll[x][1].struct_id for x in self.exemplar_indices]
+        exemplar_ids = [self.coll[x][1].struct_id for x in self.exemplar_indices]
         #print(coll, self.exemplar_indices, len(coll), len(self.exemplar_indices), flush=True)
         #print('len(coll[0])', len(coll[0]), flush=True)
         ##print('exemplar_ids', exemplar_ids, flush=True)
@@ -559,29 +576,26 @@ class APHandler():
         assigned_exemplar_index = [self.exemplar_indices[x] for x in assigned_cluster]
         assigned_exemplar_id = [exemplar_ids[x] for x in assigned_cluster]
 
-        for x in range(len(coll)):
-            coll[x][1].properties[property_key] = assigned_cluster[x]
+        for x in range(len(self.coll)):
+            self.coll[x][1].properties[self.property_key] = assigned_cluster[x]
 
-        exemplars = [coll[x][1] for x in self.exemplar_indices]
+        exemplars = [self.coll[x][1] for x in self.exemplar_indices]
         
         #output_pool(exemplars, exemplars_output_dir, exemplars_output_format)
 
         distances_to_exemplar = \
-                [distance_matrix[x]
+                [self.distance_matrix[x]
                         [self.exemplar_indices[result.labels_[x]]]
-                        for x in range(len(coll))]
+                        for x in range(len(self.coll))]
         avg_distance = np.mean(distances_to_exemplar)
         std_distance = np.std(distances_to_exemplar)
         max_distance = max(distances_to_exemplar)
 
         try:
-            sil_score = silhouette_score(np.array(distance_matrix),
+            sil_score = silhouette_score(self.distance_matrix,
                     result.labels_, metric="precomputed")
         except:
             sil_score = 1.0
-
-        if preference is None:
-            preference = np.median([x for y in affinity_matrix for x in y])
 
         result_dict = {
                 "num_of_clusters": num_of_clusters,
@@ -596,29 +610,10 @@ class APHandler():
                 "std_distance": std_distance,
                 "max_distance": max_distance,
                 "silhouette_score": sil_score,
-                "preference": preference}
+                "preference": self.preference}
         
-        return coll, result_dict
+        return result_dict
 
-
-def affinity_propagation_distance_matrix(inst):
-    '''
-    Main AP distance matrix module
-    '''
-    sname = "affinity_propagation_distance_matrix"
-    preference = inst.get_or_none(sname, "preference", eval=True)
-    executor = get_affinity_propagation_executor(inst, sname)
-    executor.run_single(preference)
-
-def affinity_propagation_analyze_preference(inst):
-    '''
-    Run AP with a list of preferences
-    '''
-    sname = "affinity_propagation_analyze_preference"
-    preference_list = inst.get_eval(sname,"preference_list")
-    verbose_output = inst.get_boolean(sname, "verbose_output")
-    executor = get_affinity_propagation_executor(inst, sname)
-    executor.run_batch(preference_list, verbose_output=verbose_output)
 
 def affinity_propagation_fixed_clusters(inst, comm):
     '''
@@ -632,21 +627,20 @@ def affinity_propagation_fixed_clusters(inst, comm):
     stoic = StoicDict(int)
     jsons_dir = aph.structure_dir
     #print('jsons_dir', jsons_dir, flush=True)
-    aph.struct_coll, struct_ids = get_struct_coll(jsons_dir, stoic)
+    aph.coll, struct_ids = get_struct_coll(jsons_dir, stoic)
     ##print('struct_ids', struct_ids, flush=True)
     #print('len(struct_ids)', len(struct_ids), flush=True)
-    #print('type(aph.struct_coll)', type(aph.struct_coll), flush=True)
-    ##print('aph.struct_coll', aph.struct_coll, flush=True)
-    #print('len(aph.struct_coll)', len(aph.struct_coll), flush=True)
+    #print('type(aph.coll)', type(aph.coll), flush=True)
+    ##print('aph.coll', aph.coll, flush=True)
+    #print('len(aph.coll)', len(aph.coll), flush=True)
     
     aph.run_fixed_num_of_clusters()
     #print('ran aph.run_fixed_num_of_clusters', flush=True)
-    if aph.run_num == 1:
+    if aph.run_num == 1 and aph.successful_rank:
         #print('creating distance matrix', flush=True)
         aph.create_distance_matrix_from_exemplars()
         #print('created dist mat', flush=True)
     
-    #aph.struct_coll_cld, aph.result
     if comm.rank == 0 and aph.plot_histograms:
         plot_property(aph.exemplars_output_dir, prop=aph.prop, figname=aph.prop_figname, 
                         xlabel=aph.prop_xlabel, ylabel=aph.prop_ylabel, figure_size=aph.prop_figure_size,

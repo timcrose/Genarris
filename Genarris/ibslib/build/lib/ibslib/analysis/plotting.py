@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib.lines import Line2D
 import matplotlib.lines as mlines
+import matplotlib.colors as clr
+from mpl_toolkits.mplot3d import Axes3D
 
 from textwrap import wrap
 
@@ -15,6 +17,7 @@ from ibslib.io import read,write
 from ibslib.sgroup.sgroup import SpaceGroupManager
 from ibslib.motif.utils import eval_motif,implemented_motifs
 from ibslib.analysis.pltlib import format_ticks,format_axis
+from ibslib.analysis.dictops import get
 
 ###############################################################################
 # Plotting Utilities                                                          #
@@ -101,7 +104,13 @@ def marker_plot(ax, GAtor_Hab_values,GAtor_energy_values,
         else:
             ax.scatter(Hab,energy, s=s, c=color,
                        marker=marker)
-            
+
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=10000):
+    new_cmap = clr.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
+  
 
 ###############################################################################
 # Data Utilities                                                              #
@@ -646,6 +655,188 @@ def plot_many_property_vs_energy_dict(struct_dict_list, prop_key_list,
     plt.show()
     if figname != None:
         fig.savefig(figname)        
+
+
+###############################################################################
+# Plotting lattice+property distribution plots                                #
+###############################################################################
+        
+def plot_lattice(struct_dict, prop="", 
+                 figname="",
+                 colormap=cm.hot,
+                 colormap_lim=(0.1,0.6),
+                 relative_energy=False,
+                 nmpc=4,
+                 experimental_cell=[],
+                 experimental_plot_text_kwargs = 
+                     {
+                        "text": "X",
+                        'family': 'serif',
+                        'color':  'green',
+                        'weight': 'normal',
+                        'size': 28,
+                     },
+                 figsize=(8,8),
+                 scatter_kwargs=
+                     {
+                        "s": 100, 
+                     },
+                 xlim=[], ylim=[], zlim=[],
+                 xlabel_kwargs=
+                     {
+                       "xlabel": 'a ($\AA$)',
+                       "fontsize": 12,
+                       "labelpad": 10
+                     },
+                 ylabel_kwargs=
+                     {
+                       "ylabel": 'b ($\AA$)',
+                       "fontsize": 12,
+                       "labelpad": 10
+                     },
+                 zlabel_kwargs=
+                     {
+                       "zlabel": 'c ($\AA$)',
+                       "fontsize": 12,
+                       "labelpad": 10
+                     },
+                 cbar_title_kwargs=
+                     {
+                       "ylabel": 'Relative Energy (kJ mol$^{-1}$)',
+                       "fontsize": 12,
+                       "rotation": 270,
+                       "labelpad": 30
+                     },
+                 tick_params_kwargs=
+                     {
+                        "axis": "both",
+                        "labelsize": 12,
+                        "width": 3,
+                        "length": 5,
+                     },
+                 cbar_tick_params_kwargs=
+                     {
+                        "axis": "both",
+                        "labelsize": 12,
+                        "width": 2,
+                        "length": 2,
+                     },
+                 cbar_ticks=[],
+                 xticks=[],
+                 yticks=[],
+                 zticks=[]
+                  ):
+    """
+    Creates a 3D plot of the lattice parameters, each colored according to a 
+    input property value. If no input property is provided, then the scatter
+    plot will not include a colorbar. 
+    
+    Arguments
+    ---------
+    struct_dict: StructDict
+        Dictionary of structure objects. 
+    prop: str
+        String of property to obtain from each structure. Default bevavior 
+        is to not include a property. 
+    figname: str
+        If figname is provided, the plot will be saved at the provided string. 
+    colormap: matplotlib.cm.cmap object
+        Matplotlib colormap to use.
+    colormap_lim: (float,float)
+        If provided, truncates colormap to be between the provided limits. 
+        This removes colors which are too dark or too light.
+    relative_energy: bool
+        If true, corrects all energies values in the prop list relative to 
+        the global min and converts eV to kJ/mol/molecule.
+    nmpc: int
+        If using relative energy, nmpc is required to get lattice energy
+        per mol.
+    experimental_cell: [float, float, float]
+        The a,b,c lattice parameters of the experimental structure. If 
+        the user provides this argument, then the experimental will be added
+        to the graph as a separate shape. 
+    experimental_plot_text_kwargs:
+        Controls how the experimental will be added to the plot. Kwargs 
+        are passed to ax.text function.
+    figsize: (int, int)
+        Figure size argument for plt.figure
+    scatter_kwargs: dict
+        Keyword arguments to use in plt.scatter.
+    xlim,ylim,zlim: [float, float]
+        If lists are provided, these are use to set the range of the 
+        x,y, or z axes. 
+    xlabel_kwargs,ylabel_kwargs,zlabel_kwargs: dict
+        Keyword argument dictionaries to pass to plt.set_xlabel. Can include
+        axis labels, parameters for the font, etc. 
+    cbar_title_kwargs: str
+        Keyword argument dictionary for the color map. 
+        Used if a property string is provided.  
+    tick_params_kwargs: dict of keyword arguments
+        Keyword arguments passed to ax.tick_params.
+    xticks,yticks,ztickss: dict of keyword arguments
+        Manytimes, it is necessary to specify the specific ticks to use in
+        order for the tick numbers to not overlap poorly.
+    
+    
+    """
+    
+    prop_list = ["a","b","c"]
+    if len(prop) > 0:
+        prop_list.append(prop)
+    
+    results_df = get(struct_dict,"prop",prop_list)
+    
+    if relative_energy and len(prop) > 0:
+        results_df[prop] = correct_energy(results_df[prop],nmpc)
+        
+    if len(colormap_lim) > 0:
+        colormap = truncate_colormap(colormap, colormap_lim[0], 
+                                     colormap_lim[1])
+    
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection='3d')
+    
+    if len(experimental_cell) != 0:
+        ax.text(experimental_cell[0], 
+                experimental_cell[1], 
+                experimental_cell[2],  
+                **experimental_plot_text_kwargs) 
+    
+    if len(prop) > 0:
+        p = ax.scatter(results_df["a"],results_df["b"], 
+                       results_df["c"], c=results_df[prop], 
+                        cmap=colormap, **scatter_kwargs) 
+        cbar = plt.colorbar(p)
+        cbar.ax.set_ylabel(**cbar_title_kwargs)
+        cbar.ax.tick_params(**cbar_tick_params_kwargs)
+    else:
+         p = ax.scatter(results_df["a"],results_df["b"], 
+                       results_df["c"], **scatter_kwargs) 
+         
+    ax.set_xlabel(**xlabel_kwargs)
+    ax.set_ylabel(**ylabel_kwargs)
+    ax.set_zlabel(**zlabel_kwargs)
+    
+    if len(xlim) > 0:
+        ax.set_xlim(xlim[0], xlim[1])
+    if len(ylim) > 0:
+        ax.set_ylim(ylim[0], ylim[1])
+    if len(zlim) > 0:
+        ax.set_zlim(zlim[0], zlim[1])
+    
+    ax.tick_params(**tick_params_kwargs)
+    if len(xticks) > 0:
+        ax.set_xticks(xticks)
+    if len(yticks) > 0:
+        ax.set_yticks(yticks)
+    if len(zticks) > 0:
+        ax.set_zticks(zticks)
+    
+    plt.tight_layout()
+    if len(figname) > 0:
+        fig.savefig(figname)
+    plt.show()
+
 
 ###############################################################################
 # More motif                                                                  #

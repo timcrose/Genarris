@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 def plot_property(struct_dir, prop='unit_cell_volume', nmpc=2, figname='property_histogram.pdf', 
                     xlabel='Structure Volume, $\AA^3$', ylabel='Counts', figure_size=(12,8),
-                        label_size=24, tick_size=18, tick_width=3, GAtor_IP=False)
+                        label_size=24, tick_size=18, tick_width=3, GAtor_IP=False):
     # Can change any of the following key word arguments to adjust plotting
     kwargs = {
           # Property to extract from structures
@@ -48,7 +48,7 @@ def parse_spg_outfile(outfile='allowed.txt'):
     for line in lines:
         split_line = line.split()
         if 'spg' in split_line[0] and len(split_line) == 11:
-        spg = split_line[1]
+            spg = split_line[1]
         if spg in all_allowed_spgs:
             continue
         all_allowed_spgs.append(spg)
