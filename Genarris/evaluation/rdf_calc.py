@@ -182,9 +182,11 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         dist_mat = dist_mat / np.max(dist_mat)
     #print('dist_mat', dist_mat, flush=True)
     #print('type(dist_mat)', type(dist_mat), flush=True)
-    fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
-    fp[:] = dist_mat[:]
-    #np.save(dist_mat_fpath, dist_mat)
+    if '.dat' in dist_mat_fpath:
+        fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
+        fp[:] = dist_mat[:]
+    elif '.np' in dist_mat_fpath:
+        np.save(dist_mat_fpath, dist_mat)
 
 
 def run_rdf_calc(inst, comm):

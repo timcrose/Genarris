@@ -280,12 +280,19 @@ def rcd_difference_calculation(inst):
         f.write("%s %s %f \n" % (coll[k[0]].struct_id, coll[k[1]].struct_id, k[2]))
     f.close()
 
-    if diff_matrix_output!="":
-        f = open(diff_matrix_output,"a")
-        for k in diff_mat:
-#            print k
-            f.write(" ".join(map(str,k))+"\n")
-        f.close()
+    if diff_matrix_output != "":
+        if '.info' in diff_matrix_output:
+            f = open(diff_matrix_output,"a")
+            for k in diff_mat:
+                f.write(" ".join(map(str,k))+"\n")
+            f.close()
+        elif '.dat' in diff_matrix_output:
+            diff_mat = np.array(diff_mat)
+            fp = np.memmap(diff_matrix_output, dtype='float32', mode='w+', shape=diff_mat.shape)
+            fp[:] = dist_mat[:]
+        elif '.np' in diff_matrix_output:
+            diff_mat = np.array(diff_mat)
+            np.save(diff_matrix_output, diff_mat)
 
     return result, diff_mat
 

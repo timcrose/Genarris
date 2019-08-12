@@ -162,6 +162,7 @@ class APHandler():
         else:
             self.distance_matrix_shape = None
         self.distance_matrix_shape = self.comm.bcast(self.distance_matrix_shape, root=0)
+        self.dist_mat_input_file = file_utils.fname_from_fpath(self.dist_mat_input_file) + '.dat'
         while not os.path.exists(self.affinity_matrix_path):
             time_utils.sleep(1)
         self.get_affinity_and_distance_matrix()
@@ -220,8 +221,13 @@ class APHandler():
             raise Exception('Unsuppored affinity_type. Got:', affinity_type[0])
 
         # Write affinity matrix
-        fp = np.memmap(filename, dtype='float32', mode='w+', shape=affinity_matrix.shape)
+        fp = np.memmap(self.affinity_matrix_path, dtype='float32', mode='w+', shape=affinity_matrix.shape)
         fp[:] = affinity_matrix[:]
+        # Write memmap for distance matrix if it wasn't written like that
+        del fp
+        self.dist_mat_input_file = file_utils.fname_from_fpath(self.dist_mat_input_file) + '.dat'
+        fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=distance_matrix.shape)
+        fp[:] = distance_matrix[:]
 
     def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
         '''
