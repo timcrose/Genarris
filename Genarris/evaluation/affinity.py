@@ -17,7 +17,7 @@ from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
 from Genarris.utilities.misc import output_pool
-from Genarris.utilities import file_utils, time_utils
+from Genarris.utilities import file_utils, time_utils, math_utils
 from Genarris.evaluation.evaluation_util import PoolOperation, \
         load_pool_operation_keywords
 from Genarris.core.structure import StoicDict, get_struct_coll
@@ -85,7 +85,6 @@ class APHandler():
         
         # Parameters common to pool operations
         
-        self.structure_dir_depth = inst.get_with_default(sname, 'structure_dir_depth' , 0, eval=True)
         self.structure_suffix = inst.get_with_default(sname, 'structure_suffix', '.json')
         self.output_dir = inst.get(sname, 'output_dir')
         if os.path.exists(self.output_dir):
@@ -110,15 +109,15 @@ class APHandler():
         self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
                                                     ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'], type_='file')
 
-        self.affinity_matrix_path = inst.get_with_default(sname, affinity_matrix_path, 'affinity_matrix.dat')
+        self.affinity_matrix_path = inst.get_with_default(sname, 'affinity_matrix_path', 'affinity_matrix.dat')
         if self.run_num == 1:
             last_section = get_last_active_procedure_name(inst, sname, iteration=0)
             sname_list = [sname, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
             self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (4 * ['output_dir']), type_='dir')
         elif self.run_num == 2:
             last_section = get_last_active_procedure_name(inst, sname, iteration=1)
-            sname_list = [sname, last_section, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
-            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
+            sname_list = [sname, last_section, 'fhi_aims_energy_evaluation', last_section, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'output_dir', 'output_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
             ext_pos = self.affinity_matrix_path.find('.')
@@ -162,23 +161,15 @@ class APHandler():
         else:
             self.distance_matrix_shape = None
         self.distance_matrix_shape = self.comm.bcast(self.distance_matrix_shape, root=0)
-        self.dist_mat_input_file = file_utils.fname_from_fpath(self.dist_mat_input_file) + '.dat'
+        if not (self.dist_mat_input_file).endswith('.dat'):
+            raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
         while not os.path.exists(self.affinity_matrix_path):
             time_utils.sleep(1)
         self.get_affinity_and_distance_matrix()
 
 
     def get_affinity_and_distance_matrix(self):
-        if '.dat' in self.dist_mat_input_file:
-            self.distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r', shape=self.distance_matrix_shape)
-        elif '.np' in self.dist_mat_input_file:
-            self.distance_matrix = np.load(self.dist_mat_input_file)
-        elif '.info' in self.dist_mat_input_file:
-            f = open(self.dist_mat_input_file, "r")
-            lines = f.read().split("\n")
-            while lines[-1] == "":
-                lines.pop()
-            self.distance_matrix = np.array([[float(x) for x in y.split()] for y in lines])
+        self.distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r', shape=self.distance_matrix_shape)
         
         if len(self.distance_matrix) != len(self.distance_matrix[0]):
             raise ValueError("Distance matrix is not a square matrix: "
@@ -188,44 +179,34 @@ class APHandler():
         
 
     def make_affinity_matrix(self):
-        if '.dat' in self.dist_mat_input_file:
-            distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r')
-            m = np.sqrt(len(distance_matrix))
-            if m != int(m):
-                raise ValueError("Distance matrix is not a square matrix: "
-                    + self.dist_mat_input_file)
-            m = int(m)
+        distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r')
+        m = np.sqrt(len(distance_matrix))
+        if m != int(m):
+            raise ValueError("Distance matrix is not a square matrix: "
+                + self.dist_mat_input_file)
+        m = int(m)
 
-            distance_matrix.resize((m,m))
-            self.distance_matrix_shape = distance_matrix.shape
-        elif '.np' in self.dist_mat_input_file:
-            distance_matrix = np.load(self.dist_mat_input_file)
-        elif '.info' in self.dist_mat_input_file:
-            f = open(self.dist_mat_input_file, "r")
-            lines = f.read().split("\n")
-            while lines[-1] == "":
-                lines.pop()
-            distance_matrix = np.array([[float(x) for x in y.split()] for y in lines])
+        distance_matrix.resize((m,m))
         
         if len(distance_matrix) != len(distance_matrix[0]):
             raise ValueError("Distance matrix is not a square matrix: "
                     + self.dist_mat_input_file)
 
-        if affinity_type[0]=="exponential":
-            affinity_matrix = -np.exp(distance_matrix * affinity_type[1])
-        elif affinity_type[0] == "power":
-            affinity_matrix = -distance_matrix ** affinity_type[1]
-        elif affinity_type[0] == 'multiplicative':
-            affinity_matrix = -distance_matrix * affinity_type[1]
+        if self.affinity_type[0]=="exponential":
+            affinity_matrix = -np.exp(distance_matrix * self.affinity_type[1])
+        elif self.affinity_type[0] == "power":
+            affinity_matrix = -distance_matrix ** self.affinity_type[1]
+        elif self.affinity_type[0] == 'multiplicative':
+            affinity_matrix = -distance_matrix * self.affinity_type[1]
         else:
-            raise Exception('Unsuppored affinity_type. Got:', affinity_type[0])
+            raise Exception('Unsuppored affinity_type. Got:', self.affinity_type[0])
 
+        self.distance_matrix_shape = distance_matrix.shape
         # Write affinity matrix
         fp = np.memmap(self.affinity_matrix_path, dtype='float32', mode='w+', shape=affinity_matrix.shape)
         fp[:] = affinity_matrix[:]
         # Write memmap for distance matrix if it wasn't written like that
         del fp
-        self.dist_mat_input_file = file_utils.fname_from_fpath(self.dist_mat_input_file) + '.dat'
         fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=distance_matrix.shape)
         fp[:] = distance_matrix[:]
 
@@ -406,6 +387,7 @@ class APHandler():
                 print('num_of_clusters_and_pref_list', num_of_clusters_and_pref_list, flush=True)
             print('new_pref_range_result', new_pref_range_result, flush=True)
             success, place_holder_preference, n, pref_l, pref_u, prev_l, prev_u = new_pref_range_result
+            self.preference_range = [pref_l, pref_u]
             
             result_num = result["num_of_clusters"]
 
@@ -517,33 +499,40 @@ class APHandler():
         ext_pos = self.dist_mat_input_file.find('.')
         self.dist_mat_input_file_2 = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
 
-        if '.dat' in self.dist_mat_input_file:
-            fp = np.memmap(self.dist_mat_input_file_2, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
-            fp[:] = self.distance_matrix[:]
-        elif '.np' in self.dist_mat_input_file:
-            np.save(self.dist_mat_input_file_2, self.distance_matrix)
-        elif '.info' in self.dist_mat_input_file:
-            self.distance_matrix = list(map(list, self.distance_matrix))
-            file_utils.write_rows_to_csv(self.dist_mat_input_file_2, self.distance_matrix, mode='w', delimiter=' ')
-
+        fp = np.memmap(self.dist_mat_input_file_2, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
+        fp[:] = self.distance_matrix[:]
 
     def _affinity_propagation(self):
-        ap = AffinityPropagation(damping=self.damping, max_iter=self.max_iter, 
+        
+        ap_iter_i = 0
+        while ap_iter_i < self.max_iter:
+            ap = AffinityPropagation(damping=self.damping, max_iter=self.max_iter, 
                                 convergence_iter=self.convergence_iter,
                                 copy=True, preference=self.preference,
                                 affinity="precomputed",verbose=self.verbose_output)
-        #print('inside _affinity_propagation', flush=True)
-        #print('len(affinity_matrix)', len(affinity_matrix), flush=True)
-        ##print('affinity_matrix', affinity_matrix, flush=True)
-        print('Fitting affinity propagation model...', flush=True)
+
+            #print('inside _affinity_propagation', flush=True)
+            #print('len(affinity_matrix)', len(affinity_matrix), flush=True)
+            ##print('affinity_matrix', affinity_matrix, flush=True)
+            print('Fitting affinity propagation model...', flush=True)
+            result = ap.fit(self.affinity_matrix)
         
-        result = ap.fit(self.affinity_matrix)
-        
-        #print('result of fit', type(result), flush=True)
+            #print('result of fit', type(result), flush=True)
+            assigned_cluster = result.labels_
+            if assigned_cluster[0] != -1:
+                # AP successful in converging on a clustering
+                break
+            if self.verbose_output:
+                tmp_preference = math_utils.randrange_float(self.preference_range[0], self.preference_range[-1], 0.00001, num_decimal_places=5)
+                print('preference of ' + str(self.preference) + ' failed to converge. Trying a random preference: '+ str(tmp_preference), flush=True)
+                self.preference = tmp_preference
+            ap_iter_i += 1
+        if ap_iter_i == self.max_iter:
+            raise Exception('AP was not able to find a preference that yielded a converged set of clsuters in',
+                            self.max_iter, 'iterations. Check your affinity_type setting and your distance matrix values')
+
         num_of_clusters = len(result.cluster_centers_indices_)
         print('num_of_clusters gotten on this fit', num_of_clusters, 'preference', self.preference, flush=True)
-        
-        assigned_cluster = result.labels_
         
         if self.cluster_on_energy and not (iter_n != self.max_sampled_preferences - 1 and \
                 (num_of_clusters > self.num_of_clusters + self.num_of_clusters_tolerance or \
@@ -565,12 +554,12 @@ class APHandler():
         else:
             exemplar_indices = result.cluster_centers_indices_
         #print('len(exemplar_indices)', len(exemplar_indices), flush=True)
-        #print('len(coll)', len(coll), flush=True)
+        #print('len(self.coll)', len(self.coll), flush=True)
         #print('len(assigned_cluster)', len(assigned_cluster), flush=True)
         #print('assigned_cluster', assigned_cluster, flush=True)
         self.exemplar_indices = np.array(exemplar_indices, dtype='int')
         #print('self.exemplar_indices', self.exemplar_indices, flush=True)
-        ##print('self.exemplar_indices', self.exemplar_indices, flush=True)
+        #print('self.coll', self.coll)
         exemplar_ids = [self.coll[x][1].struct_id for x in self.exemplar_indices]
         #print(coll, self.exemplar_indices, len(coll), len(self.exemplar_indices), flush=True)
         #print('len(coll[0])', len(coll[0]), flush=True)

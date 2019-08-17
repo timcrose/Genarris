@@ -4,7 +4,8 @@ from Genarris.core.structure import Structure
 from Genarris.utilities import file_utils
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
-
+m Genarris.core.structure_handling import cell_niggli_reduction
+from ibslib.io import read,write
 
 def check_type(var, desired_type):
     if desired_type == 'path':
@@ -153,6 +154,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                                                     ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
 
         control_path = inst.get(sname, 'control_path')
+        Z = int(inst.get_inferred(sname, [sname, 'pygenarris_structure_generation', 'estimate_unit_cell_volume'],
+                                        ['Z']*3))
 
     if world_comm.rank == 0:
         print('run_fhi_aims_batch using molecule_path', molecule_path, flush=True)
@@ -219,8 +222,23 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     else:
                         structure_file = structure_files[0]
                     struct_dct = file_utils.get_dct_from_json(structure_file)
-                    struct_dct['properties'][energy_name] = extract_energy(aims_out)
-                    file_utils.write_dct_to_json(structure_file, struct_dct)
+                    # update json with new geometry if geometry.in.next_step exists
+                    geometry_in_next_step = 'geometry.in.next_step'
+                    if os.path.exists(geometry_in_next_step):
+                        file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in')
+                        geometry_in_next_step = 'geometry.in'
+                        relaxed_struct = read(geometry_in_next_step, file_format='geo')
+                        napm = len(relaxed_struct.geometry) / Z
+                        for struct_property in struct_dct['properties']:
+                            if struct_property not in relaxed_struct.properties:
+                                relaxed_struct.properties[struct_property] = struct_dct['properties'][struct_property]
+                        relaxed_struct = cell_niggli_reduction(relaxed_struct, napm, create_duplicate=False)
+                        write(structure_file, relaxed_struct, file_format='json', overwrite=True)
+                        write(geometry_in_next_step, relaxed_struct, file_format='geo', overwrite=True)
+                        file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in.next_step')
+                    else:
+                        struct_dct['properties'][energy_name] = extract_energy(aims_out)
+                        file_utils.write_dct_to_json(structure_file, struct_dct)
 
                 os.chdir('../..')
 
@@ -276,9 +294,9 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             spg_bar_title = inst.get_or_none(sname, 'spg_bar_title')
             spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
 
-            plot_property(output_dir, prop=prop, nmpc=Z, figname=figname, 
-                                xlabel=xlabel, ylabel=ylabel, figure_size=figure_size,
-                                label_size=label_size, tick_size=tick_size, tick_width=tick_width, GAtor_IP=GAtor_IP)
+            plot_property(output_dir, prop=prop, nmpc=Z, figname=prop_figname, 
+                                xlabel=prop_xlabel, ylabel=prop_ylabel, figure_size=prop_figure_size,
+                                label_size=prop_label_size, tick_size=prop_tick_size, tick_width=prop_tick_width, GAtor_IP=prop_GAtor_IP)
 
             plot_spg_bar_chart(output_dir, pygenarris_outfile=pygenarris_outfile, spg_bar_chart_fname=spg_bar_chart_fname,
                                 width=spg_bar_width, ylabel=spg_bar_ylabel, xlabel=spg_bar_xlabel,

@@ -260,9 +260,9 @@ def rcd_difference_calculation(inst):
     dis_en = inst.get_boolean(sname,"disable_enantiomer")
     diff_list_output = inst.get_with_default(sname,"diff_list_output",
                                              "./rcd_difference_list.info")
-    #diff_matrix_output = inst.get_with_default(
-    #        sname, "diff_matrix_output", "./rcd_difference_matrix.info")
-    diff_matrix_output = ""
+    diff_matrix_output = inst.get_with_default(
+            sname, "diff_matrix_output", "rcd_difference_matrix.info")
+
     processes = inst.get_processes_limit(sname)
 
     coll = misc.load_collection_with_inst(inst,sname)
@@ -274,25 +274,9 @@ def rcd_difference_calculation(inst):
                                                            allow_enantiomer=not dis_en, 
                                                            processes=processes)
   
-    f = open(diff_list_output,"a") 
-
-    for k in result:
-        f.write("%s %s %f \n" % (coll[k[0]].struct_id, coll[k[1]].struct_id, k[2]))
-    f.close()
-
-    if diff_matrix_output != "":
-        if '.info' in diff_matrix_output:
-            f = open(diff_matrix_output,"a")
-            for k in diff_mat:
-                f.write(" ".join(map(str,k))+"\n")
-            f.close()
-        elif '.dat' in diff_matrix_output:
-            diff_mat = np.array(diff_mat)
-            fp = np.memmap(diff_matrix_output, dtype='float32', mode='w+', shape=diff_mat.shape)
-            fp[:] = dist_mat[:]
-        elif '.np' in diff_matrix_output:
-            diff_mat = np.array(diff_mat)
-            np.save(diff_matrix_output, diff_mat)
+    with open(diff_list_output,"a") as f: 
+        for k in result:
+            f.write("%s %s %f \n" % (coll[k[0]].struct_id, coll[k[1]].struct_id, k[2]))
 
     return result, diff_mat
 
@@ -331,7 +315,7 @@ def rcd_difference_compare_single(inst):
                                 result[i]))
     f.close()
 
-def combine(diff_matrix_output, structure_dir, structure_suffix='.json'):
+def combine_to_info(diff_matrix_output, structure_dir, structure_suffix='.json'):
     files = [x for x in os.listdir(structure_dir)
          if x.endswith(structure_suffix)]
 
@@ -344,6 +328,25 @@ def combine(diff_matrix_output, structure_dir, structure_suffix='.json'):
         diff = [float(x.split()[2]) for x in l]
         f = open(diff_matrix_output, "a")
         f.write(" ".join(map(str,diff))+"\n")
+
+
+def combine(diff_matrix_output, structure_dir, structure_suffix='.json'):
+    files = [x for x in os.listdir(structure_dir)
+         if x.endswith(structure_suffix)]
+
+    file_sorted = files.sort()
+    diff_mat = []
+    for x in files:
+        with open(os.path.join(structure_dir, x + ".rcd")) as f:
+            l = f.read().split("\n")
+        l.pop()
+        diff = [float(x.split()[2]) for x in l]
+        diff_mat.append(diff)
+        
+    diff_mat = np.array(diff_mat, dtype='float32')
+    fp = np.memmap(diff_matrix_output, dtype='float32', mode='w+', shape=diff_mat.shape)
+    fp[:] = diff_mat[:]
+
 
 def rcd_difference_folder_inner(inst, comm):
     sname = "rcd_difference_folder_inner"
@@ -369,7 +372,12 @@ def rcd_difference_folder_inner(inst, comm):
         raise Exception('Need an rcd property_name specified for rcd_difference_folder_inner')
 
 
-    diff_matrix_output = inst.get(sname, 'diff_matrix_output')
+    diff_matrix_output = inst.get_with_default(
+            sname, "diff_matrix_output", "rcd_difference_matrix.dat")
+            
+    if not diff_matrix_output.endswith('.dat'):
+        raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
+
     ratio = inst.get_with_default(sname, "contribution_ratio", 1, eval=True)
     pairs = inst.get_with_default(sname, "select_pairs", 4, eval=True)
     dis_en = inst.get_boolean(sname, "disable_enantiomer")

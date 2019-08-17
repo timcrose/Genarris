@@ -7,18 +7,20 @@ from Genarris.core import file_handler
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.find_bonding import MoleculeBonding
 from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
-from ibslib.io import read
+from ibslib.io import read,write
 
-def write_json_files(geometry_out_fpath, output_dir, structs_list):
+def write_json_files(geometry_out_fpath, output_dir, structs_list, Z):
     file_utils.mkdir_if_DNE(output_dir)
 
     outfile_basename = os.path.basename(geometry_out_fpath)
     outfile_dirname = os.path.dirname(os.path.abspath(geometry_out_fpath))
     tmp_geo_fname = 'tmp_file_for_geo'
     for i, struct_lines in enumerate(structs_list):
-        Z, number_of_atoms_in_molecule, unit_cell_volume, attempted_spg, attempted_wyckoff_position, site_symmetry_group, spg = \
-                'none', 'none', 'none', 'none', 'none', 'none', 'none'
-        for line in struct_lines:
+        Z, number_of_atoms_in_molecule, unit_cell_volume, attempted_spg, attempted_wyckoff_position, 
+        site_symmetry_group, spg, first_geo_line = \
+                Z, 'none', 'none', 'none', 'none', 'none', 'none', 'none'
+        
+        for j,line in enumerate(struct_lines):
             if '#Z =' in line:
                 Z = int(line.split('=')[-1].split()[0])
             elif '#number_of_atoms_in_molecule =' in line:
@@ -33,6 +35,10 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
                 site_symmetry_group = line.split('=')[-1].split()[0]
             elif '#SPGLIB_detected_spacegroup =' in line:
                 spg = int(line.split('=')[-1].split()[0])
+            elif first_geo_line == 'none' and 'lattice_vector' == line.split()[0]:
+                first_geo_line = j
+            elif first_geo_line == 'none' and 'atom' == line.split()[0]:
+                first_geo_line = j
 
         file_utils.write_lines_to_file(tmp_geo_fname, struct_lines, mode='w')
         struct = structure.Structure()
@@ -48,7 +54,13 @@ def write_json_files(geometry_out_fpath, output_dir, structs_list):
         struct_id = file_utils.fname_from_fpath(geometry_out_fpath) + '_' + random_str
         struct.struct_id = struct_id
         outfile_path = os.path.join(outfile_dirname, output_dir, struct_id + '.json')
-        file_utils.write_to_file(outfile_path, struct.dumps(), mode='w')
+        if 'lattice_vector_a' in struct.properties:
+            napm = len(struct.geometry) / Z
+            struct = cell_niggli_reduction(struct, napm, create_duplicate=False)
+            write(tmp_geo_fname, struct, file_format='geo', overwrite=True)
+            geo_lines = file_utils.get_lines_of_file(tmp_geo_fname)
+            structs_list[i][first_geo_line:] = geo_lines
+        write(outfile_path, struct, file_format='json', overwrite=True)
         structs_list[i][1] = '#structure_number = ' + str(i) + '\n'
         structs_list[i] = structs_list[i][:2] + ['#struct_id = ' + struct_id + '\n'] + structs_list[i][2:]
     os.remove(tmp_geo_fname)
@@ -63,7 +75,7 @@ def set_up(molecule_path):
     file_utils.cp(molecule_path, '.', dest_fname='geometry.in')
 
 
-def format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures):
+def format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures, Z):
     '''
     output_format: str
         "json" for outputting a folder of json files - each containing a structure
@@ -84,6 +96,9 @@ def format_output(output_format, output_dir, final_filename, num_structures, tru
     truncate_to_num_structures: bool
         If more structures were generated than num_structures, then only keep num_structures of them if
         truncate_to_num_structures is True, otherwise, keep them all.
+
+    Z: int
+        Number of molecules per unit cell
 
     Return: None
 
@@ -123,7 +138,7 @@ def format_output(output_format, output_dir, final_filename, num_structures, tru
     print('done concatenating and selected', len(selected_structs_list), 'structures', flush=True)
     if output_format == 'json' or output_format == "both":
         print('writing json files', flush=True)
-        selected_structs_list = write_json_files(final_filename, output_dir, selected_structs_list)
+        selected_structs_list = write_json_files(final_filename, output_dir, selected_structs_list, Z)
     else:
         for i, struct_lines in enumerate(selected_structs_list):
             random_str = file_handler.get_random_index()
@@ -245,12 +260,12 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:
-            format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures)
+            format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures, Z)
             clean_up(final_filename, comm.size, output_format)
             if plot_histograms:
-                plot_property(output_dir, prop=prop, nmpc=Z, figname=figname, 
-                                xlabel=xlabel, ylabel=ylabel, figure_size=figure_size,
-                                label_size=label_size, tick_size=tick_size, tick_width=tick_width, GAtor_IP=GAtor_IP)
+                plot_property(output_dir, prop=prop, nmpc=Z, figname=prop_figname, 
+                                xlabel=prop_xlabel, ylabel=prop_ylabel, figure_size=prop_figure_size,
+                                label_size=prop_label_size, tick_size=prop_tick_size, tick_width=prop_tick_width, GAtor_IP=prop_GAtor_IP)
 
                 plot_spg_bar_chart(output_dir, pygenarris_outfile=pygenarris_outfile, spg_bar_chart_fname=spg_bar_chart_fname,
                                     width=spg_bar_width, ylabel=spg_bar_ylabel, xlabel=spg_bar_xlabel,

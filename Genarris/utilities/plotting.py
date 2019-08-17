@@ -1,7 +1,7 @@
 from ibslib.analysis.plotting import plot_IP_hist
 from ibslib.io import read,write
 from ibslib.analysis import get
-from ibslib.analysis.plotting import plot_IP_hist, plot_IP_hist_dict
+from ibslib.analysis.plotting import plot_IP_hist, plot_IP_hist_dict, plot_IP_hist_dir
 import numpy as np
 import sys, os
 import matplotlib.pyplot as plt
@@ -34,19 +34,22 @@ def plot_property(struct_dir, prop='unit_cell_volume', nmpc=2, figname='property
           'GAtor_IP': GAtor_IP
           }
     # Calling the function with just the directory of structure files
-    plot_IP_hist(struct_dir, **kwargs)
+    plt.close()
+    plot_IP_hist_dir(struct_dir, **kwargs)
 
 
-def parse_spg_outfile(outfile='allowed.txt'):
+def parse_spg_outfile(pygenarris_outfile='outfile'):
     '''
     outfile: str
         file that pygenarris writes to when generating structures (not geometry output file)
     '''
-    with open(outfile) as f:
+    with open(pygenarris_outfile) as f:
         lines = f.readlines()
     all_allowed_spgs = []
     for line in lines:
         split_line = line.split()
+        if len(split_line) == 0:
+            continue
         if 'spg' in split_line[0] and len(split_line) == 11:
             spg = split_line[1]
         if spg in all_allowed_spgs:
@@ -56,10 +59,10 @@ def parse_spg_outfile(outfile='allowed.txt'):
     return all_allowed_spgs
 
 
-def plot_spg_bar_chart(struct_dir, pygenarris_outfile='allowed.txt', spg_bar_chart_fname='spg_bar_chart.pdf',
+def plot_spg_bar_chart(struct_dir, pygenarris_outfile='outfile', spg_bar_chart_fname='spg_bar_chart.pdf',
                         width=0.5, ylabel='Count', xlabel='Allowed space groups',
                         title='spg_histogram', tick_rotation='vertical'):
-    all_allowed_spgs = parse_spg_outfile(outfile=outfile)
+    all_allowed_spgs = parse_spg_outfile(pygenarris_outfile=pygenarris_outfile)
     # Directory of json files is struct_dir
     # Run using the struct_dict or by calling the function with a directory
     struct_dict = read(struct_dir)
@@ -73,7 +76,7 @@ def plot_spg_bar_chart(struct_dir, pygenarris_outfile='allowed.txt', spg_bar_cha
 
     ind = np.arange(N)    # the x locations for the groups
     width = width       # the width of the bars: can also be len(x) sequence
-
+    plt.close()
     p1 = plt.bar(ind, spgs_gotten_counts, width)
 
     plt.ylabel(ylabel)

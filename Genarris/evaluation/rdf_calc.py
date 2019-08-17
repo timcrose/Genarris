@@ -182,12 +182,9 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         dist_mat = dist_mat / np.max(dist_mat)
     #print('dist_mat', dist_mat, flush=True)
     #print('type(dist_mat)', type(dist_mat), flush=True)
-    if '.dat' in dist_mat_fpath:
-        fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
-        fp[:] = dist_mat[:]
-    elif '.np' in dist_mat_fpath:
-        np.save(dist_mat_fpath, dist_mat)
-
+    fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
+    fp[:] = dist_mat[:]
+    
 
 def run_rdf_calc(inst, comm):
     sname = 'run_rdf_calc'
@@ -205,6 +202,8 @@ def run_rdf_calc(inst, comm):
     pdist_distance_type = inst.get_with_default(sname, 'pdist_distance_type', 'euclidean')
     device = inst.get_with_default(sname, 'device', 'cpu')
     dist_mat_fpath = inst.get_with_default(sname, 'dist_mat_fpath', 'rdf_distance_matrix.dat')
+    if not dist_mat_fpath.endswith('.dat'):
+        raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
     output_dir = inst.get_with_default(sname, 'output_dir', 'no_new_output_dir')
     save_envs = inst.get_boolean(sname, 'save_envs')
     normalize_rdf_vectors = inst.get_with_default(sname, 'normalize_rdf_vectors', 'TRUE')

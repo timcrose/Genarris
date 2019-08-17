@@ -443,7 +443,14 @@ def get_last_active_procedure_name(inst, sname, iteration=0):
     procedure_name = get_procedure_name_from_section_name(sname)
     procedures = inst.get_eval('Genarris_master', 'procedures')
 
-    procedure_idx = list_utils.indices(procedures, procedure_name)[iteration]
+    success = False
+    while not success and iteration >= 0:
+        try:
+            procedure_idx = list_utils.indices(procedures, procedure_name)[iteration]
+            success = True
+        except:
+            iteration -= 1
+    
     if procedure_idx == 0:
         return 'none'
     else:
