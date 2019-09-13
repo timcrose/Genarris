@@ -10,26 +10,23 @@ $ ulimit -v unlimited
 # Set OMP_NUM_THREADS to 1
 $ export OMP_NUM_THREADS=1
 
-# Enable the installed anaconda that you wish to use as the base for you virtual environment. Must be python 3.
+# Enable the installed anaconda that you wish to use as the base for you virtual environment. Must be python 3.5+
 # Let's say it's installed in the ${HOME} directory. Then we have:
 $ export PATH=${HOME}/anaconda3/bin:$PATH
 $ export PYTHONPATH=${HOME}/anaconda3/lib/python3.6/site-packages:$PYTHONPATH
 
-# Create anaconda environment with intelpython3_full (If it's not already created!)
+# Create anaconda environment with intelpython3_full (If it's not already created)
 $ conda create -n intelpython3_full intelpython3_full python=3
 
-# Change PATH and PYTHONPATH to activate it
+# Change PATH and PYTHONPATH to activate it (If these paths are not already in these env variables)
 $ export PATH=${HOME}/intelpython3_full/bin:$PATH
 $ export PYTHONPATH=${HOME}/anaconda3/envs/intelpython3_full/lib/python3.6/site-packages
-
-# Install pymatgen and its dependencies (If it's not already installed!)
-$ pip install pymatgen
 
 # Enable intel binaries to be found first:
 $ export PATH=/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin_ohpc:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/bin/intel64:${HOME}/anaconda3/envs/intelpython3_full/bin:${HOME}/anaconda3/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 
 # Obtain FHI-aims from https://aims-git.rz-berlin.mpg.de/aims/FHIaims
-# In the src directory, make sure the Makefile has all settings commented out
+# In the src directory, make sure the Makefile has all compilation flags (user defined settings) commented out
 # Put the following make.sys in the src directory:
 ###############
 # Basic Flags #

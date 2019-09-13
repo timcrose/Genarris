@@ -13,8 +13,12 @@ import numpy as np
 
 
 def update_lattice_lengths_in_struct(struct):
+    if type(struct) is bool:
+        return struct
     directions = ['a', 'b', 'c']
     for d in directions:
+        if not 'lattice_vector_' + d in struct.properties:
+            break
         struct.properties[d] = np.linalg.norm(
                     np.array(struct.properties['lattice_vector_' + d]))
 
@@ -240,6 +244,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     else:
                         structure_file = structure_files[0]
                     struct = read(structure_file)
+                    struct_is_periodic = 'lattice_vector_a' in struct.properties
                     # update json with new geometry if geometry.in.next_step exists
                     geometry_in_next_step = 'geometry.in.next_step'
                     if verbose:
@@ -254,13 +259,17 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                         if verbose:
                             print('struct_id', relaxed_struct.struct_id, flush=True)
                             print('Z', Z, flush=True)
-                        napm = len(relaxed_struct.geometry) / Z
+                        if not struct_is_periodic:
+                            napm = None
+                        else:
+                            napm = len(relaxed_struct.geometry) / Z
                         if verbose:
                             print('napm', napm, 'Z', Z, flush=True)
-                        relaxed_struct = cell_niggli_reduction(relaxed_struct, napm, create_duplicate=False)
-                        relaxed_struct = update_lattice_lengths_in_struct(relaxed_struct)
-                        if verbose:
-                            print('updated lattice lengths', flush=True)
+                        if struct_is_periodic:
+                            relaxed_struct = cell_niggli_reduction(relaxed_struct, napm, create_duplicate=False)
+                            relaxed_struct = update_lattice_lengths_in_struct(relaxed_struct)
+                            if verbose:
+                                print('updated lattice lengths', flush=True)
                         for struct_property in struct.properties:
                             if struct_property not in relaxed_struct.properties:
                                 relaxed_struct.properties[struct_property] = struct.properties[struct_property]
@@ -270,39 +279,41 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                         file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in.next_step')
                         if verbose:
                             print('updated', geometry_in_next_step, flush=True)
-                        ase_struct = ase.io.read(geometry_in_next_step, format='aims')
-                        lattice = ase_struct.get_cell()
-                        positions = ase_struct.get_scaled_positions()
-                        numbers = ase_struct.get_atomic_numbers()
-                        cell = (lattice, positions, numbers)
-                        if verbose:
-                            print('cell', cell, flush=True)
-                        spglib_data = spglib.get_symmetry_dataset(cell, symprec=1e-1)
-                        spglib_spg = int(spglib_data['number'])
-                        if verbose:
-                            print('spglib_spg', spglib_spg, flush=True)
-                        multiplicity = Spacegroup(spglib_spg)
-                        if multiplicity.nsymop == Z:
-                            # general position
-                            site_symmetry = 1
-                        else:
-                            # special position
-                            site_symmetry = 0
-                        if verbose:
-                            print('site_symmetry', site_symmetry, flush=True)
-                        if 'spg' in relaxed_struct.properties:
-                            relaxed_struct.properties['spg_before_relaxation'] = relaxed_struct.properties['spg']
-                        relaxed_struct.properties['spg'] = spglib_spg
-                        relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
+                        if struct_is_periodic:
+                            ase_struct = ase.io.read(geometry_in_next_step, format='aims')
+                            lattice = ase_struct.get_cell()
+                            positions = ase_struct.get_scaled_positions()
+                            numbers = ase_struct.get_atomic_numbers()
+                            cell = (lattice, positions, numbers)
+                            if verbose:
+                                print('cell', cell, flush=True)
+                            spglib_data = spglib.get_symmetry_dataset(cell, symprec=1e-1)
+                            spglib_spg = int(spglib_data['number'])
+                            if verbose:
+                                print('spglib_spg', spglib_spg, flush=True)
+                            multiplicity = Spacegroup(spglib_spg)
+                            if multiplicity.nsymop == Z:
+                                # general position
+                                site_symmetry = 1
+                            else:
+                                # special position
+                                site_symmetry = 0
+                            if verbose:
+                                print('site_symmetry', site_symmetry, flush=True)
+                            if 'spg' in relaxed_struct.properties:
+                                relaxed_struct.properties['spg_before_relaxation'] = relaxed_struct.properties['spg']
+                            relaxed_struct.properties['spg'] = spglib_spg
+                            relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
                         relaxed_struct.struct_id = struct.struct_id
                         if verbose:
                             print('relaxed struct_id', relaxed_struct.struct_id, flush=True)
 
-                        if 'site_symmetry_group' in relaxed_struct.properties and 'site_symmetry_group_before_relaxation' not in relaxed_struct.properties:
+                        if struct_is_periodic and 'site_symmetry_group' in relaxed_struct.properties and 'site_symmetry_group_before_relaxation' not in relaxed_struct.properties:
                             relaxed_struct.properties['site_symmetry_group_before_relaxation'] = relaxed_struct.properties['site_symmetry_group']
-                        relaxed_struct.properties['site_symmetry_group'] = site_symmetry
-                        if verbose:
-                            print('updated symmetry properties', flush=True)
+                        if struct_is_periodic:
+                            relaxed_struct.properties['site_symmetry_group'] = site_symmetry
+                            if verbose:
+                                print('updated symmetry properties', flush=True)
                         relaxed_struct.properties[energy_name] = extract_energy(aims_out)
                         if verbose:
                             print('updated energy', flush=True)

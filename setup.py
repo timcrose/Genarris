@@ -14,7 +14,7 @@ setup(name = 'Genarris_2.0',
       author = 'T. Rose, T. Rithwik',
       url = 'http://noamarom.com',
       packages = find_packages(),
-      install_requires = ['pymatgen'],
+      install_requires = ['pymatgen', 'spglib'],
       version = '2.0'
 )
 cwd = os.path.abspath(os.getcwd())
@@ -27,7 +27,6 @@ ibslib_path = os.path.join('Genarris', 'ibslib')
 if os.path.exists(ibslib_path):
     shutil.rmtree(ibslib_path)
 os.chdir(os.path.dirname(ibslib_path))
-os.system('git clone https://github.com/manny405/ibslib.git')
 os.chdir(os.path.basename(ibslib_path))
 os.system('python setup.py install')
 os.chdir(cwd)
@@ -58,7 +57,6 @@ os.chdir(cwd)
 os.chdir('Genarris')
 if os.path.exists('cgenarris'):
     shutil.rmtree('cgenarris')
-os.system('git clone https://github.com/ritwit/cgenarris.git')
 os.chdir('cgenarris')
 os.system('python setup.py install')
 os.chdir(cwd)
