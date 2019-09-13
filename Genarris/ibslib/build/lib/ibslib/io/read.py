@@ -77,7 +77,7 @@ def read_file(file_path, file_format=''):
         if file_format in ["geometry","geo", "aims"]:
             struct = import_geo(file_path)
         elif file_format == "json":
-            struct = import_json
+            struct = import_json(file_path)
         elif file_format == "cif":
             struct = import_cif(file_path)
         elif file_format == "ase":
@@ -87,7 +87,7 @@ def read_file(file_path, file_format=''):
             struct = import_json(file_path)
     elif '.cif' == file_path[-4:]:
         struct = import_cif(file_path)
-    elif '.in' == file_path[-3:]:
+    elif '.in' == file_path[-3:] or file_path.endswith('.next_step'):
         struct = import_geo(file_path)
     else:
         try: struct = import_ase(file_path)

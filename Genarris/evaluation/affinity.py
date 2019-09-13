@@ -155,11 +155,15 @@ class APHandler():
             else:
                 self.spg_bar_title = inst.get_or_none(sname, 'spg_bar_title_2')
             self.spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
+
+        print(sname, 'using structure_dir', self.structure_dir, flush=True)
         
         if self.rank == 0:
             self.make_affinity_matrix()
+            time_utils.sleep(20)
         else:
             self.distance_matrix_shape = None
+        self.comm.barrier()
         self.distance_matrix_shape = self.comm.bcast(self.distance_matrix_shape, root=0)
         if not (self.dist_mat_input_file).endswith('.dat'):
             raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
@@ -203,12 +207,9 @@ class APHandler():
 
         self.distance_matrix_shape = distance_matrix.shape
         # Write affinity matrix
-        fp = np.memmap(self.affinity_matrix_path, dtype='float32', mode='w+', shape=affinity_matrix.shape)
+        fp = np.memmap(self.affinity_matrix_path, dtype='float32', mode='write', shape=affinity_matrix.shape)
         fp[:] = affinity_matrix[:]
-        # Write memmap for distance matrix if it wasn't written like that
-        del fp
-        fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=distance_matrix.shape)
-        fp[:] = distance_matrix[:]
+        time_utils.sleep(20)
 
     def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
         '''
@@ -553,9 +554,9 @@ class APHandler():
 
         else:
             exemplar_indices = result.cluster_centers_indices_
-        #print('len(exemplar_indices)', len(exemplar_indices), flush=True)
-        #print('len(self.coll)', len(self.coll), flush=True)
-        #print('len(assigned_cluster)', len(assigned_cluster), flush=True)
+        print('len(exemplar_indices)', len(exemplar_indices), flush=True)
+        print('len(self.coll)', len(self.coll), flush=True)
+        print('len(assigned_cluster)', len(assigned_cluster), flush=True)
         #print('assigned_cluster', assigned_cluster, flush=True)
         self.exemplar_indices = np.array(exemplar_indices, dtype='int')
         #print('self.exemplar_indices', self.exemplar_indices, flush=True)
@@ -570,7 +571,7 @@ class APHandler():
 
         assigned_exemplar_index = [self.exemplar_indices[x] for x in assigned_cluster]
         assigned_exemplar_id = [exemplar_ids[x] for x in assigned_cluster]
-
+        print('len(assigned_exemplar_id)', len(assigned_exemplar_id), flush=True)
         for x in range(len(self.coll)):
             self.coll[x][1].properties[self.property_key] = assigned_cluster[x]
 
@@ -636,6 +637,7 @@ def affinity_propagation_fixed_clusters(inst, comm):
         aph.create_distance_matrix_from_exemplars()
         #print('created dist mat', flush=True)
     
+    comm.barrier()
     if comm.rank == 0 and aph.plot_histograms:
         plot_property(aph.exemplars_output_dir, prop=aph.prop, figname=aph.prop_figname, 
                         xlabel=aph.prop_xlabel, ylabel=aph.prop_ylabel, figure_size=aph.prop_figure_size,

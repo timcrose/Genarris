@@ -63,7 +63,7 @@ class ACSF(nn.Module):
         """
         if self.n_D_inter > 1:
             del_R = (self.cutoff - 1.5) / (self.n_D_inter - 1)
-            r = torch.range(start=1.0, end=(self.cutoff-0.5), step=del_R)
+            r = torch.arange(start=1.0, end=(self.cutoff-0.5), step=del_R)
         else:
             del_R = self.cutoff/2
             r = torch.tensor([self.cutoff / 2])
@@ -84,16 +84,19 @@ class ACSF(nn.Module):
         """
         if self.n_D_inter > 1:
             del_R = (self.cutoff - 1.5) / (self.n_D_inter - 1)
-            r = torch.range(start=1.0, end=(self.cutoff-0.5), step=del_R)
+            r = torch.arange(start=1.0, end=(self.cutoff-0.5), step=del_R)
         else:
             del_R = self.cutoff/2
             r = torch.tensor([self.cutoff / 2])
-
-        self.Rs = torch.tensor(r, requires_grad=self.requires_grad,
-                                device=self.device)
+        
+        self.Rs = r.clone().detach().requires_grad_(self.requires_grad)
+#        self.Rs = torch.tensor(r, requires_grad=self.requires_grad,
+#                                device=self.device)
         eta = torch.zeros(self.Rs.size()) + 1 / (2*del_R**2)
-        self.eta = torch.tensor(eta, requires_grad=self.requires_grad,
-                                device=self.device)
+        
+        self.eta = eta.clone().detach().requires_grad_(self.requires_grad)
+#        self.eta = torch.tensor(eta, requires_grad=self.requires_grad,
+#                                device=self.device)
 
     
     def init_random(self):

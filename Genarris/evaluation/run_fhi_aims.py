@@ -4,8 +4,21 @@ from Genarris.core.structure import Structure
 from Genarris.utilities import file_utils
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
-m Genarris.core.structure_handling import cell_niggli_reduction
+from Genarris.core.structure_handling import cell_niggli_reduction
 from ibslib.io import read,write
+import ase, spglib
+import ase.io
+from ase.spacegroup import Spacegroup
+import numpy as np
+
+
+def update_lattice_lengths_in_struct(struct):
+    directions = ['a', 'b', 'c']
+    for d in directions:
+        struct.properties[d] = np.linalg.norm(
+                    np.array(struct.properties['lattice_vector_' + d]))
+
+    return struct
 
 def check_type(var, desired_type):
     if desired_type == 'path':
@@ -80,6 +93,8 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
             geometry_in_next_step = os.path.join(struct_fold, 'geometry.in.next_step')
             if os.path.isfile(geometry_in_next_step):
                 file_utils.cp(geometry_in_next_step, struct_fold, dest_fname='geometry.in')
+            if len(file_utils.grep('Inconsistency of forces', aims_out)) > 0:
+                file_utils.rm(aims_out)
             if os.path.isfile(aims_out):
                 # If still running or didn't converge then don't rerun it.
                 task_list.append(1)
@@ -162,6 +177,9 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         # creates the working dirs if DNE. Gets them ready to restart otherwise.
         task_list = setup_aims_dirs(aims_output_dir, structure_dir, control_path)
         if verbose:
+            print('task_list',task_list, flush=True)
+            print('aims_output_dir', aims_output_dir, flush=True)
+            print('structure_dir', structure_dir,flush=True)
             print('world_comm.size', world_comm.size, flush=True)
 
     if world_comm.rank == 0:
@@ -214,31 +232,85 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     # Update struct json with energy
                     structure_files = glob('*.json')
                     if len(structure_files) == 0:
-                        struct = Structure()
-                        struct.build_geo_from_atom_file('geometry.in')
+                        struct = read('geometry.in', file_format='aims')
                         name = file_utils.fname_from_fpath(molecule_path)
                         structure_file = name + '.json'
-                        file_utils.write_to_file(structure_file, struct.dumps(), mode='w')
+                        struct.struct_id = name
+                        write(structure_file, struct)
                     else:
                         structure_file = structure_files[0]
-                    struct_dct = file_utils.get_dct_from_json(structure_file)
+                    struct = read(structure_file)
                     # update json with new geometry if geometry.in.next_step exists
                     geometry_in_next_step = 'geometry.in.next_step'
+                    if verbose:
+                        print('checking if', geometry_in_next_step, 'exists', flush=True)
                     if os.path.exists(geometry_in_next_step):
+                        if verbose:
+                            print(geometry_in_next_step, 'exists', flush=True)
                         file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in')
                         geometry_in_next_step = 'geometry.in'
-                        relaxed_struct = read(geometry_in_next_step, file_format='geo')
+                        relaxed_struct = read(geometry_in_next_step, file_format='aims')
+                        relaxed_struct.struct_id = struct.struct_id
+                        if verbose:
+                            print('struct_id', relaxed_struct.struct_id, flush=True)
+                            print('Z', Z, flush=True)
                         napm = len(relaxed_struct.geometry) / Z
-                        for struct_property in struct_dct['properties']:
-                            if struct_property not in relaxed_struct.properties:
-                                relaxed_struct.properties[struct_property] = struct_dct['properties'][struct_property]
+                        if verbose:
+                            print('napm', napm, 'Z', Z, flush=True)
                         relaxed_struct = cell_niggli_reduction(relaxed_struct, napm, create_duplicate=False)
-                        write(structure_file, relaxed_struct, file_format='json', overwrite=True)
-                        write(geometry_in_next_step, relaxed_struct, file_format='geo', overwrite=True)
+                        relaxed_struct = update_lattice_lengths_in_struct(relaxed_struct)
+                        if verbose:
+                            print('updated lattice lengths', flush=True)
+                        for struct_property in struct.properties:
+                            if struct_property not in relaxed_struct.properties:
+                                relaxed_struct.properties[struct_property] = struct.properties[struct_property]
+                        if verbose:
+                            print('updated struct properties', flush=True)
+                        write(geometry_in_next_step, relaxed_struct, file_format='aims', overwrite=True)
                         file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in.next_step')
+                        if verbose:
+                            print('updated', geometry_in_next_step, flush=True)
+                        ase_struct = ase.io.read(geometry_in_next_step, format='aims')
+                        lattice = ase_struct.get_cell()
+                        positions = ase_struct.get_scaled_positions()
+                        numbers = ase_struct.get_atomic_numbers()
+                        cell = (lattice, positions, numbers)
+                        if verbose:
+                            print('cell', cell, flush=True)
+                        spglib_data = spglib.get_symmetry_dataset(cell, symprec=1e-1)
+                        spglib_spg = int(spglib_data['number'])
+                        if verbose:
+                            print('spglib_spg', spglib_spg, flush=True)
+                        multiplicity = Spacegroup(spglib_spg)
+                        if multiplicity.nsymop == Z:
+                            # general position
+                            site_symmetry = 1
+                        else:
+                            # special position
+                            site_symmetry = 0
+                        if verbose:
+                            print('site_symmetry', site_symmetry, flush=True)
+                        if 'spg' in relaxed_struct.properties:
+                            relaxed_struct.properties['spg_before_relaxation'] = relaxed_struct.properties['spg']
+                        relaxed_struct.properties['spg'] = spglib_spg
+                        relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
+                        relaxed_struct.struct_id = struct.struct_id
+                        if verbose:
+                            print('relaxed struct_id', relaxed_struct.struct_id, flush=True)
+
+                        if 'site_symmetry_group' in relaxed_struct.properties and 'site_symmetry_group_before_relaxation' not in relaxed_struct.properties:
+                            relaxed_struct.properties['site_symmetry_group_before_relaxation'] = relaxed_struct.properties['site_symmetry_group']
+                        relaxed_struct.properties['site_symmetry_group'] = site_symmetry
+                        if verbose:
+                            print('updated symmetry properties', flush=True)
+                        relaxed_struct.properties[energy_name] = extract_energy(aims_out)
+                        if verbose:
+                            print('updated energy', flush=True)
+                        write(structure_file, relaxed_struct, overwrite=True)
+                        
                     else:
-                        struct_dct['properties'][energy_name] = extract_energy(aims_out)
-                        file_utils.write_dct_to_json(structure_file, struct_dct)
+                        struct.properties[energy_name] = extract_energy(aims_out)
+                        write(structure_file, struct, overwrite=True)
 
                 os.chdir('../..')
 
@@ -265,8 +337,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                 if verbose:
                     print('aims_out', aims_out, flush=True)
                     print('sname', sname, flush=True)
-                struct_dct = file_utils.get_dct_from_json(json_fpath)
-                if energy_name in struct_dct['properties'] and struct_dct['properties'][energy_name] != 'none' and \
+                struct = read(json_fpath)
+                if energy_name in struct.properties and struct.properties[energy_name] != 'none' and \
                     (sname != 'harris_approximation_batch' or len(file_utils.grep('Reading periodic restart information from file', aims_out)) > 0):
                     
                     if verbose:

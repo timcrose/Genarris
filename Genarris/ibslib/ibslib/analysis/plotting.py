@@ -164,10 +164,10 @@ def plot_IP_hist(user_input, kwargs,
         prop: String of the property of interest.              
    '''
     if type(user_input) == dict:
-        plot_IP_hist_dict(user_input, hist_kwargs, **kwargs)
+        return plot_IP_hist_dict(user_input, hist_kwargs, **kwargs)
     elif type(user_input) == str:
         s = read(user_input)
-        plot_IP_hist_dict(s, hist_kwargs, **kwargs)
+        return plot_IP_hist_dict(s, hist_kwargs, **kwargs)
     
 def plot_IP_hist_dir(struct_dir, **kwargs):
     '''
@@ -175,7 +175,7 @@ def plot_IP_hist_dir(struct_dir, **kwargs):
         Plots for a directory of structures.
     '''
     struct_dict = read(struct_dir)
-    plot_IP_hist_dict(struct_dict, **kwargs)
+    return plot_IP_hist_dict(struct_dict, **kwargs)
     
 
 def plot_IP_hist_dict(struct_dict,

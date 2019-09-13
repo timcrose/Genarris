@@ -166,7 +166,9 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         if split_comm.rank > 0:
             return
         all_rdf_vecs = np.vstack(all_rdf_vecs)
-        
+    
+    if comm.rank > 0:
+        return
     # Calculate pairwise distance matrix
     if normalize_rdf_vectors:
         norm_of_rdf_vecs_columnwise = np.linalg.norm(all_rdf_vecs, axis=0)
@@ -182,7 +184,7 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         dist_mat = dist_mat / np.max(dist_mat)
     #print('dist_mat', dist_mat, flush=True)
     #print('type(dist_mat)', type(dist_mat), flush=True)
-    fp = np.memmap(dist_mat_fpath, dtype='float32', mode='w+', shape=dist_mat.shape)
+    fp = np.memmap(dist_mat_fpath, dtype='float32', mode='write', shape=dist_mat.shape)
     fp[:] = dist_mat[:]
     
 

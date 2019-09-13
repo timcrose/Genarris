@@ -768,25 +768,24 @@ def cell_diagonal_rule(struct):
 	return True
 
 def cell_niggli_reduction(struct,napm,create_duplicate=True):
-
-    '''
-    Cell modification using Niggli reduction
-    '''
-    if create_duplicate:
-        struct = copy.deepcopy(struct)
-    lats = struct.get_lattice_vectors()
-    from spglib import niggli_reduce
-    reduced_lats =  niggli_reduce(lats)
-    if reduced_lats  is None:
-        return False
-    del(struct.properties["lattice_vector_a"])
-    del(struct.properties["lattice_vector_b"])
-    del(struct.properties["lattice_vector_c"])
-    struct.set_lattice_vectors(reduced_lats)
-    nmpc = len(struct.geometry)/napm
-    cell_lower_triangular(struct,False)
-    move_molecule_in(struct,nmpc,False)
-    return struct
+	'''
+	Cell modification using Niggli reduction
+	'''
+	if create_duplicate:
+		struct = copy.deepcopy(struct)
+	lats = struct.get_lattice_vectors()
+	from spglib import niggli_reduce
+	reduced_lats =  niggli_reduce(lats)
+	if reduced_lats  is None:
+		return False
+	del(struct.properties["lattice_vector_a"])
+	del(struct.properties["lattice_vector_b"])
+	del(struct.properties["lattice_vector_c"])
+	struct.set_lattice_vectors(reduced_lats)
+	nmpc = len(struct.geometry)/napm
+	cell_lower_triangular(struct,False)
+	move_molecule_in(struct,nmpc,False)
+	return struct
 
 def cell_modification (struct,nmpc,napm,create_duplicate=True):
 	'''
