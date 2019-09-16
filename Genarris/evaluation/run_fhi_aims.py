@@ -185,10 +185,10 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas,
         Path to the directory containing the FHI-aims library file.
     control_path: str
         Path to the directory containing the control file to use.
-    energy_name: str
+    energy_name : str
         Property name which the calculated energy will be stored with in the 
         Structure file.
-    verbose:
+    verbose : bool
         Controls verbosity of output.
         
     

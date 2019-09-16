@@ -43,35 +43,25 @@ been implemented in Genarris 2.0.</p>
 <dt id="Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch">
 <code class="sig-prename descclassname">Genarris.evaluation.run_fhi_aims.</code><code class="sig-name descname">run_fhi_aims_batch</code><span class="sig-paren">(</span><em class="sig-param">comm</em>, <em class="sig-param">world_comm</em>, <em class="sig-param">MPI_ANY_SOURCE</em>, <em class="sig-param">num_replicas</em>, <em class="sig-param">inst=None</em>, <em class="sig-param">sname=None</em>, <em class="sig-param">structure_dir=None</em>, <em class="sig-param">aims_output_dir=None</em>, <em class="sig-param">output_dir=None</em>, <em class="sig-param">aims_lib_dir=None</em>, <em class="sig-param">control_path=None</em>, <em class="sig-param">energy_name='energy'</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs multiple FHI calculations</p>
-<p class="rubric">Arguments</p>
-<dl class="simple">
-<dt>comm: mpi4py.MPI object</dt><dd><p>MPI communicator to pass into aims</p>
-</dd>
-<dt>world_comm: mpi4py.MPI object</dt><dd><p>World MPI communicator</p>
-</dd>
-<dt>MPI_ANY_SOURCE: mpi4py.MPI.ANY_SOURCE</dt><dd><p>Any source object for communication.</p>
-</dd>
-<dt>num_replicas: int</dt><dd><p>Number of replicas to perform calculation.</p>
-</dd>
-<dt>inst: genarris.core.instruct.Instruct</dt><dd><p>Config Parser object which contains all the configuration file sections
-and options for calculation.</p>
-</dd>
-<dt>sname: str</dt><dd><p>Section name which called run_fhi_aims_batch</p>
-</dd>
-<dt>struct_dir: str</dt><dd><p>Path to directory of structures to perform calculation.</p>
-</dd>
-<dt>aims_output_dir: str</dt><dd><p>Path to the directory where FHI-aims calculations should take place.</p>
-</dd>
-<dt>output_dir: str</dt><dd><p>Path to the directory where the Structure files should be saved.</p>
-</dd>
-<dt>aims_lib_dir: str</dt><dd><p>Path to the directory containing the FHI-aims library file.</p>
-</dd>
-<dt>control_path: str</dt><dd><p>Path to the directory containing the control file to use.</p>
-</dd>
-<dt>energy_name: str</dt><dd><p>Property name which the calculated energy will be stored with in the
-Structure file.</p>
-</dd>
-<dt>verbose:</dt><dd><p>Controls verbosity of output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>comm</strong> (<em>mpi4py.MPI object</em>) -- MPI communicator to pass into aims</p></li>
+<li><p><strong>world_comm</strong> (<em>mpi4py.MPI object</em>) -- World MPI communicator</p></li>
+<li><p><strong>MPI_ANY_SOURCE</strong> (<em>mpi4py.MPI.ANY_SOURCE</em>) -- Any source object for communication.</p></li>
+<li><p><strong>num_replicas</strong> (<em>int</em>) -- Number of replicas to perform calculation.</p></li>
+<li><p><strong>inst</strong> (<em>genarris.core.instruct.Instruct</em>) -- Config Parser object which contains all the configuration file sections
+and options for calculation.</p></li>
+<li><p><strong>sname</strong> (<em>str</em>) -- Section name which called run_fhi_aims_batch</p></li>
+<li><p><strong>struct_dir</strong> (<em>str</em>) -- Path to directory of structures to perform calculation.</p></li>
+<li><p><strong>aims_output_dir</strong> (<em>str</em>) -- Path to the directory where FHI-aims calculations should take place.</p></li>
+<li><p><strong>output_dir</strong> (<em>str</em>) -- Path to the directory where the Structure files should be saved.</p></li>
+<li><p><strong>aims_lib_dir</strong> (<em>str</em>) -- Path to the directory containing the FHI-aims library file.</p></li>
+<li><p><strong>control_path</strong> (<em>str</em>) -- Path to the directory containing the control file to use.</p></li>
+<li><p><strong>energy_name</strong> (<em>str</em>) -- Property name which the calculated energy will be stored with in the
+Structure file.</p></li>
+<li><p><strong>verbose</strong> -- Controls verbosity of output.</p></li>
+</ul>
 </dd>
 </dl>
 <p class="rubric">Configuration File Options</p>
