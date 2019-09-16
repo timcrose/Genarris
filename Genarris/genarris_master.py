@@ -111,7 +111,9 @@ class Genarris():
                       socket.gethostname())
         
         procedures = self.inst.get_keywords([[sname,"procedures"]],True)[0]
-        procedures_with_master_slave = ['Run_FHI_Aims_Batch', 'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
+        procedures_with_master_slave = ['Run_FHI_Aims_Batch', 
+            'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 
+            'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
         
         for section in self.inst.sections():
             print(section, flush=True)
@@ -408,6 +410,17 @@ class Genarris():
         radial_distribution_function.rdf_descriptor_by_point(self.inst)
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
+        """
+        Calls run_fhi_aims_batch using the provided single molecule path. 
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator to pass into aims
+        world_comm: mpi4py.MPI object
+            World MPI communicator
+        MPI_ANY_SOURCE: 
+        """
         from evaluation import run_fhi_aims
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='relax_single_molecule')

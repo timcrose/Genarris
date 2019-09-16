@@ -35,6 +35,10 @@ def check_type(var, desired_type):
 
 def run_aims(aims_lib_dir, comm, verbose):
         '''
+        Run a single instance of aims.
+        
+        Arguments
+        ---------
         comm: mpi4py.MPI object
             MPI communicator to pass into aims
         aims_lib_dir: str
@@ -44,8 +48,9 @@ def run_aims(aims_lib_dir, comm, verbose):
             True: Print debugging output
             False: Do not print debugging output
 
-        Purpose:
-            Run a single instance of aims.
+        Returns
+        -------
+        None
         '''
         if aims_lib_dir not in sys.path:
             sys.path.append(aims_lib_dir)
@@ -70,22 +75,28 @@ def run_aims(aims_lib_dir, comm, verbose):
 
 def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
     '''
+    FHI-aims requires a new directory for every run. So, we need to
+    create a directory for each run we anticipate doing: one per structure
+    in structure_dir.
+    
+    Arguments
+    ---------
     aims_output_dir: str
         Path to folder that will contain a folder for every structure you
         want to run FHI-aims on
     structure_dir: str
-        Path to folder that contains every structure you want to run FHI-aims on
-        in json format.
+        Path to folder that contains every structure you want to run FHI-aims 
+        on in json format.
     control_path: str
         path to FHI-aims control.in file
 
-    Return: list
-        Return task list which has a 0 for incomplete structures and 1 for completed
-        calculations for that structure.
+    
+    Returns
+    -------
+    list
+        Return task list which has a 0 for incomplete structures and 1 for 
+        completed calculations for that structure.
 
-    Purpose: FHI-aims requires a new directory for every run. So, we need to
-        create a directory for each run we anticipate doing: one per structure
-        in structure_dir.
     '''
     
     if os.path.isdir(aims_output_dir):
@@ -142,7 +153,73 @@ def extract_energy(aims_out):
     return energy
 
 
-def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None, sname=None, structure_dir=None, aims_output_dir=None, output_dir=None, aims_lib_dir=None, control_path=None, energy_name='energy', verbose=False):
+def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, 
+                       inst=None, sname=None, structure_dir=None, 
+                       aims_output_dir=None, output_dir=None, 
+                       aims_lib_dir=None, control_path=None, 
+                       energy_name='energy', verbose=False):
+    """ Performs multiple FHI calculations
+    
+    Arguments
+    ---------
+    comm: mpi4py.MPI object
+        MPI communicator to pass into aims
+    world_comm: mpi4py.MPI object
+        World MPI communicator
+    MPI_ANY_SOURCE: mpi4py.MPI.ANY_SOURCE
+        Any source object for communication.
+    num_replicas: int
+        Number of replicas to perform calculation.
+    inst: genarris.core.instruct.Instruct
+        Config Parser object which contains all the configuration file sections
+        and options for calculation.
+    sname: str
+        Section name which called run_fhi_aims_batch
+    struct_dir: str
+        Path to directory of structures to perform calculation.
+    aims_output_dir: str
+        Path to the directory where FHI-aims calculations should take place.
+    output_dir: str
+        Path to the directory where the Structure files should be saved.
+    aims_lib_dir: str
+        Path to the directory containing the FHI-aims library file.
+    control_path: str
+        Path to the directory containing the control file to use.
+    energy_name: str
+        Property name which the calculated energy will be stored with in the 
+        Structure file.
+    verbose:
+        Controls verbosity of output.
+        
+    
+    Configuration File Options
+    --------------------------
+    verbose : bool
+        Controls verbosity of output.
+    energy_name : str
+        Property name which the calculated energy will be stored with in the 
+        Structure file.
+    output_dir : str
+        Path to the directory where the output structure file will be saved.
+    aims_output_dir : str
+        Path where the aims calculation will take place.
+    aims_lib_dir : str
+        Path to the location of the directory containing the FHI-aims library 
+        file. 
+    molecule_path : str
+        Path to the geometry.in file of the molecule to be calculated if 
+        called using harris_single_molecule_prep or relax_single_molecule.
+    structure_dir: str
+        Path to the directory of structures to be calculated if calculation
+        was called not using harris_single_molecule_prep or 
+        relax_single_molecule.
+        
+        
+    Returns
+    -------
+    None
+    
+    """
     if aims_output_dir is None:
         aims_output_dir = os.getcwd()
     if inst is not None:
@@ -150,8 +227,13 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
         output_dir = inst.get_or_none(sname, 'output_dir')
         aims_output_dir = inst.get(sname, 'aims_output_dir')
-        sname_list = [sname, 'relax_single_molecule', 'fhi_aims_energy_evaluation', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
-        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 6, type_='dir', required=True)
+        sname_list = [sname, 'relax_single_molecule', 
+                      'fhi_aims_energy_evaluation', 
+                      'harris_single_molecule_prep', 
+                      'harris_approximation_batch', 
+                      'run_fhi_aims_batch']
+        aims_lib_dir = inst.get_inferred(sname, sname_list, 
+                            ['aims_lib_dir'] * 6, type_='dir', required=True)
 
         molecule_path = get_molecule_path(inst, sname)
 
@@ -170,7 +252,11 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             last_section = get_last_active_procedure_name(inst, sname)
             sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
             structure_dir = inst.get_inferred(sname, sname_list,
-                                                    ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
+                    ['structure_dir', 'exemplars_output_dir_2', 
+                     'exemplars_output_dir', 'output_dir', 
+                     'exemplars_output_dir_2', 'exemplars_output_dir', 
+                     'output_dir', 'output_dir', 'output_dir', 
+                     'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
 
         control_path = inst.get(sname, 'control_path')
         Z = int(inst.get_inferred(sname, [sname, 'pygenarris_structure_generation', 'estimate_unit_cell_volume'],
