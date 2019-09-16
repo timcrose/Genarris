@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="Python">
+  <head>
+    <meta charset="utf-8" />
+    <title>Welcome to Test&#39;s documentation! &#8212; Genarris 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-test-s-documentation">
+<h1>Welcome to Test's documentation!<a class="headerlink" href="#welcome-to-test-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>Please look at the Genarris 2.0 Sections for all possible sections which have
+been implemented in Genarris 2.0.</p>
+</div>
+<div class="section" id="genarris-2-0-sections">
+<h1>Genarris 2.0 Sections<a class="headerlink" href="#genarris-2-0-sections" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch">
+<code class="sig-prename descclassname">Genarris.evaluation.run_fhi_aims.</code><code class="sig-name descname">run_fhi_aims_batch</code><span class="sig-paren">(</span><em class="sig-param">comm</em>, <em class="sig-param">world_comm</em>, <em class="sig-param">MPI_ANY_SOURCE</em>, <em class="sig-param">num_replicas</em>, <em class="sig-param">inst=None</em>, <em class="sig-param">sname=None</em>, <em class="sig-param">structure_dir=None</em>, <em class="sig-param">aims_output_dir=None</em>, <em class="sig-param">output_dir=None</em>, <em class="sig-param">aims_lib_dir=None</em>, <em class="sig-param">control_path=None</em>, <em class="sig-param">energy_name='energy'</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs multiple FHI calculations</p>
+<p class="rubric">Arguments</p>
+<dl class="simple">
+<dt>comm: mpi4py.MPI object</dt><dd><p>MPI communicator to pass into aims</p>
+</dd>
+<dt>world_comm: mpi4py.MPI object</dt><dd><p>World MPI communicator</p>
+</dd>
+<dt>MPI_ANY_SOURCE: mpi4py.MPI.ANY_SOURCE</dt><dd><p>Any source object for communication.</p>
+</dd>
+<dt>num_replicas: int</dt><dd><p>Number of replicas to perform calculation.</p>
+</dd>
+<dt>inst: genarris.core.instruct.Instruct</dt><dd><p>Config Parser object which contains all the configuration file sections
+and options for calculation.</p>
+</dd>
+<dt>sname: str</dt><dd><p>Section name which called run_fhi_aims_batch</p>
+</dd>
+<dt>struct_dir: str</dt><dd><p>Path to directory of structures to perform calculation.</p>
+</dd>
+<dt>aims_output_dir: str</dt><dd><p>Path to the directory where FHI-aims calculations should take place.</p>
+</dd>
+<dt>output_dir: str</dt><dd><p>Path to the directory where the Structure files should be saved.</p>
+</dd>
+<dt>aims_lib_dir: str</dt><dd><p>Path to the directory containing the FHI-aims library file.</p>
+</dd>
+<dt>control_path: str</dt><dd><p>Path to the directory containing the control file to use.</p>
+</dd>
+<dt>energy_name: str</dt><dd><p>Property name which the calculated energy will be stored with in the
+Structure file.</p>
+</dd>
+<dt>verbose:</dt><dd><p>Controls verbosity of output.</p>
+</dd>
+</dl>
+<p class="rubric">Configuration File Options</p>
+<dl class="simple">
+<dt>verbose<span class="classifier">bool</span></dt><dd><p>Controls verbosity of output.</p>
+</dd>
+<dt>energy_name<span class="classifier">str</span></dt><dd><p>Property name which the calculated energy will be stored with in the
+Structure file.</p>
+</dd>
+<dt>output_dir<span class="classifier">str</span></dt><dd><p>Path to the directory where the output structure file will be saved.</p>
+</dd>
+<dt>aims_output_dir<span class="classifier">str</span></dt><dd><p>Path where the aims calculation will take place.</p>
+</dd>
+<dt>aims_lib_dir<span class="classifier">str</span></dt><dd><p>Path to the location of the directory containing the FHI-aims library
+file.</p>
+</dd>
+<dt>molecule_path<span class="classifier">str</span></dt><dd><p>Path to the geometry.in file of the molecule to be calculated if
+called using harris_single_molecule_prep or relax_single_molecule.</p>
+</dd>
+<dt>structure_dir: str</dt><dd><p>Path to the directory of structures to be calculated if calculation
+was called not using harris_single_molecule_prep or
+relax_single_molecule.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><em>None</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Genarris</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
