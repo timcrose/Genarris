@@ -34,43 +34,43 @@ def check_type(var, desired_type):
         raise TypeError('var', var, 'is not type', desired_type, 'as desired')
 
 def run_aims(aims_lib_dir, comm, verbose):
-        '''
-        Run a single instance of aims.
-        
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator to pass into aims
-        aims_lib_dir: str
-            File path to the f2py-compiled aims_w.so library file. This file included
-            libaims.XXXX.scalapack.mpi.so in its compilation.
-        verbose: bool
-            True: Print debugging output
-            False: Do not print debugging output
+    '''
+    Run a single instance of aims.
+    
+    Arguments
+    ---------
+    comm: mpi4py.MPI object
+        MPI communicator to pass into aims
+    aims_lib_dir: str
+        File path to the f2py-compiled aims_w.so library file. This file included
+        libaims.XXXX.scalapack.mpi.so in its compilation.
+    verbose: bool
+        True: Print debugging output
+        False: Do not print debugging output
 
-        Returns
-        -------
-        None
-        '''
-        if aims_lib_dir not in sys.path:
-            sys.path.append(aims_lib_dir)
-        import aims_w
+    Returns
+    -------
+    None
+    '''
+    if aims_lib_dir not in sys.path:
+        sys.path.append(aims_lib_dir)
+    import aims_w
 
-        rank = comm.rank
-        commf = comm.py2f()
+    rank = comm.rank
+    commf = comm.py2f()
+    if verbose:
+        print('comm.rank', comm.rank, 'entering Barrier', flush=True)
+    comm.Barrier()
+    if verbose:
+        print('comm.rank', comm.rank, 'about to run aims', flush=True)
+    try:
+        aims_w.aims_w(commf)
         if verbose:
-            print('comm.rank', comm.rank, 'entering Barrier', flush=True)
-        comm.Barrier()
+            print('comm.rank', comm.rank, 'ran aims', flush=True)
+    except:
         if verbose:
-            print('comm.rank', comm.rank, 'about to run aims', flush=True)
-        try:
-            aims_w.aims_w(commf)
-            if verbose:
-                print('comm.rank', comm.rank, 'ran aims', flush=True)
-        except:
-            if verbose:
-                print('comm.rank', comm.rank, 'could not run aims', flush=True)
-        sys.stdout.flush()
+            print('comm.rank', comm.rank, 'could not run aims', flush=True)
+    sys.stdout.flush()
 
 
 def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
@@ -98,7 +98,6 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
         completed calculations for that structure.
 
     '''
-    
     if os.path.isdir(aims_output_dir):
         #Get ready for restarting calculations
         task_list = []
@@ -153,11 +152,7 @@ def extract_energy(aims_out):
     return energy
 
 
-def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, 
-                       inst=None, sname=None, structure_dir=None, 
-                       aims_output_dir=None, output_dir=None, 
-                       aims_lib_dir=None, control_path=None, 
-                       energy_name='energy', verbose=False):
+def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None, sname=None, structure_dir=None, aims_output_dir=None, output_dir=None, aims_lib_dir=None, control_path=None, energy_name='energy', verbose=False):
     """ Performs multiple FHI calculations
     
     Arguments
@@ -227,13 +222,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas,
         energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
         output_dir = inst.get_or_none(sname, 'output_dir')
         aims_output_dir = inst.get(sname, 'aims_output_dir')
-        sname_list = [sname, 'relax_single_molecule', 
-                      'fhi_aims_energy_evaluation', 
-                      'harris_single_molecule_prep', 
-                      'harris_approximation_batch', 
-                      'run_fhi_aims_batch']
-        aims_lib_dir = inst.get_inferred(sname, sname_list, 
-                            ['aims_lib_dir'] * 6, type_='dir', required=True)
+        sname_list = [sname, 'relax_single_molecule', 'fhi_aims_energy_evaluation', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
+        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 6, type_='dir', required=True)
 
         molecule_path = get_molecule_path(inst, sname)
 
@@ -252,11 +242,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas,
             last_section = get_last_active_procedure_name(inst, sname)
             sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
             structure_dir = inst.get_inferred(sname, sname_list,
-                    ['structure_dir', 'exemplars_output_dir_2', 
-                     'exemplars_output_dir', 'output_dir', 
-                     'exemplars_output_dir_2', 'exemplars_output_dir', 
-                     'output_dir', 'output_dir', 'output_dir', 
-                     'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
+                                                    ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
 
         control_path = inst.get(sname, 'control_path')
         Z = int(inst.get_inferred(sname, [sname, 'pygenarris_structure_generation', 'estimate_unit_cell_volume'],
