@@ -55,8 +55,9 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
         Whether to save the environment vectors
 
     normalize_rdf_vectors: bool
-        Whether to normalize the rdf vectors over the columns of the feature matrix before using them to compute the
-        distance matrix. Note that each rdf vector (row of the feature matrix) is not normalized.
+        Whether to normalize the rdf vectors over the columns of the feature 
+        matrix before using them to compute the distance matrix. 
+        Note that each rdf vector (row of the feature matrix) is not normalized.
 
     standardize_distance_matrix: bool
         Whether to standardize the distance matrix. The method is to simply divide all elements by the max
@@ -189,11 +190,21 @@ def rdf_calc(structure_path, comm=None, device=torch.device("cpu"),
     
 
 def run_rdf_calc(inst, comm):
+    """
+    Performs RDF calculation using ibslib.
+    
+    
+    """
     sname = 'run_rdf_calc'
     last_section = get_last_active_procedure_name(inst, sname)
 
-    sname_list = [sname, last_section, 'fhi_aims_energy_evaluation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch']
-    structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (len(sname_list) - 1) * ['output_dir'], type_='dir', required=True)
+    sname_list = [sname, last_section, 
+                  'fhi_aims_energy_evaluation', 
+                  'harris_approximation_batch', 
+                  'pygenarris_structure_generation', 
+                  'structure_generation_batch']
+    structure_dir = inst.get_inferred(sname, sname_list, 
+        ['structure_dir'] + (len(sname_list) - 1) * ['output_dir'], type_='dir', required=True)
 
     n_D_inter = inst.get_with_default(sname, 'n_D_inter', 12, eval=True)
     init_scheme = inst.get_with_default(sname, 'init_scheme', 'shifted')
@@ -224,5 +235,8 @@ def run_rdf_calc(inst, comm):
                         "learn_rep": learn_rep
                      }
 
-    rdf_calc(structure_dir, comm=comm, device=torch.device(device), acsf_kwargs=acsf_kwargs, pdist_distance_type=pdist_distance_type, dist_mat_fpath=dist_mat_fpath, output_dir=output_dir,
-                    save_envs=save_envs, normalize_rdf_vectors=normalize_rdf_vectors, standardize_distance_matrix=standardize_distance_matrix)
+    rdf_calc(structure_dir, comm=comm, device=torch.device(device), 
+             acsf_kwargs=acsf_kwargs, pdist_distance_type=pdist_distance_type, 
+             dist_mat_fpath=dist_mat_fpath, output_dir=output_dir,
+             save_envs=save_envs, normalize_rdf_vectors=normalize_rdf_vectors, 
+             standardize_distance_matrix=standardize_distance_matrix)

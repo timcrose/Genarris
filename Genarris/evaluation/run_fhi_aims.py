@@ -147,7 +147,8 @@ def extract_energy(aims_out):
     search_str = '| Total energy of the DFT'
     grep_results = file_utils.grep(search_str, aims_out)
     if len(grep_results) > 1 or len(grep_results) == 0:
-        print('wanted one and only one match to "| Total energy of the DFT" but didnt get that for ' + aims_out, flush=True)
+        print('wanted one and only one match to "| Total energy of the DFT"'+
+              'but didnt get that for ' + aims_out, flush=True)
         return 'none'
     energy = float(grep_results[0].split()[11])
     return energy
@@ -209,7 +210,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas,
     molecule_path : str
         Path to the geometry.in file of the molecule to be calculated if 
         called using harris_single_molecule_prep or relax_single_molecule.
-    structure_dir: str
+    structure_dir : str
         Path to the directory of structures to be calculated if calculation
         was called not using harris_single_molecule_prep or 
         relax_single_molecule.
@@ -217,7 +218,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas,
         
     Returns
     -------
-    None
+    None : None
+        
     
     """
     if aims_output_dir is None:

@@ -12,6 +12,9 @@ def estimate_unit_cell_volume(inst, comm):
     then create or overwrite option 'volume_mean' and 'volume_std'. If section
     pygenarris_structure_generation exists, then create or overwrite option
     'ucv_target', 'ucv_std', and 'ucv_ratio_range'.
+    
+    
+    
     """
 
     sname = 'estimate_unit_cell_volume'
@@ -33,7 +36,8 @@ def estimate_unit_cell_volume(inst, comm):
     struct_vol_estimate = Z * vol_estimate
     # Make an option but default is from underlying distribution
 
-    std_of_predicted_errors = inst.get_with_default(sname, 'std_of_predicted_errors', 0.025, eval=True)
+    std_of_predicted_errors = inst.get_with_default(sname, 
+                                'std_of_predicted_errors', 0.025, eval=True)
     std_to_use = 3.0 * std_of_predicted_errors * struct_vol_estimate
     vol_lower_bound = struct_vol_estimate - std_to_use
     vol_upper_bound = struct_vol_estimate + std_to_use

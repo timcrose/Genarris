@@ -12,13 +12,12 @@
 #
 import os
 import sys
-sys.path.insert(0, ("../../../Genarris"))
-
+import Genarris
 # -- Project information -----------------------------------------------------
 
 project = 'Genarris'
 copyright = ''
-author = '<Put Genarris Authors>'
+author = 'Rithwik Tom, Timothy Rose, Imanuel Bier'
 
 # The full version, including alpha/beta/rc tags
 release = '2.0'

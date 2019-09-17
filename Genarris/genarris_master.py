@@ -14,9 +14,9 @@ Created on Wed Jun 17 22:13:09 2015
 
 import os
 import sys,socket
-from core import instruct
+from Genarris.core import instruct
 #from utilities import parallel_run, write_log
-from utilities import write_log, mpi_utils
+from Genarris.utilities import write_log, mpi_utils
 from mpi4py import MPI
 import time, random
 
@@ -54,12 +54,24 @@ def test():
 
 class Genarris():
     '''
-    This is the master class of Genarris
-    Takes the path to a configuration file as a necessary input
+    Master class of Genarris. It controls all aspects of the 
+    Genarris workflow which can be executed individually or sequantially. 
+    Begins by reading and intepreting the configuration file. 
+    Calls the defined procedures with the options specified in the 
+    configuration file. Some options may be inferred from previous sections 
+    if they are not present in every section. 
+    
+    Arguments
+        ---------
+        inst_path: str
+            Path to the configuration file.
+    
+    
     '''
     def __init__(self,inst_path):
         '''
-        Interprets the instruction and calls the respective attributes of self.
+        Defines abstract workflow of Genarris. 
+        
         '''
         start_time = time.time()
         comm = MPI.COMM_WORLD
@@ -263,6 +275,87 @@ class Genarris():
         affinity.affinity_propagation_distance_matrix(self.inst)
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
+        """
+        AP that explores the setting of preference in order to generate
+        desired number of clusters.
+        
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator.
+        
+        
+        Configuration File Options
+        --------------------------
+        output_dir : str
+            Path to the directory where the chosen structures will be stored. 
+        preference_range : list
+            List of two values as the [min, max] of the range of allowable 
+            preference values.
+        structure_dir : str, inffered
+            Path to the directory of files to be used for the calculation. 
+            Default is to infer this value from the previous section.
+        dist_mat_input_file : str, inferred
+            Path to the distance matrix output from the descriptor calculation.
+            Default is to infer this value from the previous sections.
+        output_format : str, optional
+            Format the structure files should be saved as. Default is both.
+        cluster_on_energy : bool, optional 
+            Uses energy values to determine examplars. Structures with the 
+            lowest energy values from each cluster are selected. 
+            Default is False.
+        plot_histograms : bool, optional
+            If histogram plots should be created of the volume and space
+            groups. Default is False.
+        num_of_clusters : int or float, optional
+            Float, must be less than 0. Selects a fraction of the structures. 
+            Int, selects specific number of structures equal to int. 
+            Default is 0.1.
+        num_of_clusters_tolerance : int, optional
+            Algorithm will stop if it has generated the number of clusters 
+            within the number of desired clusters and this tolerance. 
+            Default is 0.
+        max_sampled_preferences : int, optional
+            Maximum number of preference values to try. 
+        output_without_success : bool, optional
+            Whether to perform output procedures if the algorithm has reached
+            the maximum number of sampled preferences without finding the 
+            correct number of clusters. Default is False.
+        affinity_type : list, optional
+            List of [type of afinity, value] argument Scikit-Learn AP alogrithm. 
+        affinity_matrix_path : str, optional
+            Path to the affinity matrix to use for the AP algorithm.
+            Default is "affinity_matrix.dat".
+        damping : float, optional
+            damping argument for Scikit-Learn AP algorithm. Default is 0.5.
+        convergence_iter : int, optional
+            convergence_iter argument for Scikit-Learn AP algorithm.
+            Default is 15. 
+        max_iter : int, optional
+            max_iter argument for Scikit-Learn AP algorithm. Default is 1000.
+        preference : int, optional
+            preference argument for Scikit-Learn AP algorithm. Default is None.
+        verbose_output : bool, optional
+            verbose argument for Scikit-Learn AP algorithm. Default is False.
+        property_key : str, optional
+            Key which the AP cluster will be stored in the properties of 
+            each structure object. Default is AP_cluster. 
+        output_file : str, optional
+            Path where info about the AP alogrithm execution will be stored.
+            Default is "./AP_cluster.info". 
+        exemplars_output_dir : str, optional
+            If provided, will output the examplars of each cluster to this 
+            folder. Default is None.
+        exemplars_output_format : str, optional
+            File format of structures to be output. Default is both.
+        structure_suffix : str, optional
+            Suffix to apply to structure files which are written. 
+            Default is ".json".
+        
+    
+        """
+        
         from evaluation import affinity
         start_time = time.time()
         affinity.affinity_propagation_fixed_clusters(self.inst, comm)
@@ -278,11 +371,37 @@ class Genarris():
         selection.cluster_based_selection(self.inst)
 
     def Estimate_Unit_Cell_Volume(self, comm):
+        """
+        Performs volume estimation using a machine learned model train on the 
+        CSD and based on Monte Carlo volume integration and topological 
+        molecular fragments. See Genarris 2.0 paper for full description.
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator.
+            
+        Configuration File Options
+        --------------------------
+        volume_mean : float, optional
+            If provided, uses this value as the volume generation mean without
+            using the ML model to etimate the volume.
+        volume_std : float, optional
+            If provided, uses this value for structure generation, otherwise 
+            a default value of 0.075 is provided.
+        
+        Returns
+        -------
+        None : None
+            Returns an object of type None. 
+        
+        """
         from utilities import volume_estimator
         start_time = time.time()
         self.inst = volume_estimator.estimate_unit_cell_volume(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Estimate_Unit_Cell_Volume', time.time() - start_time, flush=True)
+            print('time taken for Estimate_Unit_Cell_Volume', 
+                  time.time() - start_time, flush=True)
 
     def Estimate_Unit_Cell_Volume_v1(self, comm):
         from generation import generation_modules
@@ -300,7 +419,24 @@ class Genarris():
         from evaluation import fhi_aims_modules
         fhi_aims_modules.fhi_aims_extract(self.inst)
 
-    def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
+    def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, 
+                                   num_replicas):
+        """
+        Runs Self-Consistent Field calculation on a pool of structures. 
+        
+        Arguments
+        ---------
+        See :meth:`Run_FHI_Aims_Batch`
+        
+        Configuration File Options
+        --------------------------
+        See :meth:`Run_FHI_Aims_Batch`
+        
+        Returns
+        -------
+        None : None
+        
+        """
         from evaluation import run_fhi_aims
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='fhi_aims_energy_evaluation')
@@ -358,6 +494,60 @@ class Genarris():
         pool_analysis.pool_single_structure_analysis(self.inst)
 
     def Pygenarris_Structure_Generation(self, comm):
+        """
+        Uses the Genarris module written in C to perform structure generation. 
+        This module enables generation on special positions. 
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator.
+        
+        Configuration File Options
+        --------------------------
+        molecule_path : str
+            Path to the relaxed molecule geometry.
+        output_format : str, 
+            Determines the type of file which will be output for each 
+            structure. Can be one of: json, geo, both. 
+        output_dir : str
+            Path to the directory which will contain all generated structures
+            which pass the intermolecular distance checks.
+        
+        
+        num_structures : int
+            Target number of structures to generate.
+        Z : int
+            Number of molecules per cell to generate. 
+        volume_mean : float, optional
+            See :meth:`Estimate_Unit_Cell_Volume`
+        volume_std : float, optional
+            See :meth:`Estimate_Unit_Cell_Volume`
+        sr : float, optional
+            Defines the minimum intermolecular distance that is considered
+            physical by multiplying the sum of the van der Waals radii of the
+            interacting atoms by sr. Default value is 0.85. 
+        tol : float, optional
+            Tolerance to be used to identify space groups compatible with the 
+            input molecule.
+        
+        max_attempts_per_spg_per_rank : int
+            Defines the maximum number of attempts the structure generator 
+            makes before moving on to the next space group.
+        num_structures_per_allowed_SG_per_rank : int
+            Number of structures per space group per rank which will be 
+            generated by Pygenarris.
+        geometry_out_filename : str
+            Filename where all structures generated by Pygenarris will be found.
+        
+        omp_num_threads : int
+            Number of OpenMP threads to pass into Pygenarris
+        truncate_to_num_structures : bool
+            If true, will reduce pool to exactly the number defined by 
+            num_structures. 
+        
+        
+        """
         from generation import run_pygenarris
         start_time = time.time()
         run_pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
@@ -395,6 +585,61 @@ class Genarris():
         relative_coordinate_descriptor.rcd_difference_calculation(self.inst)
 
     def Run_Rdf_Calc(self, comm):
+        """
+        Runs RDF calculation for the pool of generated structures. RDF 
+        descriptor is similar to that described in Behler and Parrinello 2007.
+        Then calculates the structure difference matrix.
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator.
+        
+        
+        Configuration File Options
+        --------------------------
+        dist_mat_fpath : str
+            Path to file to write distance matrix to.
+        output_dir : str
+            Path of directory to write structures to (will create if it DNE). 
+            If 'no_new_output_dir' then input structures will be overwritten.
+        normalize_rdf_vectors: bool,optional
+            Whether to normalize the rdf vectors over the columns of the 
+            feature matrix before using them to compute the distance matrix. 
+            Default is Falase. 
+        standardize_distance_matrix: bool
+            If True, standardizes the distance matrix. The method is to divide 
+            all elements by the max value in the distance matrix. 
+            Because it is a distance matrix and thus all elements are positive,
+            the standardized elements will be in the range [0, 1].
+            Default is False. 
+        save_envs: bool, optional
+            Whether to save the environment vectors calculated by the RDF 
+            method in the output structure files. Default is False.
+        cutoff : float, optional
+            Cutoff radius to apply to the atom centered symmetry function.
+            Default is 12.
+        n_D_inter : int, optional
+            Number of dimensions to use for each type of pair-wise 
+            interatomic interaction found in the structure. Default is 12.
+        init_scheme : str, optional
+            Can be centered or shifted, as described in Gastegger et al. 2018.
+            Default is shifted.
+        eta_range : list, optional
+            List of two floats which define the range for eta parameter in 
+            Gastegger et al. 2018. Default is [0.05,0.5].
+        Rs_range : list, optional
+            List of two floats which define the range for Rs parameter in 
+            Gastegger et al. 2018. Default is [[0.1,12].
+        pdist_distance_type : str,optional
+            Input parameter for the pdist function. Default is Euclidean. 
+        
+        
+        Returns
+        -------
+        None : None
+        
+        """
         from evaluation import rdf_calc
         start_time = time.time()
         rdf_calc.run_rdf_calc(self.inst, comm)
@@ -415,11 +660,19 @@ class Genarris():
         
         Arguments
         ---------
-        comm: mpi4py.MPI object
-            MPI communicator to pass into aims
-        world_comm: mpi4py.MPI object
-            World MPI communicator
-        MPI_ANY_SOURCE: 
+        for_parameters:
+            See :meth:`Run_FHI_Aims_Batch`
+        
+        Configuration File Options
+        --------------------------
+        See :meth:`Run_FHI_Aims_Batch`
+            
+        
+        Returns
+        -------
+        None : None
+            Returns an object of type None. 
+        
         """
         from evaluation import run_fhi_aims
         start_time = time.time()
@@ -436,6 +689,47 @@ class Genarris():
         harris_approximation.reverse_harris_approximation_batch(self.inst)
 
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
+        """
+        Runs FHI-aims calculations on a pool of structures using num_replicas.
+        
+        Arguments
+        ---------
+        comm: mpi4py.MPI object
+            MPI communicator to pass into aims
+        world_comm: mpi4py.MPI object
+            World MPI communicator
+        MPI_ANY_SOURCE: mpi4py.MPI.ANY_SOURCE 
+            MPI ANY_SOURCE object to facilitate communication.
+        num_replicas: int
+            Number of replicas to use in calculation.
+        
+        Configuration File Options
+        --------------------------
+        verbose : bool
+            Controls verbosity of output.
+        energy_name : str
+            Property name which the calculated energy will be stored with in the 
+            Structure file.
+        output_dir : str
+            Path to the directory where the output structure file will be saved.
+        aims_output_dir : str
+            Path where the aims calculation will take place.
+        aims_lib_dir : str
+            Path to the location of the directory containing the FHI-aims library 
+            file. 
+        molecule_path : str
+            Path to the geometry.in file of the molecule to be calculated if 
+            called using harris_single_molecule_prep or relax_single_molecule.
+        structure_dir : str
+            Path to the directory of structures to be calculated if calculation
+            was called not using harris_single_molecule_prep or 
+            relax_single_molecule.
+        
+        Returns
+        -------
+        None : None
+            
+        """
         from evaluation import run_fhi_aims
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='run_fhi_aims_batch')

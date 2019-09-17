@@ -84,6 +84,16 @@ def set_up(molecule_path):
 
 def format_output(output_format, output_dir, final_filename, num_structures, truncate_to_num_structures, Z):
     '''
+    After all structures have been output by various cores into a file 
+    (with a filename being a variant of final_filename), collect all the 
+    structures into a usable format: output a single file which is fhi-aims 
+    geometry format if "geometry" or "both" is output_format or a folder of 
+    json files (one for each structure) if "json" or "both" is output_format.
+    Pick a random subset of structures from the ones generated with length 
+    num_structures and remove the rest.
+    
+    Arguments
+    ---------        
     output_format: str
         "json" for outputting a folder of json files - each containing a structure
         "geometry" for outputting a single geometry file where each structure's fhi-aims-formatted structure
@@ -107,12 +117,10 @@ def format_output(output_format, output_dir, final_filename, num_structures, tru
     Z: int
         Number of molecules per unit cell
 
-    Return: None
-
-    Purpose: After all structures have been output by various cores into a file (with a filename being a variant of
-        final_filename), collect all the structures into a usable format: output a single file which is fhi-aims geometry 
-        format if "geometry" or "both" is output_format or a folder of json files (one for each structure) if "json" or "both" is output_format.
-        Pick a random subset of structures from the ones generated with length num_structures and remove the rest.
+    Returns
+    -------
+    None : None
+    
     '''
     if not (output_format == 'json' or output_format == 'geometry' or output_format == 'both'):
         raise Exception('Only "json", "geometry", or "both" are supported output formats. output_format = ', output_format)
@@ -166,10 +174,16 @@ def clean_up(final_filename, comm_size, output_format):
     if output_format == 'json':
         os.remove(final_filename)
 
-def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, 
-                                    volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, molecule_path=None, omp_num_threads=1, 
-                                    truncate_to_num_structures=False):
-    # Currently does not support multiple instances running simultaneously. If you want more simultaneous processes, submit more MPI ranks.
+def pygenarris_structure_generation(inst=None, comm=None, filename=None, 
+        num_structures_per_allowed_SG_per_rank=None, Z=None, volume_mean=None, 
+        volume_std=None, sr=None, tol=None, max_attempts_per_spg_per_rank=None, 
+        molecule_path=None, omp_num_threads=1, 
+        truncate_to_num_structures=False):
+    """
+    Passes in all necessary arguments for generation to Pygenarris.
+    """
+    # Currently does not support multiple instances running simultaneously. 
+    # If you want more simultaneous processes, submit more MPI ranks.
     previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
         sname = 'pygenarris_structure_generation'
@@ -257,7 +271,9 @@ def pygenarris_structure_generation(inst=None, comm=None, filename=None, num_str
     print('max_attempts_per_spg_per_rank', max_attempts_per_spg_per_rank, flush=True)
     time_utils.sleep(0.01 * comm.rank)
     np.savetxt('cutoff_matrix', cutoff_matrix)
-    pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, seed, cutoff_matrix, num_structures_per_allowed_SG_per_rank, Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
+    pygenarris.generate_molecular_crystals_with_vdw_cutoff_matrix(filename, 
+                   seed, cutoff_matrix, num_structures_per_allowed_SG_per_rank, 
+                   Z, volume_mean, volume_std, tol, max_attempts_per_spg_per_rank)
     if comm is not None:
         print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, 'comm.rank', comm.rank,  flush=True)
     if comm is not None:
