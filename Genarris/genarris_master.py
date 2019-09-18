@@ -293,7 +293,7 @@ class Genarris():
         preference_range : list
             List of two values as the [min, max] of the range of allowable 
             preference values.
-        structure_dir : str, inffered
+        structure_dir : str, inferred
             Path to the directory of files to be used for the calculation. 
             Default is to infer this value from the previous section.
         dist_mat_input_file : str, inferred
@@ -326,7 +326,7 @@ class Genarris():
             List of [type of afinity, value] argument Scikit-Learn AP alogrithm. 
         affinity_matrix_path : str, optional
             Path to the affinity matrix to use for the AP algorithm.
-            Default is "affinity_matrix.dat".
+            Default is ``affinity_matrix.dat``.
         damping : float, optional
             damping argument for Scikit-Learn AP algorithm. Default is 0.5.
         convergence_iter : int, optional
@@ -340,10 +340,10 @@ class Genarris():
             verbose argument for Scikit-Learn AP algorithm. Default is False.
         property_key : str, optional
             Key which the AP cluster will be stored in the properties of 
-            each structure object. Default is AP_cluster. 
+            each structure object. Default is ``AP_cluster``. 
         output_file : str, optional
             Path where info about the AP alogrithm execution will be stored.
-            Default is "./AP_cluster.info". 
+            Default is ``./AP_cluster.info``.
         exemplars_output_dir : str, optional
             If provided, will output the examplars of each cluster to this 
             folder. Default is None.
@@ -351,8 +351,27 @@ class Genarris():
             File format of structures to be output. Default is both.
         structure_suffix : str, optional
             Suffix to apply to structure files which are written. 
-            Default is ".json".
-        
+            Default is ``.json``.
+            
+        output_dir_2: str, inferred
+            Code automatically looks for the option output_dir_2 if the 
+            output directory already exists. This is how the code currently 
+            identifies that AP is running for a second time. Default behavior
+            is to not use this option if output_dir does not already exist.
+        num_of_clusters_2: int or float, optional
+            num_of_clusters for second clustering step. Default value is 0.1.
+        output_file_2 : str, inferred
+            Use if running AP algorithm twice, such as in the Robust workflow.
+            Default is to use output_file.
+        exemplars_output_dir_2 : str, inferred
+            Exemplars output directory if second clustering step is used. 
+            Default is to use exemplars_output_dir.
+        cluster_on_energy_2 : str, inferred
+            How to choose examplars for the second clustering step. Default 
+            is to use cluster_on_energy value. 
+        energy_name_2 : str, inferred
+            Energy name to use for second clustering step. Default is to use 
+            energy_name.
     
         """
         
@@ -388,7 +407,8 @@ class Genarris():
             using the ML model to etimate the volume.
         volume_std : float, optional
             If provided, uses this value for structure generation, otherwise 
-            a default value of 0.075 is provided.
+            a default value of 0.075 multiplied by the prediction volume per 
+            unit cell is provided.
         
         Returns
         -------
@@ -598,6 +618,8 @@ class Genarris():
         
         Configuration File Options
         --------------------------
+        structure_dir : str, inferred
+            Path to the directory of structures to evaluate. 
         dist_mat_fpath : str
             Path to file to write distance matrix to.
         output_dir : str
@@ -660,8 +682,7 @@ class Genarris():
         
         Arguments
         ---------
-        for_parameters:
-            See :meth:`Run_FHI_Aims_Batch`
+        See :meth:`Run_FHI_Aims_Batch`
         
         Configuration File Options
         --------------------------
@@ -714,16 +735,18 @@ class Genarris():
             Path to the directory where the output structure file will be saved.
         aims_output_dir : str
             Path where the aims calculation will take place.
-        aims_lib_dir : str
+        aims_lib_dir : str, inferred
             Path to the location of the directory containing the FHI-aims library 
             file. 
         molecule_path : str
             Path to the geometry.in file of the molecule to be calculated if 
             called using harris_single_molecule_prep or relax_single_molecule.
-        structure_dir : str
+        structure_dir : str, inferred
             Path to the directory of structures to be calculated if calculation
             was called not using harris_single_molecule_prep or 
             relax_single_molecule.
+        Z : int, inferred
+            Number of molecules per cell. 
         
         Returns
         -------

@@ -55,7 +55,7 @@ are inferred are thus optional in all proceeding sections.
     typically overlap with options which would typically be found in the configuration file. 
     However, these optional arguments can be provided to run it as a standalone function.
     
-    Configuration file parameter infered parameters...
+    Configuration file parameter inferred parameters...
 
 
 Genarris 2.0 Procedures for Robust Workflow
@@ -72,8 +72,8 @@ Genarris 2.0 Procedures for Robust Workflow
 
 
 
-Genarris 2.0 Functions
-----------------------
+Genarris 2.0 Callable Functions
+-------------------------------
 
 .. autofunction:: Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch
 
@@ -83,3 +83,25 @@ Genarris 2.0 Functions
 .. Hypderlinks to be included in the document
 
 .. _configuration: https://docs.python.org/3.4/library/configparser.html
+
+
+
+..
+    Code Improvements
+    -----------------
+    Affinity propagation routine needs to be written in a general way to accept 
+    two or more operations of clustering seamlessly. For this, I recommend to 
+    allow for procedure names such as ``Affinity_Propagation_Fixed_Clusters`` for 
+    only a single calculation and ``Affinity_Propagation_Fixed_Clusters_1`` and
+    ``Affinity_Propagation_Fixed_Clusters_2``, and so on for more than one 
+    calculation. This can be handled easily if the procedure name is parsed 
+    before execution. Then, set ``sname`` and ``self.run_num`` in the ``APHandler`` 
+    class to the corresponding value. This allows for more two executions of 
+    AP in a simple way.
+    
+    Need to implement a default.conf file. Instruct will parse this file first
+    and then parse the user provided configuration file, thus overwriting the 
+    settings of default.conf if they are provided. The default procedures will
+    be an empty list, but all default settings in their respective settings
+    will be provided.
+    

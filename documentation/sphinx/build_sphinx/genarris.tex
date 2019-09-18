@@ -152,11 +152,12 @@ Path to the configuration file.
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Affinity_Propagation_Fixed_Clusters}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Affinity\_Propagation\_Fixed\_Clusters}}}{\emph{comm}}{}
 AP that explores the setting of preference in order to generate
 desired number of clusters.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator.
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator.
 
-\end{description}\end{quote}
+\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{output\_dir}] \leavevmode{[}str{]}
@@ -166,7 +167,7 @@ Path to the directory where the chosen structures will be stored.
 List of two values as the {[}min, max{]} of the range of allowable
 preference values.
 
-\item[{structure\_dir}] \leavevmode{[}str, inffered{]}
+\item[{structure\_dir}] \leavevmode{[}str, inferred{]}
 Path to the directory of files to be used for the calculation.
 Default is to infer this value from the previous section.
 
@@ -209,7 +210,7 @@ List of {[}type of afinity, value{]} argument Scikit-Learn AP alogrithm.
 
 \item[{affinity\_matrix\_path}] \leavevmode{[}str, optional{]}
 Path to the affinity matrix to use for the AP algorithm.
-Default is "affinity\_matrix.dat".
+Default is \sphinxcode{\sphinxupquote{affinity\_matrix.dat}}.
 
 \item[{damping}] \leavevmode{[}float, optional{]}
 damping argument for Scikit-Learn AP algorithm. Default is 0.5.
@@ -229,11 +230,11 @@ verbose argument for Scikit-Learn AP algorithm. Default is False.
 
 \item[{property\_key}] \leavevmode{[}str, optional{]}
 Key which the AP cluster will be stored in the properties of
-each structure object. Default is AP\_cluster.
+each structure object. Default is \sphinxcode{\sphinxupquote{AP\_cluster}}.
 
 \item[{output\_file}] \leavevmode{[}str, optional{]}
 Path where info about the AP alogrithm execution will be stored.
-Default is "./AP\_cluster.info".
+Default is \sphinxcode{\sphinxupquote{./AP\_cluster.info}}.
 
 \item[{exemplars\_output\_dir}] \leavevmode{[}str, optional{]}
 If provided, will output the examplars of each cluster to this
@@ -244,7 +245,32 @@ File format of structures to be output. Default is both.
 
 \item[{structure\_suffix}] \leavevmode{[}str, optional{]}
 Suffix to apply to structure files which are written.
-Default is ".json".
+Default is \sphinxcode{\sphinxupquote{.json}}.
+
+\item[{output\_dir\_2: str, inferred}] \leavevmode
+Code automatically looks for the option output\_dir\_2 if the
+output directory already exists. This is how the code currently
+identifies that AP is running for a second time. Default behavior
+is to not use this option if output\_dir does not already exist.
+
+\item[{num\_of\_clusters\_2: int or float, optional}] \leavevmode
+num\_of\_clusters for second clustering step. Default value is 0.1.
+
+\item[{output\_file\_2}] \leavevmode{[}str, inferred{]}
+Use if running AP algorithm twice, such as in the Robust workflow.
+Default is to use output\_file.
+
+\item[{exemplars\_output\_dir\_2}] \leavevmode{[}str, inferred{]}
+Exemplars output directory if second clustering step is used.
+Default is to use exemplars\_output\_dir.
+
+\item[{cluster\_on\_energy\_2}] \leavevmode{[}str, inferred{]}
+How to choose examplars for the second clustering step. Default
+is to use cluster\_on\_energy value.
+
+\item[{energy\_name\_2}] \leavevmode{[}str, inferred{]}
+Energy name to use for second clustering step. Default is to use
+energy\_name.
 
 \end{description}
 
@@ -257,11 +283,12 @@ Default is ".json".
 Performs volume estimation using a machine learned model train on the
 CSD and based on Monte Carlo volume integration and topological
 molecular fragments. See Genarris 2.0 paper for full description.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator.
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator.
 
-\end{description}\end{quote}
+\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{volume\_mean}] \leavevmode{[}float, optional{]}
@@ -270,7 +297,8 @@ using the ML model to etimate the volume.
 
 \item[{volume\_std}] \leavevmode{[}float, optional{]}
 If provided, uses this value for structure generation, otherwise
-a default value of 0.075 is provided.
+a default value of 0.075 multiplied by the prediction volume per
+unit cell is provided.
 
 \end{description}
 \begin{quote}\begin{description}
@@ -286,11 +314,9 @@ a default value of 0.075 is provided.
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.FHI_Aims_Energy_Evaluation}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{FHI\_Aims\_Energy\_Evaluation}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
 Runs Self-Consistent Field calculation on a pool of structures.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{See :meth:{}`Run\_FHI\_Aims\_Batch{}`}
+\subsubsection*{Arguments}
 
-\end{description}\end{quote}
+See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
 \subsubsection*{Configuration File Options}
 
 See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
@@ -308,11 +334,12 @@ See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Pygenarris_Structure_Generation}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Pygenarris\_Structure\_Generation}}}{\emph{comm}}{}
 Uses the Genarris module written in C to perform structure generation.
 This module enables generation on special positions.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator.
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator.
 
-\end{description}\end{quote}
+\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{molecule\_path}] \leavevmode{[}str{]}
@@ -369,86 +396,6 @@ num\_structures.
 
 \end{fulllineitems}
 
-\index{Relax\_Single\_Molecule() (Genarris.genarris\_master.Genarris method)@\spxentry{Relax\_Single\_Molecule()}\spxextra{Genarris.genarris\_master.Genarris method}}
-
-\begin{fulllineitems}
-\phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Relax_Single_Molecule}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Relax\_Single\_Molecule}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
-Calls run\_fhi\_aims\_batch using the provided single molecule path.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{for\_parameters} -- See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
-
-\end{description}\end{quote}
-\subsubsection*{Configuration File Options}
-
-See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None}) -- Returns an object of type None.
-
-\end{description}\end{quote}
-
-\end{fulllineitems}
-
-\index{Run\_FHI\_Aims\_Batch() (Genarris.genarris\_master.Genarris method)@\spxentry{Run\_FHI\_Aims\_Batch()}\spxextra{Genarris.genarris\_master.Genarris method}}
-
-\begin{fulllineitems}
-\phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
-Runs FHI-aims calculations on a pool of structures using num\_replicas.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode\begin{itemize}
-\item {} 
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator to pass into aims
-
-\item {} 
-\sphinxstylestrong{world\_comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- World MPI communicator
-
-\item {} 
-\sphinxstylestrong{MPI\_ANY\_SOURCE} (\sphinxstyleemphasis{mpi4py.MPI.ANY\_SOURCE}) -- MPI ANY\_SOURCE object to facilitate communication.
-
-\item {} 
-\sphinxstylestrong{num\_replicas} (\sphinxstyleemphasis{int}) -- Number of replicas to use in calculation.
-
-\end{itemize}
-
-\end{description}\end{quote}
-\subsubsection*{Configuration File Options}
-\begin{description}
-\item[{verbose}] \leavevmode{[}bool{]}
-Controls verbosity of output.
-
-\item[{energy\_name}] \leavevmode{[}str{]}
-Property name which the calculated energy will be stored with in the
-Structure file.
-
-\item[{output\_dir}] \leavevmode{[}str{]}
-Path to the directory where the output structure file will be saved.
-
-\item[{aims\_output\_dir}] \leavevmode{[}str{]}
-Path where the aims calculation will take place.
-
-\item[{aims\_lib\_dir}] \leavevmode{[}str{]}
-Path to the location of the directory containing the FHI-aims library
-file.
-
-\item[{molecule\_path}] \leavevmode{[}str{]}
-Path to the geometry.in file of the molecule to be calculated if
-called using harris\_single\_molecule\_prep or relax\_single\_molecule.
-
-\item[{structure\_dir}] \leavevmode{[}str{]}
-Path to the directory of structures to be calculated if calculation
-was called not using harris\_single\_molecule\_prep or
-relax\_single\_molecule.
-
-\end{description}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
-
-\end{description}\end{quote}
-
-\end{fulllineitems}
-
 \index{Run\_Rdf\_Calc() (Genarris.genarris\_master.Genarris method)@\spxentry{Run\_Rdf\_Calc()}\spxextra{Genarris.genarris\_master.Genarris method}}
 
 \begin{fulllineitems}
@@ -456,13 +403,17 @@ relax\_single\_molecule.
 Runs RDF calculation for the pool of generated structures. RDF
 descriptor is similar to that described in Behler and Parrinello 2007.
 Then calculates the structure difference matrix.
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator.
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator.
 
-\end{description}\end{quote}
+\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
+\item[{structure\_dir}] \leavevmode{[}str, inferred{]}
+Path to the directory of structures to evaluate.
+
 \item[{dist\_mat\_fpath}] \leavevmode{[}str{]}
 Path to file to write distance matrix to.
 
@@ -518,63 +469,140 @@ Input parameter for the pdist function. Default is Euclidean.
 
 \end{fulllineitems}
 
+\index{Relax\_Single\_Molecule() (Genarris.genarris\_master.Genarris method)@\spxentry{Relax\_Single\_Molecule()}\spxextra{Genarris.genarris\_master.Genarris method}}
+
+\begin{fulllineitems}
+\phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Relax_Single_Molecule}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Relax\_Single\_Molecule}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
+Calls run\_fhi\_aims\_batch using the provided single molecule path.
+\subsubsection*{Arguments}
+
+See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
+\subsubsection*{Configuration File Options}
+
+See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
+\begin{quote}\begin{description}
+\item[{Returns}] \leavevmode
+\sphinxstylestrong{None} (\sphinxstyleemphasis{None}) -- Returns an object of type None.
+
+\end{description}\end{quote}
+
+\end{fulllineitems}
+
+\index{Run\_FHI\_Aims\_Batch() (Genarris.genarris\_master.Genarris method)@\spxentry{Run\_FHI\_Aims\_Batch()}\spxextra{Genarris.genarris\_master.Genarris method}}
+
+\begin{fulllineitems}
+\phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
+Runs FHI-aims calculations on a pool of structures using num\_replicas.
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator to pass into aims
+
+\item[{world\_comm: mpi4py.MPI object}] \leavevmode
+World MPI communicator
+
+\item[{MPI\_ANY\_SOURCE: mpi4py.MPI.ANY\_SOURCE}] \leavevmode
+MPI ANY\_SOURCE object to facilitate communication.
+
+\item[{num\_replicas: int}] \leavevmode
+Number of replicas to use in calculation.
+
+\end{description}
+\subsubsection*{Configuration File Options}
+\begin{description}
+\item[{verbose}] \leavevmode{[}bool{]}
+Controls verbosity of output.
+
+\item[{energy\_name}] \leavevmode{[}str{]}
+Property name which the calculated energy will be stored with in the
+Structure file.
+
+\item[{output\_dir}] \leavevmode{[}str{]}
+Path to the directory where the output structure file will be saved.
+
+\item[{aims\_output\_dir}] \leavevmode{[}str{]}
+Path where the aims calculation will take place.
+
+\item[{aims\_lib\_dir}] \leavevmode{[}str, inferred{]}
+Path to the location of the directory containing the FHI-aims library
+file.
+
+\item[{molecule\_path}] \leavevmode{[}str{]}
+Path to the geometry.in file of the molecule to be calculated if
+called using harris\_single\_molecule\_prep or relax\_single\_molecule.
+
+\item[{structure\_dir}] \leavevmode{[}str, inferred{]}
+Path to the directory of structures to be calculated if calculation
+was called not using harris\_single\_molecule\_prep or
+relax\_single\_molecule.
+
+\item[{Z}] \leavevmode{[}int, inferred{]}
+Number of molecules per cell.
+
+\end{description}
+\begin{quote}\begin{description}
+\item[{Returns}] \leavevmode
+\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
+
+\end{description}\end{quote}
+
+\end{fulllineitems}
+
 
 \end{fulllineitems}
 
 
 
-\chapter{Genarris 2.0 Functions}
-\label{\detokenize{index:genarris-2-0-functions}}\index{run\_fhi\_aims\_batch() (in module Genarris.evaluation.run\_fhi\_aims)@\spxentry{run\_fhi\_aims\_batch()}\spxextra{in module Genarris.evaluation.run\_fhi\_aims}}
+\chapter{Genarris 2.0 Callable Functions}
+\label{\detokenize{index:genarris-2-0-callable-functions}}\index{run\_fhi\_aims\_batch() (in module Genarris.evaluation.run\_fhi\_aims)@\spxentry{run\_fhi\_aims\_batch()}\spxextra{in module Genarris.evaluation.run\_fhi\_aims}}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch}}\pysiglinewithargsret{\sphinxcode{\sphinxupquote{Genarris.evaluation.run\_fhi\_aims.}}\sphinxbfcode{\sphinxupquote{run\_fhi\_aims\_batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}, \emph{inst=None}, \emph{sname=None}, \emph{structure\_dir=None}, \emph{aims\_output\_dir=None}, \emph{output\_dir=None}, \emph{aims\_lib\_dir=None}, \emph{control\_path=None}, \emph{energy\_name='energy'}, \emph{verbose=False}}{}
 Performs multiple FHI calculations
-\begin{quote}\begin{description}
-\item[{Parameters}] \leavevmode\begin{itemize}
-\item {} 
-\sphinxstylestrong{comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- MPI communicator to pass into aims
+\subsubsection*{Arguments}
+\begin{description}
+\item[{comm: mpi4py.MPI object}] \leavevmode
+MPI communicator to pass into aims
 
-\item {} 
-\sphinxstylestrong{world\_comm} (\sphinxstyleemphasis{mpi4py.MPI object}) -- World MPI communicator
+\item[{world\_comm: mpi4py.MPI object}] \leavevmode
+World MPI communicator
 
-\item {} 
-\sphinxstylestrong{MPI\_ANY\_SOURCE} (\sphinxstyleemphasis{mpi4py.MPI.ANY\_SOURCE}) -- Any source object for communication.
+\item[{MPI\_ANY\_SOURCE: mpi4py.MPI.ANY\_SOURCE}] \leavevmode
+Any source object for communication.
 
-\item {} 
-\sphinxstylestrong{num\_replicas} (\sphinxstyleemphasis{int}) -- Number of replicas to perform calculation.
+\item[{num\_replicas: int}] \leavevmode
+Number of replicas to perform calculation.
 
-\item {} 
-\sphinxstylestrong{inst} (\sphinxstyleemphasis{genarris.core.instruct.Instruct}) -- Config Parser object which contains all the configuration file sections
+\item[{inst: genarris.core.instruct.Instruct}] \leavevmode
+Config Parser object which contains all the configuration file sections
 and options for calculation.
 
-\item {} 
-\sphinxstylestrong{sname} (\sphinxstyleemphasis{str}) -- Section name which called run\_fhi\_aims\_batch
+\item[{sname: str}] \leavevmode
+Section name which called run\_fhi\_aims\_batch
 
-\item {} 
-\sphinxstylestrong{struct\_dir} (\sphinxstyleemphasis{str}) -- Path to directory of structures to perform calculation.
+\item[{struct\_dir: str}] \leavevmode
+Path to directory of structures to perform calculation.
 
-\item {} 
-\sphinxstylestrong{aims\_output\_dir} (\sphinxstyleemphasis{str}) -- Path to the directory where FHI-aims calculations should take place.
+\item[{aims\_output\_dir: str}] \leavevmode
+Path to the directory where FHI-aims calculations should take place.
 
-\item {} 
-\sphinxstylestrong{output\_dir} (\sphinxstyleemphasis{str}) -- Path to the directory where the Structure files should be saved.
+\item[{output\_dir: str}] \leavevmode
+Path to the directory where the Structure files should be saved.
 
-\item {} 
-\sphinxstylestrong{aims\_lib\_dir} (\sphinxstyleemphasis{str}) -- Path to the directory containing the FHI-aims library file.
+\item[{aims\_lib\_dir: str}] \leavevmode
+Path to the directory containing the FHI-aims library file.
 
-\item {} 
-\sphinxstylestrong{control\_path} (\sphinxstyleemphasis{str}) -- Path to the directory containing the control file to use.
+\item[{control\_path: str}] \leavevmode
+Path to the directory containing the control file to use.
 
-\item {} 
-\sphinxstylestrong{energy\_name} (\sphinxstyleemphasis{str}) -- Property name which the calculated energy will be stored with in the
+\item[{energy\_name}] \leavevmode{[}str{]}
+Property name which the calculated energy will be stored with in the
 Structure file.
 
-\item {} 
-\sphinxstylestrong{verbose} (\sphinxstyleemphasis{bool}) -- Controls verbosity of output.
+\item[{verbose}] \leavevmode{[}bool{]}
+Controls verbosity of output.
 
-\end{itemize}
-
-\end{description}\end{quote}
+\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{verbose}] \leavevmode{[}bool{]}

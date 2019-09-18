@@ -72,7 +72,7 @@ class APHandler():
         if os.path.exists(self.output_file):
             self.run_num = 2
             self.output_file = inst.get_with_default(
-                sname, "output_file_2", self.output_file)
+                sname, "num_of_clusters_2", self.output_file)
         self.exemplars_output_dir = inst.get_or_none(
                 sname, "exemplars_output_dir")
         if os.path.exists(self.exemplars_output_dir):
