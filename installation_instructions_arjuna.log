@@ -58,7 +58,7 @@ CFLAGS = -O3 -ip -fp-model precise -fPIC
 
 # Compile FHI-aims as a library:
 $ make -j 20 libaims.scalapack.mpi
-# where the "20" is arbitrary
+# where the "20" is number of processes to parallelize compilation
 
 # Let's say the library file was put in the following directory: ${HOME}/aims/lib
 # Make a directory (say, ${HOME}/aims/aims_as_python_lib) and enter it
@@ -84,4 +84,4 @@ LD_PRELOAD=${MKLROOT}/lib/intel64_lin/libmkl_intel_lp64.so:${MKLROOT}/lib/intel6
 
 # In the submission script:
 mpirun -n 56 ./preload_scripts.sh
-# where of course, 56 is arbitrary
+# where of course, 56 is the number of MPI processes to execute Genarris with
