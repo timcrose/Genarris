@@ -21,7 +21,6 @@ from Genarris.utilities import file_utils, time_utils, math_utils
 from Genarris.core.structure import StoicDict, get_struct_coll
 from bisect import bisect
 from Genarris.core.instruct import get_last_active_procedure_name
-from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
 
 
 __author__ = "Xiayue Li, Timothy Rose, Christoph Schober, and Farren Curtis"

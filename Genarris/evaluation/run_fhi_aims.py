@@ -3,7 +3,6 @@ from glob import glob
 from Genarris.core.structure import Structure
 from Genarris.utilities import file_utils
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
-from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
 from Genarris.core.structure_handling import cell_niggli_reduction
 from ibslib.io import read,write
 import ase, spglib

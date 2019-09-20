@@ -6,7 +6,6 @@ from Genarris.core import structure
 from Genarris.core import file_handler
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 from Genarris.utilities.find_bonding import MoleculeBonding
-from Genarris.utilities.plotting import plot_property, plot_spg_bar_chart
 from Genarris.core.structure_handling import cell_niggli_reduction
 from ibslib.io import read,write
 
