@@ -1,9 +1,0 @@
-01: Successfully extracted. Original structure found in ./original_structures file
-02: Successfully extracted. Original structure found in calculation_dir.
-03: Successfully extracted. Original structure not found. New struct id deduced from directory name.
-04: Successfully extracted energy, but not geometry.in.next_step.
-05: Successfully extracted updated geometry, but not energy.
-06: Extraction failure. No geometry.in.next_step nor energy output.
-07: Extraction failure. Aims calculation considered failed.
-08: Extraction failure. No aims.out output.
-09: Extraction failure. Only energy. No original nor updated geometry.

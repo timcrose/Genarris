@@ -8,7 +8,6 @@ if os.path.exists('build'):
     shutil.rmtree('build')
 if os.path.exists('Genarris_2.0.egg-info'):
     shutil.rmtree('Genarris_2.0.egg-info')
-os.system('pip install spherical-functions')
 setup(name = 'Genarris_2.0',
       description = 'Generation of Molecular Crystal Structures',
       author = 'T. Rose, T. Rithwik',
@@ -24,11 +23,7 @@ try:
 except ImportError:
     os.system('pip install https://bitbucket.org/mpi4py/mpi4py/get/master.tar.gz')
 ibslib_path = os.path.join('Genarris', 'ibslib')
-if os.path.exists(ibslib_path):
-    shutil.rmtree(ibslib_path)
 os.chdir(os.path.dirname(ibslib_path))
-# No more git-clone. Use the version included in distribution already.
-# os.system('git clone https://github.com/manny405/ibslib.git')
 os.chdir(os.path.basename(ibslib_path))
 os.system('python setup.py install')
 os.chdir(cwd)
@@ -44,22 +39,8 @@ os.system('git clone https://gitlab.com/ase/ase.git')
 os.chdir('ase')
 os.system('python setup.py install')
 os.chdir(cwd)
-if os.path.exists('aimsutils'):
-    shutil.rmtree('aimsutils')
-os.mkdir('aimsutils')
-os.system('git clone https://gitlab.lrz.de/theochem/aimsutils.git aimsutils')
-shutil.copyfile(os.path.join('aimsutils_replacement_files', 'wigner_fast.py'), os.path.join('aimsutils', 'aimsutils', 'rotate', 'wigner_fast.py'))
-shutil.copyfile(os.path.join('aimsutils_replacement_files', 'parser.py'), os.path.join('aimsutils', 'aimsutils', 'parser.py'))
-shutil.copyfile(os.path.join('aimsutils_replacement_files', 'restarts.py'), os.path.join('aimsutils', 'aimsutils', 'restarts.py'))
-shutil.copyfile(os.path.join('aimsutils_replacement_files', 'rotate2.py'), os.path.join('aimsutils/aimsutils/rotate/rotate2.py'))
-shutil.copyfile(os.path.join('aimsutils_replacement_files', 'ylms.py'), os.path.join('aimsutils', 'aimsutils', 'ylms.py'))
-os.chdir('aimsutils')
-os.system('python setup.py install')
-os.chdir(cwd)
 os.chdir('Genarris')
-if os.path.exists('cgenarris'):
-    shutil.rmtree('cgenarris')
-os.system('git clone https://github.com/ritwit/cgenarris.git')
 os.chdir('cgenarris')
 os.system('python setup.py install')
 os.chdir(cwd)
+print('Installation of Genarris complete. Please proceed to the installation instructions for FHI-aims if you desire to have Genarris use FHI-aims')
