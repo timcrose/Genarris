@@ -95,8 +95,257 @@
 
 
 
-\chapter{Introduction}
-\label{\detokenize{index:introduction}}
+\chapter{Installation}
+\label{\detokenize{index:installation}}
+1) Setup MPI and MKL
+If already installed and modules exist, load them after unloading all conflicting modules. Note, in this installation tutorial we will use intel including intel's parallel studio package, but other program environments such as gnu will also work.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{module} \PYG{n}{unload} \PYG{n}{gnu}
+\PYG{n}{module} \PYG{n}{unload} \PYG{n}{openmpi}
+\PYG{n}{module} \PYG{n}{load} \PYG{n}{intel}
+\PYG{n}{module} \PYG{n}{load} \PYG{n}{impi}
+\end{sphinxVerbatim}
+
+If MKL and MPI are already installed but modules do not exist, include the MPI and MKL directories in your environment variables.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYGZsh{}Change to your parallel studio path
+export \PYGZdl{}intel=/opt/ohpc/pub/intel/intel18/compilers\PYGZus{}and\PYGZus{}libraries\PYGZus{}2018.3.222/linux
+export \PYGZdl{}intel\PYGZus{}parent=/opt/ohpc/pub/intel/intel18
+
+export PATH=\PYGZdq{}\PYGZdl{}intel/mpi/intel64/bin\PYGZus{}ohpc:\PYGZbs{}
+\PYGZdl{}intel/mpi/intel64/bin:\PYGZdl{}intel/bin/intel64:\PYGZdl{}PATH\PYGZdq{}
+
+export LD\PYGZus{}LIBRARY\PYGZus{}PATH=\PYGZdq{}\PYGZdl{}intel/mpi/intel64/lib:\PYGZdl{}intel/mpi/mic/lib:\PYGZbs{}
+\PYGZdl{}intel/compiler/lib/intel64:\PYGZdl{}intel/compiler/lib/intel64\PYGZus{}lin:\PYGZbs{}
+\PYGZdl{}intel/ipp/lib/intel64:\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin:\PYGZbs{}
+\PYGZdl{}intel/tbb/lib/intel64/gcc4.1:\PYGZbs{}
+\PYGZdl{}intel\PYGZus{}parent/debugger\PYGZus{}2018/iga/lib:\PYGZbs{}
+\PYGZdl{}intel\PYGZus{}parent/debugger\PYGZus{}2018/libipt/intel64/lib:\PYGZbs{}
+\PYGZdl{}intel/daal/lib/intel64\PYGZus{}lin:\PYGZdl{}intel/tbb/lib/intel64\PYGZus{}lin/gcc4.4\PYGZdq{}
+\end{sphinxVerbatim}
+
+Also export LD\_PRELOAD to load the parallel studio MKL and Scalapack so importing FHI-aims and numpy does not cause conflict.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{export} \PYG{n}{LD\PYGZus{}PRELOAD}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin/libmkl\PYGZus{}intel\PYGZus{}lp64.so:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin/libmkl\PYGZus{}sequential.so:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin/libmkl\PYGZus{}core.so:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin/libmkl\PYGZus{}blacs\PYGZus{}intelmpi\PYGZus{}lp64.so:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/mkl/lib/intel64\PYGZus{}lin/libmkl\PYGZus{}scalapack\PYGZus{}lp64.so:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/mpi/intel64/lib/libmpi.so.12}\PYG{l+s+s2}{\PYGZdq{}}
+\end{sphinxVerbatim}
+
+2) create a python 3.5+ virtual environment
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYGZsh{}Change this to your desired anaconda install path
+export \PYGZdl{}anaconda=\PYGZdl{}\PYGZob{}HOME\PYGZcb{}/anaconda
+mkdir \PYGZdl{}anaconda
+cd \PYGZdl{}anaconda
+\end{sphinxVerbatim}
+
+download and install anaconda
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{wget} \PYG{n}{https}\PYG{p}{:}\PYG{o}{/}\PYG{o}{/}\PYG{n}{repo}\PYG{o}{.}\PYG{n}{anaconda}\PYG{o}{.}\PYG{n}{com}\PYG{o}{/}\PYG{n}{archive}\PYG{o}{/}\PYG{n}{Anaconda3}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2019.07}\PYG{o}{\PYGZhy{}}\PYG{n}{Linux}\PYG{o}{\PYGZhy{}}\PYG{n}{x86\PYGZus{}64}\PYG{o}{.}\PYG{n}{sh}
+\PYG{n}{chmod} \PYG{o}{+}\PYG{n}{x} \PYG{n}{Anaconda3}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2019.07}\PYG{o}{\PYGZhy{}}\PYG{n}{Linux}\PYG{o}{\PYGZhy{}}\PYG{n}{x86\PYGZus{}64}\PYG{o}{.}\PYG{n}{sh}
+\PYG{o}{.}\PYG{o}{/}\PYG{n}{Anaconda3}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2019.07}\PYG{o}{\PYGZhy{}}\PYG{n}{Linux}\PYG{o}{\PYGZhy{}}\PYG{n}{x86\PYGZus{}64}\PYG{o}{.}\PYG{n}{sh}
+\end{sphinxVerbatim}
+
+Include anaconda's binary in PATH
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+export PATH=\PYGZdl{}anaconda/anaconda3/bin:\PYGZdl{}PATH
+\end{sphinxVerbatim}
+
+Make a python environment called e.g. genarris\_env by installing intelpython3\_core.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{conda} \PYG{n}{config} \PYG{o}{\PYGZhy{}}\PYG{o}{\PYGZhy{}}\PYG{n}{add} \PYG{n}{channels} \PYG{n}{intel}
+\PYG{n}{conda} \PYG{n}{create} \PYG{o}{\PYGZhy{}}\PYG{n}{n} \PYG{n}{genarris\PYGZus{}env} \PYG{n}{intelpython3\PYGZus{}core} \PYG{n}{python}\PYG{o}{=}\PYG{l+m+mi}{3}
+\end{sphinxVerbatim}
+
+3) direct your path variables to include the new env
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{export} \PYG{n}{PYTHONPATH}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{\PYGZdl{}anaconda/anaconda3/envs/genarris\PYGZus{}env/lib/python3.6:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}anaconda/anaconda3/envs/genarris\PYGZus{}env/lib/python3.6/site\PYGZhy{}packages:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}PYTHONPATH}\PYG{l+s+s2}{\PYGZdq{}}
+
+\PYG{n}{export} \PYG{n}{PATH}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{\PYGZdl{}intel/mpi/intel64/bin\PYGZus{}ohpc:\PYGZdl{}intel/mpi/intel64/bin:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}intel/bin/intel64:\PYGZdl{}anaconda/anaconda3/envs/intelpython3\PYGZus{}full/bin:}\PYG{l+s+se}{\PYGZbs{}}
+\PYG{l+s+s2}{\PYGZdl{}anaconda/anaconda3/bin:\PYGZdl{}PATH}\PYG{l+s+s2}{\PYGZdq{}}
+\end{sphinxVerbatim}
+
+4) Extract Genarris\_v2.tar.gz into a desired directory and enter it
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+export \PYGZdl{}genarris=\PYGZdl{}\PYGZob{}HOME\PYGZcb{}/genarris
+mkdir \PYGZdl{}genarris
+cp Genarris\PYGZus{}v2.tar.gz \PYGZdl{}genarris
+cd \PYGZdl{}genarris
+tar \PYGZhy{}xzf Genarris\PYGZus{}v2.tar.gz
+\end{sphinxVerbatim}
+
+5) Install Genarris. Note, one reason we recommend to create a python virutal env earlier is that running this installation script will remove the ase installation (if any) in the currently active python environment.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+cd \PYGZdl{}genarris/Genarris
+python setup.py install
+\end{sphinxVerbatim}
+
+Genarris is now installed. We will first test that Genarris imports and MPI is working correctly with the following test and then the next step will be to compile FHI-aims as a python-importable library if you desire to use FHI-aims.
+
+6) Test that Genarris imports and MPI is working correctly.
+Modify the submission script for your backend (here, we used slurm).:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+cd \PYGZdl{}genarris/documentation/mpi\PYGZus{}and\PYGZus{}genarris\PYGZus{}test
+sbatch mpi\PYGZus{}and\PYGZus{}genarris\PYGZus{}test.sh
+\end{sphinxVerbatim}
+
+The desired output is that each rank reports a unique number.
+\begin{enumerate}
+\def\theenumi{\arabic{enumi}}
+\def\labelenumi{\theenumi )}
+\makeatletter\def\p@enumii{\p@enumi \theenumi )}\makeatother
+\setcounter{enumi}{6}
+\item {} 
+Compile libaims into a python-importable library
+
+\end{enumerate}
+
+Set ulimit to avoid any possible memory problems:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{ulimit} \PYG{o}{\PYGZhy{}}\PYG{n}{s} \PYG{n}{unlimited}
+\PYG{n}{ulimit} \PYG{o}{\PYGZhy{}}\PYG{n}{v} \PYG{n}{unlimited}
+
+\PYG{c+c1}{\PYGZsh{} Set OMP\PYGZus{}NUM\PYGZus{}THREADS to 1}
+\PYG{n}{export} \PYG{n}{OMP\PYGZus{}NUM\PYGZus{}THREADS}\PYG{o}{=}\PYG{l+m+mi}{1}
+\end{sphinxVerbatim}
+
+Obtain FHI-aims from \sphinxurl{https://aims-git.rz-berlin.mpg.de/aims/FHIaims}
+If you don't have permissions, ask Volker Blum at \sphinxhref{mailto:volker.blum@duke.edu}{volker.blum@duke.edu}:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+export \PYGZdl{}aims=\PYGZdl{}\PYGZob{}HOME\PYGZcb{}/aims  \PYGZsh{}Change to your desired location for FHI\PYGZhy{}aims
+\end{sphinxVerbatim}
+
+In its src directory (\$aims/src), make sure the Makefile has all compilation
+flags (user defined settings) commented out.
+Copy the make.sys file in the documentation directory of Genarris into
+FHI-aims' src directory. The make.sys is pasted here for reference.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+cp \PYGZdl{}genarris/documentation/make.sys \PYGZdl{}aims/src
+\end{sphinxVerbatim}
+
+Note, this make.sys assumes you are using intel's parallel studio and that your
+cluster's backend is intel. If this isn't the case, you'll need to set the
+flags accordingly.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYGZsh{} make.sys
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+\PYGZsh{} Basic Flags \PYGZsh{}
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+FC = mpiifort
+FFLAGS = \PYGZhy{}O3 \PYGZhy{}ip \PYGZhy{}fp\PYGZhy{}model precise \PYGZhy{}fPIC
+F90FLAGS = \PYGZdl{}(FFLAGS)
+ARCHITECTURE = Generic
+LAPACKBLAS = \PYGZhy{}L\PYGZdl{}\PYGZob{}MKLROOT\PYGZcb{}/lib/intel64 \PYGZbs{}
+             \PYGZhy{}lmkl\PYGZus{}intel\PYGZus{}lp64 \PYGZbs{}
+             \PYGZhy{}lmkl\PYGZus{}sequential \PYGZbs{}
+             \PYGZhy{}lmkl\PYGZus{}core \PYGZbs{}
+             \PYGZhy{}lmkl\PYGZus{}blacs\PYGZus{}intelmpi\PYGZus{}lp64 \PYGZbs{}
+             \PYGZhy{}lmkl\PYGZus{}scalapack\PYGZus{}lp64
+F90MINFLAGS = \PYGZhy{}O0 \PYGZhy{}fp\PYGZhy{}model precise \PYGZhy{}fPIC
+
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+\PYGZsh{} Parallelization Flags \PYGZsh{}
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+USE\PYGZus{}MPI = yes
+MPIFC = \PYGZdl{}\PYGZob{}FC\PYGZcb{}
+SCALAPACK = \PYGZdl{}\PYGZob{}LAPACKBLAS\PYGZcb{}
+
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+\PYGZsh{} C,C++ Flags \PYGZsh{}
+\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZsh{}
+CC = icc
+CFLAGS = \PYGZhy{}O3 \PYGZhy{}ip \PYGZhy{}fp\PYGZhy{}model precise \PYGZhy{}fPIC
+\end{sphinxVerbatim}
+
+Compile FHI-aims as a shared library object:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+cd \PYGZdl{}aims/src
+make \PYGZhy{}j 20 libaims.scalapack.mpi
+\end{sphinxVerbatim}
+
+where the \sphinxcode{\sphinxupquote{20}} is however many cores you'd like to use for compilation.
+
+Make a directory for compiling FHI-aims as a python library
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+mkdir \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
+cd \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
+\end{sphinxVerbatim}
+
+\# Copy the Makefile and aims\_w.f90 in the Genarris documentation directory to this directory. A copy of it has been pasted here for reference. Note that you will need to change the libaims version (currently shown as 190522). Again, you'll need to change the f90exec and/or fcompiler flags if your backend is not intel. aims\_w.f90 is a wrapper script to interface with FHI-aims.
+e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+cp \PYGZdl{}genarris/Genarris/documentation/Makefile \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
+cp \PYGZdl{}genarris/Genarris/documentation/aims\PYGZus{}w.f90 \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
+\end{sphinxVerbatim}
+
+Create the Makefile with the following contents:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+LIBAIMS=\PYGZdl{}\PYGZob{}aims\PYGZcb{}/lib/libaims.190522.scalapack.mpi.so
+include\PYGZus{}dir=\PYGZdl{}\PYGZob{}anaconda\PYGZcb{}/anaconda3/envs/genarris\PYGZus{}env/include
+
+aims\PYGZus{}w.so: aims\PYGZus{}w.f90
+    f2py \PYGZhy{}\PYGZhy{}f90exec=mpiifort \PYGZhy{}\PYGZhy{}fcompiler=intelem \PYGZhy{}m aims\PYGZus{}w \PYGZbs{}
+         \PYGZhy{}c aims\PYGZus{}w.f90 \PYGZdl{}\PYGZob{}LIBAIMS\PYGZcb{} \PYGZhy{}I\PYGZdl{}\PYGZob{}include\PYGZus{}dir\PYGZcb{}
+
+clean:
+    rm aims\PYGZus{}w.*.so
+\end{sphinxVerbatim}
+
+Compile FHI-aims as an importable python library!:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{make}
+\end{sphinxVerbatim}
+
+8) Test that FHI-aims can run a job
+Modify the submission script in the \sphinxcode{\sphinxupquote{\$genarris/documentation/aims\_test}}
+directory to run on your backend (here we used slurm).:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+export PYTHONPATH=\PYGZdl{}PYTHONPATH:\PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
+cd \PYGZdl{}genarris/documentation/aims\PYGZus{}test
+sbatch aims\PYGZus{}test.sh
+\end{sphinxVerbatim}
+
+
+\chapter{Introduction to Running Genarris}
+\label{\detokenize{index:introduction-to-running-genarris}}
 
 \section{Configuration File}
 \label{\detokenize{index:configuration-file}}
@@ -186,6 +435,28 @@ inferred by all further procedures. Options which are inferred are thus
 optional in all proceeding sections.
 
 \end{enumerate}
+
+
+\section{Output Formats}
+\label{\detokenize{index:output-formats}}
+There are three output formats supported within the Genarris source code. These
+are \sphinxstyleemphasis{json}, \sphinxstyleemphasis{geo}, or \sphinxstyleemphasis{both}.
+\begin{itemize}
+\item {} 
+The \sphinxstyleemphasis{json} file format is the native structure file format for Genarris.
+This file format supports storing the structure ID, the geometry, and
+property information.
+
+\item {} 
+The \sphinxstyleemphasis{geo} file format is the file format support by FHI-aims. Additionally,
+this file format is support by \sphinxhref{http://jmol.sourceforge.net}{Jmol} , a 3D chemical structure visualizer,
+and by \sphinxhref{https://wiki.fysik.dtu.dk/ase/}{ASE}, the atomic simulation environment tools written for Python.
+
+\item {} 
+The user may also specify \sphinxstyleemphasis{both}, in which case both the \sphinxstyleemphasis{json} file
+and \sphinxstyleemphasis{geo} file for every structure will be produced.
+
+\end{itemize}
 
 
 \chapter{Genarris 2.0 Procedures for Robust Workflow}

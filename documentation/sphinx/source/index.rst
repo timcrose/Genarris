@@ -12,156 +12,207 @@ Genarris 2.0 Beta Documentation
 
 Installation
 ------------
-To install
+
 1) Setup MPI and MKL
 If already installed and modules exist, load them after unloading all conflicting modules. Note, in this installation tutorial we will use intel including intel's parallel studio package, but other program environments such as gnu will also work.
-e.g.
-module unload gnu
-module unload openmpi
-module load intel
-module load impi
+e.g.::
+
+    module unload gnu
+    module unload openmpi
+    module load intel
+    module load impi
 
 If MKL and MPI are already installed but modules do not exist, include the MPI and MKL directories in your environment variables.
-e.g.
-export $intel=/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux  #Change to your parallel studio path
-export PATH=$intel/mpi/intel64/bin_ohpc:$intel/mpi/intel64/bin:$intel/bin/intel64:$PATH
-export LD_LIBRARY_PATH=$intel/mpi/intel64/lib:$intel/mpi/mic/lib:$intel/compiler/lib/intel64:$intel/compiler/lib/intel64_lin:$intel/ipp/lib/intel64:$intel/mkl/lib/intel64_lin:$intel/tbb/lib/intel64/gcc4.1:/opt/ohpc/pub/intel/intel18/debugger_2018/iga/lib:/opt/ohpc/pub/intel/intel18/debugger_2018/libipt/intel64/lib:$intel/daal/lib/intel64_lin:$intel/tbb/lib/intel64_lin/gcc4.4
+e.g.::
+
+    #Change to your parallel studio path
+    export $intel=/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux
+    export $intel_parent=/opt/ohpc/pub/intel/intel18
+      
+    export PATH="$intel/mpi/intel64/bin_ohpc:\
+    $intel/mpi/intel64/bin:$intel/bin/intel64:$PATH"
+    
+    export LD_LIBRARY_PATH="$intel/mpi/intel64/lib:$intel/mpi/mic/lib:\
+    $intel/compiler/lib/intel64:$intel/compiler/lib/intel64_lin:\
+    $intel/ipp/lib/intel64:$intel/mkl/lib/intel64_lin:\
+    $intel/tbb/lib/intel64/gcc4.1:\
+    $intel_parent/debugger_2018/iga/lib:\
+    $intel_parent/debugger_2018/libipt/intel64/lib:\
+    $intel/daal/lib/intel64_lin:$intel/tbb/lib/intel64_lin/gcc4.4"
 
 Also export LD_PRELOAD to load the parallel studio MKL and Scalapack so importing FHI-aims and numpy does not cause conflict.
-e.g.
-export LD_PRELOAD=$intel/mkl/lib/intel64_lin/libmkl_intel_lp64.so:$intel/mkl/lib/intel64_lin/libmkl_sequential.so:$intel/mkl/lib/intel64_lin/libmkl_core.so:$intel/mkl/lib/intel64_lin/libmkl_blacs_intelmpi_lp64.so:$intel/mkl/lib/intel64_lin/libmkl_scalapack_lp64.so:$intel/mpi/intel64/lib/libmpi.so.12
+e.g.::
+
+    export LD_PRELOAD="$intel/mkl/lib/intel64_lin/libmkl_intel_lp64.so:\
+    $intel/mkl/lib/intel64_lin/libmkl_sequential.so:\
+    $intel/mkl/lib/intel64_lin/libmkl_core.so:\
+    $intel/mkl/lib/intel64_lin/libmkl_blacs_intelmpi_lp64.so:\
+    $intel/mkl/lib/intel64_lin/libmkl_scalapack_lp64.so:\
+    $intel/mpi/intel64/lib/libmpi.so.12"
 
 2) create a python 3.5+ virtual environment
-e.g.
-export $anaconda=${HOME}/anaconda  #Change this to your desired anaconda install path
-mkdir $anaconda
-cd $anaconda
+e.g.::
+    
+    #Change this to your desired anaconda install path
+    export $anaconda=${HOME}/anaconda 
+    mkdir $anaconda
+    cd $anaconda
 
 download and install anaconda
-e.g.
-wget https://repo.anaconda.com/archive/Anaconda3-2019.07-Linux-x86_64.sh
-chmod +x Anaconda3-2019.07-Linux-x86_64.sh
-./Anaconda3-2019.07-Linux-x86_64.sh
+e.g.::
+
+    wget https://repo.anaconda.com/archive/Anaconda3-2019.07-Linux-x86_64.sh
+    chmod +x Anaconda3-2019.07-Linux-x86_64.sh
+    ./Anaconda3-2019.07-Linux-x86_64.sh
 
 Include anaconda's binary in PATH
-e.g.
-export PATH=$anaconda/anaconda3/bin:$PATH
+e.g.::
+
+    export PATH=$anaconda/anaconda3/bin:$PATH
 
 Make a python environment called e.g. genarris_env by installing intelpython3_core.
-e.g.
-conda config --add channels intel
-conda create -n genarris_env intelpython3_core python=3
+e.g.::
+
+    conda config --add channels intel
+    conda create -n genarris_env intelpython3_core python=3
 
 3) direct your path variables to include the new env
-e.g.
-export PYTHONPATH=$anaconda/anaconda3/envs/genarris_env/lib/python3.6:$anaconda/anaconda3/envs/genarris_env/lib/python3.6/site-packages:$PYTHONPATH
-export PATH=$intel/mpi/intel64/bin_ohpc:$intel/mpi/intel64/bin:$intel/bin/intel64:$anaconda/anaconda3/envs/intelpython3_full/bin:$anaconda/anaconda3/bin:$PATH
+e.g.::
+
+    export PYTHONPATH="$anaconda/anaconda3/envs/genarris_env/lib/python3.6:\
+    $anaconda/anaconda3/envs/genarris_env/lib/python3.6/site-packages:\
+    $PYTHONPATH"
+           
+    export PATH="$intel/mpi/intel64/bin_ohpc:$intel/mpi/intel64/bin:\
+    $intel/bin/intel64:$anaconda/anaconda3/envs/intelpython3_full/bin:\
+    $anaconda/anaconda3/bin:$PATH"
 
 4) Extract Genarris_v2.tar.gz into a desired directory and enter it
-e.g.
-export $genarris=${HOME}/genarris
-mkdir $genarris
-cp Genarris_v2.tar.gz $genarris
-cd $genarris
-tar -xzf Genarris_v2.tar.gz
+e.g.::
+
+    export $genarris=${HOME}/genarris
+    mkdir $genarris
+    cp Genarris_v2.tar.gz $genarris
+    cd $genarris
+    tar -xzf Genarris_v2.tar.gz
 
 5) Install Genarris. Note, one reason we recommend to create a python virutal env earlier is that running this installation script will remove the ase installation (if any) in the currently active python environment.
-e.g.
-cd $genarris/Genarris
-python setup.py install
+e.g.::
+
+    cd $genarris/Genarris
+    python setup.py install
 
 Genarris is now installed. We will first test that Genarris imports and MPI is working correctly with the following test and then the next step will be to compile FHI-aims as a python-importable library if you desire to use FHI-aims.
-6) Test that Genarris imports and MPI is working correctly. Modify the submission script for your backend (here, we used slurm).
-cd $genarris/documentation/mpi_and_genarris_test
-sbatch mpi_and_genarris_test.sh
+
+6) Test that Genarris imports and MPI is working correctly. 
+Modify the submission script for your backend (here, we used slurm).::
+
+    cd $genarris/documentation/mpi_and_genarris_test
+    sbatch mpi_and_genarris_test.sh
 
 The desired output is that each rank reports a unique number.
 
 7) Compile libaims into a python-importable library
-# Set ulimit to avoid any possible memory problems
-ulimit -s unlimited
-ulimit -v unlimited
 
-# Set OMP_NUM_THREADS to 1
-export OMP_NUM_THREADS=1
+Set ulimit to avoid any possible memory problems::
 
-# Obtain FHI-aims from https://aims-git.rz-berlin.mpg.de/aims/FHIaims If you don't have permissions, ask Volker Blum at volker.blum@duke.edu
-export $aims=${HOME}/aims  #Change to your desired location for FHI-aims
+    ulimit -s unlimited
+    ulimit -v unlimited
 
-# In its src directory ($aims/src), make sure the Makefile has all compilation flags (user defined settings) commented out
-# Copy the make.sys file in the documentation directory of Genarris into FHI-aims' src directory. The make.sys is pasted here for reference.
-cp $genarris/documentation/make.sys $aims/src
-# Note, this make.sys assumes you are using intel's parallel studio and that your cluster's backend is intel. If this isn't the case, you'll need to set the flags accordingly.
+    # Set OMP_NUM_THREADS to 1
+    export OMP_NUM_THREADS=1
 
-# make.sys
-###############
-# Basic Flags #
-###############
-FC = mpiifort
-FFLAGS = -O3 -ip -fp-model precise -fPIC
-F90FLAGS = $(FFLAGS)
-ARCHITECTURE = Generic
-LAPACKBLAS = -L${MKLROOT}/lib/intel64 \
-             -lmkl_intel_lp64 \
-             -lmkl_sequential \
-             -lmkl_core \
-             -lmkl_blacs_intelmpi_lp64 \
-             -lmkl_scalapack_lp64
-F90MINFLAGS = -O0 -fp-model precise -fPIC
+Obtain FHI-aims from https://aims-git.rz-berlin.mpg.de/aims/FHIaims 
+If you don't have permissions, ask Volker Blum at volker.blum@duke.edu::
 
-#########################
-# Parallelization Flags #
-#########################
-USE_MPI = yes
-MPIFC = ${FC}
-SCALAPACK = ${LAPACKBLAS}
+    export $aims=${HOME}/aims  #Change to your desired location for FHI-aims
 
-###############
-# C,C++ Flags #
-###############
-CC = icc
-CFLAGS = -O3 -ip -fp-model precise -fPIC
+In its src directory ($aims/src), make sure the Makefile has all compilation 
+flags (user defined settings) commented out.
+Copy the make.sys file in the documentation directory of Genarris into 
+FHI-aims' src directory. The make.sys is pasted here for reference.::
+    
+    cp $genarris/documentation/make.sys $aims/src
+    
+Note, this make.sys assumes you are using intel's parallel studio and that your 
+cluster's backend is intel. If this isn't the case, you'll need to set the 
+flags accordingly.::
 
-# EOF make.sys
+    # make.sys
+    ###############
+    # Basic Flags #
+    ###############
+    FC = mpiifort
+    FFLAGS = -O3 -ip -fp-model precise -fPIC
+    F90FLAGS = $(FFLAGS)
+    ARCHITECTURE = Generic
+    LAPACKBLAS = -L${MKLROOT}/lib/intel64 \
+                 -lmkl_intel_lp64 \
+                 -lmkl_sequential \
+                 -lmkl_core \
+                 -lmkl_blacs_intelmpi_lp64 \
+                 -lmkl_scalapack_lp64
+    F90MINFLAGS = -O0 -fp-model precise -fPIC
+    
+    #########################
+    # Parallelization Flags #
+    #########################
+    USE_MPI = yes
+    MPIFC = ${FC}
+    SCALAPACK = ${LAPACKBLAS}
+    
+    ###############
+    # C,C++ Flags #
+    ###############
+    CC = icc
+    CFLAGS = -O3 -ip -fp-model precise -fPIC
 
-# Compile FHI-aims as a shared library object:
-cd $aims/src
-make -j 20 libaims.scalapack.mpi
-# where the "20" is however many cores you'd like to use for compilation
+Compile FHI-aims as a shared library object::
 
-# Make a directory for compiling FHI-aims as a python library
-e.g.
-mkdir $aims/aims_as_python_lib
-cd $aims/aims_as_python_lib
+    cd $aims/src
+    make -j 20 libaims.scalapack.mpi
+    
+where the ``20`` is however many cores you'd like to use for compilation.
+
+Make a directory for compiling FHI-aims as a python library
+e.g.::
+
+    mkdir $aims/aims_as_python_lib
+    cd $aims/aims_as_python_lib
 
 # Copy the Makefile and aims_w.f90 in the Genarris documentation directory to this directory. A copy of it has been pasted here for reference. Note that you will need to change the libaims version (currently shown as 190522). Again, you'll need to change the f90exec and/or fcompiler flags if your backend is not intel. aims_w.f90 is a wrapper script to interface with FHI-aims.
-e.g.
-cp $genarris/Genarris/documentation/Makefile $aims/aims_as_python_lib
-cp $genarris/Genarris/documentation/aims_w.f90 $aims/aims_as_python_lib
+e.g.::
 
-# Makefile
-LIBAIMS=${aims}/lib/libaims.190522.scalapack.mpi.so
-include_dir=${anaconda}/anaconda3/envs/genarris_env/include
+    cp $genarris/Genarris/documentation/Makefile $aims/aims_as_python_lib
+    cp $genarris/Genarris/documentation/aims_w.f90 $aims/aims_as_python_lib
 
-aims_w.so: aims_w.f90
-	f2py --f90exec=mpiifort --fcompiler=intelem -m aims_w -c aims_w.f90 ${LIBAIMS} -I${include_dir}
+Create the Makefile with the following contents::
 
-clean:
-	rm aims_w.*.so
-# EOF Makefile
-
-# compile FHI-aims as an importable python library!
-make
+    LIBAIMS=${aims}/lib/libaims.190522.scalapack.mpi.so
+    include_dir=${anaconda}/anaconda3/envs/genarris_env/include
+    
+    aims_w.so: aims_w.f90
+    	f2py --f90exec=mpiifort --fcompiler=intelem -m aims_w \
+    	     -c aims_w.f90 ${LIBAIMS} -I${include_dir}
+    
+    clean:
+    	rm aims_w.*.so
+    
+Compile FHI-aims as an importable python library!::
+    
+    make
 
 8) Test that FHI-aims can run a job
-# Modify the submission script in the $genarris/documentation/aims_test directory to run on your backend (here we used slurm).
-export PYTHONPATH=$PYTHONPATH:$aims/aims_as_python_lib
-cd $genarris/documentation/aims_test
-sbatch aims_test.sh
+Modify the submission script in the ``$genarris/documentation/aims_test``
+directory to run on your backend (here we used slurm).::
+ 
+    export PYTHONPATH=$PYTHONPATH:$aims/aims_as_python_lib
+    cd $genarris/documentation/aims_test
+    sbatch aims_test.sh
 
 
-Introduction
-------------
+Introduction to Running Genarris
+--------------------------------
 
 Configuration File
 ^^^^^^^^^^^^^^^^^^
@@ -245,6 +296,23 @@ are specified after the *type* of the option, such as *int*, *float*, or *bool*.
    optional in all proceeding sections. 
 
 
+Output Formats
+^^^^^^^^^^^^^^
+
+There are three output formats supported within the Genarris source code. These
+are *json*, *geo*, or *both*. 
+
+* The *json* file format is the native structure file format for Genarris. 
+  This file format supports storing the structure ID, the geometry, and 
+  property information.
+
+* The *geo* file format is the file format support by FHI-aims. Additionally,
+  this file format is support by `Jmol`_ , a 3D chemical structure visualizer,
+  and by `ASE`_, the atomic simulation environment tools written for Python.
+
+* The user may also specify *both*, in which case both the *json* file
+  and *geo* file for every structure will be produced.
+
 
 ..
     Description of the meaning of Sections, functions, Configuration file options, arguments.
@@ -267,6 +335,8 @@ are specified after the *type* of the option, such as *int*, *float*, or *bool*.
 .. Hypderlinks to be included in the document
     
 .. _configuration: https://docs.python.org/3.4/library/configparser.html
+.. _Jmol: http://jmol.sourceforge.net
+.. _ASE: https://wiki.fysik.dtu.dk/ase/
 
 
 Genarris 2.0 Procedures for Robust Workflow
