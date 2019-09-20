@@ -27,7 +27,8 @@ ibslib_path = os.path.join('Genarris', 'ibslib')
 if os.path.exists(ibslib_path):
     shutil.rmtree(ibslib_path)
 os.chdir(os.path.dirname(ibslib_path))
-os.system('git clone https://github.com/manny405/ibslib.git')
+# No more git-clone. Use the version included in distribution already.
+# os.system('git clone https://github.com/manny405/ibslib.git')
 os.chdir(os.path.basename(ibslib_path))
 os.system('python setup.py install')
 os.chdir(cwd)
