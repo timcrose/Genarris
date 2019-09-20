@@ -13,7 +13,6 @@ Miscellaneous utilities functions
 from Genarris.core.structure import Structure
 from Genarris.utilities import write_log
 from Genarris.external_libs.filelock import FileLock
-from Genarris.external_libs import matrix_op
 import random
 import copy
 import numpy

@@ -260,14 +260,6 @@ class Genarris():
             print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time, flush=True)
         
 
-    def Affinity_Propagation_Analyze_Preference(self, comm):
-        from evaluation import affinity
-        affinity.affinity_propagation_analyze_preference(self.inst)
-
-    def Affinity_Propagation_Distance_Matrix(self, comm):
-        from evaluation import affinity
-        affinity.affinity_propagation_distance_matrix(self.inst)
-
     def Affinity_Propagation_Fixed_Clusters(self, comm):
         """
         AP that explores the setting of preference in order to generate
@@ -368,14 +360,6 @@ class Genarris():
         if comm.rank == 0:
             print('time taken for Affinity_Propagation_Fixed_Clusters', time.time() - start_time, flush=True)
 
-    def Affinity_Propagation_Fixed_Silhouette(self, comm):
-        from evaluation import affinity
-        affinity.affinity_propagation_fixed_silhouette(self.inst)
-
-    def Cluster_Based_Selection(self, comm):
-        from evaluation import selection
-        selection.cluster_based_selection(self.inst)
-
     def Estimate_Unit_Cell_Volume(self, comm):
         """
         Performs volume estimation using a machine learned model train on the 
@@ -400,22 +384,6 @@ class Genarris():
             print('time taken for Estimate_Unit_Cell_Volume', 
                   time.time() - start_time, flush=True)
 
-    def Estimate_Unit_Cell_Volume_v1(self, comm):
-        from generation import generation_modules
-        generation_modules.estimate_unit_cell_volume(self.inst)
-
-    def FHI_Aims_Single_Run(self, comm):
-        from evaluation import run_aims
-        run_aims.fhi_aims_single_run(self.inst, comm)
-
-    def FHI_Aims_Batch_Run(self, comm):
-        from evaluation import FHI_aims
-        FHI_aims.fhi_aims_batch_run(self.inst)
-
-    def FHI_Aims_Extract(self, comm):
-        from evaluation import fhi_aims_modules
-        fhi_aims_modules.fhi_aims_extract(self.inst)
-
     def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, 
                                    num_replicas):
         """
@@ -432,55 +400,6 @@ class Genarris():
         if world_comm.rank == 0:
             print('time taken for FHI_Aims_Energy_Evaluation', time.time() - start_time, flush=True)
 
-    def FHI_Aims_Scavenge(self, comm):
-        from evaluation import FHI_aims
-        FHI_aims.fhi_aims_scavenge(self.inst)
-
-    def Find_Duplicates(self, comm):
-        from evaluation import duplicate
-        duplicate.find_duplicates(self.inst)
-
-    def Find_Duplicates_Distance_Matrix(self, comm):
-        from evaluation import duplicate
-        duplicate.find_duplicates_distance_matrix(self.inst)
-
-    def Harris_Approximation_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
-        from evaluation import harris_approximation
-        start_time = time.time()
-        harris_approximation.harris_approximation_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, self.inst)
-        if world_comm.rank == 0:
-            print('time taken for Harris_Approximation_Batch', time.time() - start_time, flush=True)
-
-    def Harris_Approximation_Single(self, comm):
-        from evaluation import harris_approximation
-        harris_approximation.harris_approximation_single(self.inst)
-
-    def Harris_Single_Molecule_Prep(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
-        from evaluation import harris_approximation
-        start_time = time.time()
-        harris_approximation.harris_single_molecule_prep(comm, world_comm, MPI_ANY_SOURCE, self.inst)
-        if world_comm.rank == 0:
-            print('time taken for Harris_Single_Molecule_Prep', time.time() - start_time, flush=True)
-
-    def Interatomic_Distance_Evaluation(self, comm):
-        from evaluation import interatomic_distance_evaluation
-        interatomic_distance_evaluation.main(self.inst)
-
-    def Interatomic_Proximities(self, comm):
-        from evaluation import interatomic_proximities
-        interatomic_proximities.interatomic_proximities(self.inst)
-
-    def K_Mean_Clustering(self, comm):
-        from evaluation import k_mean_clustering
-        k_mean_clustering.k_mean_clustering(self.inst)
-
-    def Niggli_Reduction_Batch(self, comm):
-        from evaluation import pool_analysis
-        pool_analysis.niggli_reduction_batch(self.inst)
-
-    def Pool_Single_Structure_Analysis(self, comm):
-        from evaluation import pool_analysis
-        pool_analysis.pool_single_structure_analysis(self.inst)
 
     def Pygenarris_Structure_Generation(self, comm):
         """
@@ -538,10 +457,6 @@ class Genarris():
         if comm.rank == 0:
             print('time taken for Pygenarris_Structure_Generation', time.time() - start_time, flush=True)
 
-    def Random_Value_Assignment(self, comm):
-        from evaluation.pool_analysis import random_value_assignment
-        random_value_assignment(self.inst)
-
     def RCD_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
         start_time = time.time()
@@ -549,24 +464,12 @@ class Genarris():
         if comm.rank == 0:
             print('time taken for RCD_Calculation', time.time() - start_time, flush=True)
 
-    def RCD_Difference_Compare_Single(self, comm):
-        from evaluation import relative_coordinate_descriptor as rcd
-        rcd.rcd_difference_compare_single(self.inst)
-
-    def RCD_Difference_Folder(self, comm):
-        from evaluation import relative_coordinate_descriptor as rcd
-        rcd.rcd_difference_folder(self.inst)
-
     def RCD_Difference_Folder_Inner(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd
         start_time = time.time()
         rcd.rcd_difference_folder_inner(self.inst, comm)
         if comm.rank == 0:
             print('time taken for RCD_Difference_Folder_Inner', time.time() - start_time, flush=True)
-
-    def RCD_Difference_Calculation(self, comm):
-        from evaluation import relative_coordinate_descriptor
-        relative_coordinate_descriptor.rcd_difference_calculation(self.inst)
 
     def Run_Rdf_Calc(self, comm):
         """
@@ -621,14 +524,6 @@ class Genarris():
         if comm.rank == 0:
             print('time taken for Run_Rdf_Calc', time.time() - start_time, flush=True)
 
-    def RDF_Descriptor_By_Bin(self, comm):
-        from evaluation import radial_distribution_function
-        radial_distribution_function.rdf_descriptor_by_bin(self.inst)
-
-    def RDF_Descriptor_By_Point(self, comm):
-        from evaluation import radial_distribution_function
-        radial_distribution_function.rdf_descriptor_by_point(self.inst)
-
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
         Calls run_fhi_aims_batch using the provided single molecule path. 
@@ -643,14 +538,6 @@ class Genarris():
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='relax_single_molecule')
         if world_comm.rank == 0:
             print('time taken for Relax_Single_Molecule', time.time() - start_time, flush=True)
-
-    def Reverse_Harris_Approximation(self, comm):
-        from evaluation import harris_approximation
-        harris_approximation.reverse_harris_approximation(self.inst)
-        
-    def Reverse_Harris_Approximation_Batch(self, comm):
-        from evaluation import harris_approximation
-        harris_approximation.reverse_harris_approximation_batch(self.inst)
 
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
@@ -687,14 +574,6 @@ class Genarris():
         if world_comm.rank == 0:
             print('time taken for Run_FHI_Aims_Batch', time.time() - start_time, flush=True)
 
-    def Specific_Radius_Batch(self, comm):
-        from evaluation import pool_analysis
-        pool_analysis.specific_radius_batch(self.inst)
-
-    def Structure_Generation_Single(self, comm):
-        from generation import generation_modules
-        generation_modules.structure_generation_single(self.inst)
-    
     def Structure_Generation_Batch(self, comm):
         from generation import generation_modules
         start_time = time.time()
@@ -705,18 +584,6 @@ class Genarris():
     def _Structure_Generation_Batch(self):
         from generation import generation_modules
         generation_modules._structure_generation_batch(self.inst)
-
-    def Vector_Distance_Calculation(self, comm):
-        from evaluation import pool_analysis
-        pool_analysis.vector_distance_calculation(self.inst)
-
-    # Below are modules for testing
-    def Test_Launch_Parallel_Run_Single_Inst(self):
-        from utilities import util_test
-        util_test.test_launch_parallel_run_single_inst_main(self.inst)
-    def _Test_Launch_Parallel_Run_Single_Inst(self):
-        from utilities import util_test
-        util_test._test_launch_parallel_run_single_inst(self.inst)
 
 if __name__ == "__main__":
     main()

@@ -33,10 +33,10 @@ __url__ = "http://www.noamarom.com"
 
 cwd = os.getcwd()
 def argument_opt():
-        from optparse import OptionParser
-        parser=OptionParser()
-        parser.add_option('-d','--workdir',action='store',type='string',dest='working_directory',default='ui.conf',help='User input file name (default="ui.conf"')
-        return parser.parse_args()
+    from optparse import OptionParser
+    parser=OptionParser()
+    parser.add_option('-d','--workdir',action='store',type='string',dest='working_directory',default='ui.conf',help='User input file name (default="ui.conf"')
+    return parser.parse_args()
 
 
 # source directories

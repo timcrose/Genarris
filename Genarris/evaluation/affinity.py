@@ -18,8 +18,6 @@ from sklearn.metrics import silhouette_score
 import numpy as np
 from Genarris.utilities.misc import output_pool
 from Genarris.utilities import file_utils, time_utils, math_utils
-from Genarris.evaluation.evaluation_util import PoolOperation, \
-        load_pool_operation_keywords
 from Genarris.core.structure import StoicDict, get_struct_coll
 from bisect import bisect
 from Genarris.core.instruct import get_last_active_procedure_name

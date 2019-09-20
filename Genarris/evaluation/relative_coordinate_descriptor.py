@@ -27,8 +27,6 @@ from Genarris.external_libs.filelock import FileLock
 
 from Genarris.core.structure_handling import cm_calculation, cell_modification, \
         mole_translation
-from Genarris.evaluation.evaluation_util import BatchSingleStructureOperation, \
-        load_batch_single_structure_operation_keywords
 from Genarris.core.instruct import get_last_active_procedure_name, get_molecule_path
 
 
@@ -249,71 +247,6 @@ def _rcd_calculation_callback(result, output_info_file):
 def _flatten_rcd(v):
     return [entry for mol in v for rel in mol for entry in rel]
 
-def rcd_difference_calculation(inst):
-    '''
-    Main module of rcd difference
-    '''
-    sname = "rcd_difference_calculation"
-    key = inst.get_with_default(sname,"stored_property_key","rcd")
-    ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
-    pairs = inst.get_with_default(sname,"select_pairs",8,eval=True)
-    dis_en = inst.get_boolean(sname,"disable_enantiomer")
-    diff_list_output = inst.get_with_default(sname,"diff_list_output",
-                                             "./rcd_difference_list.info")
-    diff_matrix_output = inst.get_with_default(
-            sname, "diff_matrix_output", "rcd_difference_matrix.info")
-
-    processes = inst.get_processes_limit(sname)
-
-    coll = misc.load_collection_with_inst(inst,sname)
-    coll.sort(key=lambda struct: struct.struct_id)
-
-    result, diff_mat = calculate_collection_rcd_difference(coll, key=key,
-                                                           ratio=ratio, 
-                                                           select_pairs=pairs,
-                                                           allow_enantiomer=not dis_en, 
-                                                           processes=processes)
-  
-    with open(diff_list_output,"a") as f: 
-        for k in result:
-            f.write("%s %s %f \n" % (coll[k[0]].struct_id, coll[k[1]].struct_id, k[2]))
-
-    return result, diff_mat
-
-def rcd_difference_compare_single(inst):
-    '''
-    Main module that compares a single structure with a group of structures
-    '''
-    sname = "rcd_difference_compare_single"
-    key = inst.get_with_default(sname,"stored_property_key","RCD_vector")
-    ratio = inst.get_with_default(sname,"contribution_ratio",1,eval=True)
-    pairs = inst.get_with_default(sname,"select_pairs",4,eval=True)
-    dis_en = inst.get_boolean(sname,"disable_enantiomer")
-    diff_list_output = inst.get_with_default(sname,"diff_list_output",
-                                             "./rcd_difference_list.info")
-    path = inst.get(sname,"structure_path")
-#    diff_matrix_output = inst.get_with_default(sname,"diff_matrix_output","")
-    processes = inst.get_processes_limit(sname)
-
-    coll = misc.load_collection_with_inst(inst,sname)
-    coll.sort(key=lambda struct: struct.struct_id)
-    
-    f = open(path,"r")
-    struct = Structure()
-    struct.loads(f.read())
-    f.close()
-
-    result = calculate_single_rcd_difference(struct, coll, key, ratio,
-                                            select_pairs=pairs, 
-                                            allow_enantiomer=not dis_en,
-                                            processes=processes)
-    
-    f = open(diff_list_output,"a")
-    for i in range(len(coll)):
-        f.write("%s %s %f\n" % (struct.struct_id, 
-                                coll[i].struct_id,
-                                result[i]))
-    f.close()
 
 def combine_to_info(diff_matrix_output, structure_dir, structure_suffix='.json'):
     files = [x for x in os.listdir(structure_dir)
@@ -434,86 +367,6 @@ def calculate_folder_rcd_difference_worker(folder, suffix="", key="RCD_vector",
         except:
             pass
 
-def calculate_collection_rcd_difference(coll, key="RCD_vector",
-                                        ratio=1, select_pairs=4, allow_enantiomer=True,
-                                        processes=1):
-    '''
-    Calculates the rcd difference between each pairs of structures
-    Outputs: a tuple of difference list and difference matrix
-    '''
-    result = []
-    for i in range(len(coll)):
-        arglist = [(i, j, coll[i].properties[key], coll[j].properties[key],
-                    ratio, select_pairs, allow_enantiomer)
-                    for j in range(i,len(coll))]
-
-        if processes > 1:
-            p = multiprocessing.Pool(processes)
-            result += p.map(_calculate_rcd_difference_multiprocess_wrapper,arglist)
-            p.close()
-            p.join()
-        else:
-            result += [_calculate_rcd_difference_multiprocess_wrapper(args) 
-                                                    for args in arglist]
-
-    diff_mat = [[0]*len(coll) for x in range(len(coll))]
-    for k in result: 
-        diff_mat[k[0]][k[1]] = k[2]
-        diff_mat[k[1]][k[0]] = k[2]
-    return result, diff_mat
-
-def calculate_single_rcd_difference(struct, coll, key="RCD_vector",
-                                        ratio=1, select_pairs=4, allow_enantiomer=True,
-                                        processes=1):
-    '''
-    Calculates the rcd difference between each pairs of structures
-    Outputs: a tuple of difference list and difference matrix
-    '''
-    result = []
-    arglist = [(-1, j, struct.properties[key], coll[j].properties[key])
-                for j in range(len(coll))]
-
-    if processes > 1:
-        p = multiprocessing.Pool(processes)
-        result += p.map(_calculate_rcd_difference_multiprocess_wrapper,arglist)
-        p.close()
-        p.join()
-    else:
-        result += [_calculate_rcd_difference_multiprocess_wrapper(args) 
-                                                for args in arglist]
-
-    diff_list = [0]*len(coll)
-    for k in result:
-        diff_list[k[1]] = k[2]
-    
-    return diff_list
-
-
-def calculate_collection_rcd_difference_2(coll, key="RCD_vector",
-                                        ratio=1, select_pairs=4, allow_enantiomer=True,
-                                        processes=1):
-    '''
-    Calculates the rcd difference between each pairs of structures
-    Outputs: a tuple of difference list and difference matrix
-    '''
-    arglist = [(i, j, coll[i].properties[key], coll[j].properties[key],
-                ratio, select_pairs, allow_enantiomer)
-                for i in range(len(coll)) for j in range(i,len(coll))]
-
-    if processes > 1:
-        p = multiprocessing.Pool(processes)
-        result = p.map(_calculate_rcd_difference_multiprocess_wrapper,arglist)
-    else:
-        result = [_calculate_rcd_difference_multiprocess_wrapper(args) 
-                                                    for args in arglist]
-
-    diff_mat = [[0]*len(coll) for x in range(len(coll))]
-    for k in result: 
-        diff_mat[k[0]][k[1]] = k[2]
-        diff_mat[k[1]][k[0]] = k[2]
-    return result, diff_mat
-
-   
 
 def calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4, 
                              allow_enantiomer=True):
@@ -542,10 +395,6 @@ def calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4,
 
     return min(result, resulte)
 
-def _calculate_rcd_difference_multiprocess_wrapper(arglist):
-    return (arglist[0], arglist[1], calculate_rcd_difference(*arglist[2:]))
-
-    
 
 def _calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4):
     '''
@@ -581,67 +430,6 @@ def _calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4):
             raise RuntimeError("Not enough close picks to select the amount of pairs")
 
     return result
-
-def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
-    '''
-    Given 2 RCD vectors, return their difference
-    v1: RCD vector 1
-    v2: RCD vector 2
-    ratio: The difference will be the normalized Euclidean distance of relative coordinates 
-           + Euclidean distance of relative orientation
-    This version requires that the closest 4 molecules be accounted for
-    The difference is taken as the average between the attempts
-    '''
-
-    dist = [(x, y, _calculate_diff(v1[x], v2[y], ratio)) for y in range(len(v2))
-                                                     for x in range(select_pairs)]
-
-    dist.sort(key=lambda x: x[2])
-
-    result = 0
-    s1 = [False] * len(v1)
-    s2 = [False] * len(v2)
-    
-    #dist_iter = iter(dist)
-    for l in range(select_pairs):
-        #try:
-        for k in dist:
-            if not s1[k[0]] and not s2[k[1]]:
-            #Avoiding selecting same molecule from cell
-                result += k[2]
-                s1[k[0]] = True
-                s2[k[1]] = True
-                #print("Here is the selection", k)
-                break
-        #except:
-        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
-
-    dist = [(x,y,_calculate_diff(v1[x],v2[y],ratio)) for y in range(select_pairs)
-                                                     for x in range(len(v1))]
-
-    dist.sort(key=lambda x: x[2])
-
-    s1 = [False] * len(v1)
-    s2 = [False] * len(v2)
-    
-    #dist_iter = iter(dist)
-    for l in range(select_pairs):
-        #try:
-        for k in dist:
-            if not s1[k[0]] and not s2[k[1]]:
-            #Avoiding selecting same molecule from cell
-                result += k[2]
-                s1[k[0]] = True
-                s2[k[1]] = True
-                #print("Here is the selection", k)
-                break
-        #except:
-        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
-
-
-    return result / 2.0
-
-
 
 
 def _calculate_diff(v1, v2, ratio=1):
@@ -750,27 +538,4 @@ def _get_structure_list(folder, structure_suffix=""):
     f = open("./RCD_report.out","a")
     f.write("RCD_difference_worker finished getting structure list\nThere are {:04d}\n".format(len(list_of_files)))
     f.close()
-
-
-
-   
-
-def test_create_ref_struct():
-    import os
-    direct = "./"
-    path = [os.path.join(direct,x) for x in os.listdir(direct)]
-    #path = ["./duplicate_pair_1/target_2_0983_b52d9d4a9b.json","./duplicate_pair_1/target_2_0986_33d0a828d6.json"]
-    s = []
-    for i in range(2):
-        f = open(path[i],"r")
-        struct=Structure()
-        struct.build_geo_whole_atom_format(f.read())
-        #calculate_molecule_axes(struct.geometry[0:11],[(1,10),(3,9)])
-        generate_relative_coordinate_descriptor(struct,4,11,[(1,10),(3,9)],close_picks=4)
-        s.append(struct)
-    print(calculate_rcd_difference(s[0].properties["RCD_vector"],s[1].properties["RCD_vector"],select_pairs=2))
-        #create_ref_struct(struct,4,11,close_picks=8)
-if __name__=="__main__":
-    test_create_ref_struct()
-            
 
