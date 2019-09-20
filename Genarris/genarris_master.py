@@ -61,12 +61,6 @@ class Genarris():
     configuration file. Some options may be inferred from previous sections 
     if they are not present in every section. 
     
-    Arguments
-        ---------
-        inst_path: str
-            Path to the configuration file.
-    
-    
     '''
     def __init__(self,inst_path):
         '''
@@ -279,13 +273,6 @@ class Genarris():
         AP that explores the setting of preference in order to generate
         desired number of clusters.
         
-        
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator.
-        
-        
         Configuration File Options
         --------------------------
         output_dir : str
@@ -394,11 +381,6 @@ class Genarris():
         Performs volume estimation using a machine learned model train on the 
         CSD and based on Monte Carlo volume integration and topological 
         molecular fragments. See Genarris 2.0 paper for full description.
-        
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator.
             
         Configuration File Options
         --------------------------
@@ -409,11 +391,6 @@ class Genarris():
             If provided, uses this value for structure generation, otherwise 
             a default value of 0.075 multiplied by the prediction volume per 
             unit cell is provided.
-        
-        Returns
-        -------
-        None : None
-            Returns an object of type None. 
         
         """
         from utilities import volume_estimator
@@ -444,17 +421,9 @@ class Genarris():
         """
         Runs Self-Consistent Field calculation on a pool of structures. 
         
-        Arguments
-        ---------
-        See :meth:`Run_FHI_Aims_Batch`
-        
         Configuration File Options
         --------------------------
         See :meth:`Run_FHI_Aims_Batch`
-        
-        Returns
-        -------
-        None : None
         
         """
         from evaluation import run_fhi_aims
@@ -518,16 +487,11 @@ class Genarris():
         Uses the Genarris module written in C to perform structure generation. 
         This module enables generation on special positions. 
         
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator.
-        
         Configuration File Options
         --------------------------
         molecule_path : str
             Path to the relaxed molecule geometry.
-        output_format : str, 
+        output_format : str, optional, default="json"
             Determines the type of file which will be output for each 
             structure. Can be one of: json, geo, both. 
         output_dir : str
@@ -608,13 +572,7 @@ class Genarris():
         """
         Runs RDF calculation for the pool of generated structures. RDF 
         descriptor is similar to that described in Behler and Parrinello 2007.
-        Then calculates the structure difference matrix.
-        
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator.
-        
+        Then calculates the structure difference matrix.        
         
         Configuration File Options
         --------------------------
@@ -656,11 +614,6 @@ class Genarris():
         pdist_distance_type : str,optional
             Input parameter for the pdist function. Default is Euclidean. 
         
-        
-        Returns
-        -------
-        None : None
-        
         """
         from evaluation import rdf_calc
         start_time = time.time()
@@ -680,19 +633,9 @@ class Genarris():
         """
         Calls run_fhi_aims_batch using the provided single molecule path. 
         
-        Arguments
-        ---------
-        See :meth:`Run_FHI_Aims_Batch`
-        
         Configuration File Options
         --------------------------
         See :meth:`Run_FHI_Aims_Batch`
-            
-        
-        Returns
-        -------
-        None : None
-            Returns an object of type None. 
         
         """
         from evaluation import run_fhi_aims
@@ -712,17 +655,6 @@ class Genarris():
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
         Runs FHI-aims calculations on a pool of structures using num_replicas.
-        
-        Arguments
-        ---------
-        comm: mpi4py.MPI object
-            MPI communicator to pass into aims
-        world_comm: mpi4py.MPI object
-            World MPI communicator
-        MPI_ANY_SOURCE: mpi4py.MPI.ANY_SOURCE 
-            MPI ANY_SOURCE object to facilitate communication.
-        num_replicas: int
-            Number of replicas to use in calculation.
         
         Configuration File Options
         --------------------------
@@ -747,10 +679,6 @@ class Genarris():
             relax_single_molecule.
         Z : int, inferred
             Number of molecules per cell. 
-        
-        Returns
-        -------
-        None : None
             
         """
         from evaluation import run_fhi_aims

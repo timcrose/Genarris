@@ -73,7 +73,7 @@
 
 
 \title{Genarris}
-\date{Sep 17, 2019}
+\date{Sep 20, 2019}
 \release{2.0}
 \author{Rithwik Tom, Timothy Rose, Imanuel Bier}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -95,40 +95,118 @@
 
 
 
-\chapter{How to use API Documentation}
-\label{\detokenize{index:how-to-use-api-documentation}}
-The execution of Genarris is controlled by a \sphinxhref{https://docs.python.org/3.4/library/configparser.html}{configuration} file. The configuration
-file specifies the execution of Genarris which is broken down into procedures,
-such as \sphinxcode{\sphinxupquote{Pygenarris\_Structure\_Generation}}. Each procedure has a corresponding
-section in the configuration file, for our example \sphinxcode{\sphinxupquote{pygenarris\_structure\_generation}}.
-The section contains options which control the operations performed by each
-procedure.
+\chapter{Introduction}
+\label{\detokenize{index:introduction}}
+
+\section{Configuration File}
+\label{\detokenize{index:configuration-file}}
+Genarris is a random crystal structure generation code that can be adapted to
+perform \sphinxstyleemphasis{ab initio} crystal structure prediction. The modularity of Genarris
+is achieved through the sequential execution of procedures. The execution of
+Genarris is controlled by a \sphinxhref{https://docs.python.org/3.4/library/configparser.html}{configuration} file. Below is a small example
+of a configuration file for Genarris.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{p}{[}\PYG{n}{Genarris\PYGZus{}master}\PYG{p}{]}
+\PYG{n}{procedures} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Pygenarris\PYGZus{}Structure\PYGZus{}Generation}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{]}
+
+\PYG{p}{[}\PYG{n}{pygenarris\PYGZus{}structure\PYGZus{}generation}\PYG{p}{]}
+\PYG{c+c1}{\PYGZsh{} Path to the single molecule file to used for crystal structure generation}
+\PYG{n}{molecule\PYGZus{}path} \PYG{o}{=} \PYG{n}{relaxed\PYGZus{}molecule}\PYG{o}{.}\PYG{o+ow}{in}
+\PYG{c+c1}{\PYGZsh{} Number of cores (MPI ranks) to run this section with}
+\PYG{n}{num\PYGZus{}cores} \PYG{o}{=} \PYG{l+m+mi}{56}
+\PYG{c+c1}{\PYGZsh{} Number of OpenMP Threads}
+\PYG{n}{omp\PYGZus{}num\PYGZus{}threads} \PYG{o}{=} \PYG{l+m+mi}{2}
+\PYG{n}{num\PYGZus{}structures} \PYG{o}{=} \PYG{l+m+mi}{5000}
+\PYG{n}{Z} \PYG{o}{=} \PYG{l+m+mi}{4}
+\PYG{n}{sr} \PYG{o}{=} \PYG{l+m+mf}{0.85}
+\PYG{n}{tol} \PYG{o}{=} \PYG{l+m+mf}{0.00001}
+\PYG{n}{max\PYGZus{}attempts\PYGZus{}per\PYGZus{}spg\PYGZus{}per\PYGZus{}rank} \PYG{o}{=} \PYG{l+m+mi}{1000000000}
+\PYG{n}{geometry\PYGZus{}out\PYGZus{}filename} \PYG{o}{=} \PYG{n}{glycine\PYGZus{}4mpc}\PYG{o}{.}\PYG{n}{out}
+\PYG{n}{output\PYGZus{}format} \PYG{o}{=} \PYG{n}{json}
+\PYG{n}{output\PYGZus{}dir} \PYG{o}{=} \PYG{n}{glycine\PYGZus{}4mpc\PYGZus{}raw\PYGZus{}jsons}
+\end{sphinxVerbatim}
+
+\sphinxstylestrong{Sections} of the configuration file are denoted by square brakets, \sphinxcode{\sphinxupquote{{[}...{]}}}.
+All parameters that are specified below a section are called \sphinxstylestrong{options}. The
+workflow of Genarris can be precisely controlled by the user by specifying the
+order of the desired procedures in \sphinxcode{\sphinxupquote{{[}Genarris\_master{]}}}. The user must also
+include the corresponding section for each procedure listed in
+\sphinxcode{\sphinxupquote{{[}Genarris\_master{]}}}. Each section may have many options which are required,
+optional, or inferred.
 
 This document details the options for procedures that are executed in the Genarris 2.0
-\sphinxstyleemphasis{Robust} workflow. In order these are, \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule, Estimate\_Unit\_Cell\_Volume,
-Pygenarris\_Structure\_Generation, Run\_Rdf\_Calc, Affinity\_Propagation\_Fixed\_Clusters,
-FHI\_Aims\_Energy\_Evaluation, Affinity\_Propagation\_Fixed\_Clusters, Run\_FHI\_Aims\_Batch}}.
+\sphinxstyleemphasis{Robust} workflow. In order these are:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Relax\PYGZus{}Single\PYGZus{}Molecule}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Estimate\PYGZus{}Unit\PYGZus{}Cell\PYGZus{}Volume}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Pygenarris\PYGZus{}Structure\PYGZus{}Generation}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Run\PYGZus{}Rdf\PYGZus{}Calc}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Affinity\PYGZus{}Propagation\PYGZus{}Fixed\PYGZus{}Clusters}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{FHI\PYGZus{}Aims\PYGZus{}Energy\PYGZus{}Evaluation}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Affinity\PYGZus{}Propagation\PYGZus{}Fixed\PYGZus{}Clusters}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+ \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+s2}{Run\PYGZus{}FHI\PYGZus{}Aims\PYGZus{}Batch}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{]}
+\end{sphinxVerbatim}
+
 There are many options that can be specified and modified for each section.
 All of these options are specified in this document under the
 \sphinxstylestrong{Configuration File Options} section of each procedure.
 
-There are three categories of \sphinxstylestrong{Configuration File Options}. These are \sphinxstyleemphasis{required},
+
+\section{Option Category}
+\label{\detokenize{index:option-category}}\label{\detokenize{index:category}}
+There are three \sphinxstyleemphasis{categories} of \sphinxstylestrong{Configuration File Options}. These are \sphinxstyleemphasis{required},
 \sphinxstyleemphasis{optional}, and \sphinxstyleemphasis{inferred}. In the \sphinxstylestrong{Configuration File Options}, these categories
 are specified after the \sphinxstyleemphasis{type} of the option, such as \sphinxstyleemphasis{int}, \sphinxstyleemphasis{float}, or \sphinxstyleemphasis{bool}.
-\sphinxstyleemphasis{Required} options have no category placed after the type. Both \sphinxstyleemphasis{optional} and
-\sphinxstyleemphasis{inferred} are specified after the type. \sphinxstyleemphasis{Optional} arguments are those that
-have default settings that in general perform well. The user may specify these
-\sphinxstyleemphasis{optional} arguments to have more control over the program executing.
-\sphinxstyleemphasis{Inferred} options are those that may be present in multiple different procedures.
-For example, the option \sphinxcode{\sphinxupquote{aims\_lib\_dir}} is needed in the \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule}},
-\sphinxcode{\sphinxupquote{FHI\_Aims\_Energy\_Evaluation}}, and \sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}. But, because it is
-an inferred parameter, it only needs to be specified once in the earliest procedure
-in which occurs and then it will be inferred by all further procedures. Options which
-are inferred are thus optional in all proceeding sections.
+\begin{enumerate}
+\def\theenumi{\arabic{enumi}}
+\def\labelenumi{\theenumi .}
+\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\item {} 
+\sphinxstyleemphasis{Required} options have no category placed after the type in the
+documentation. These options are required to be in the configuration
+file for execution of Genarris.
+
+\item {} 
+\sphinxstyleemphasis{Optional} arguments are specified after the option \sphinxstyleemphasis{type}.
+These areguments have default settings built into the code perform
+well in general. The user may specify these \sphinxstyleemphasis{optional} arguments
+in the configuration file to have more control over the program
+executing.
+
+\item {} 
+\sphinxstyleemphasis{Inferred} options are specified after the option \sphinxstyleemphasis{type}. These options
+may be present in multiple different procedures. For example, the option
+\sphinxcode{\sphinxupquote{aims\_lib\_dir}} is needed in the \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule}},
+\sphinxcode{\sphinxupquote{FHI\_Aims\_Energy\_Evaluation}}, and \sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}.
+But, because it is an inferred parameter, it only needs to be specified
+once in the earliest procedure in which occurs and then it will be
+inferred by all further procedures. Options which are inferred are thus
+optional in all proceeding sections.
+
+\end{enumerate}
 
 
 \chapter{Genarris 2.0 Procedures for Robust Workflow}
-\label{\detokenize{index:genarris-2-0-procedures-for-robust-workflow}}\index{Genarris (class in Genarris.genarris\_master)@\spxentry{Genarris}\spxextra{class in Genarris.genarris\_master}}
+\label{\detokenize{index:genarris-2-0-procedures-for-robust-workflow}}
+
+\section{Description}
+\label{\detokenize{index:description}}
+This section details all arguments and configuration file
+options for the procedures executed by the Robust Genarris 2.0 workflow. Each
+procedure is a class function of the of the \sphinxcode{\sphinxupquote{Genarris}} master class.
+The documentation follows a standard format for each procedure. The name
+of the procedure is given first followed by a short description of the function
+the function it performs. Below the description is the the configuration file
+options subsection. This section gives the name, the data type,
+the {\hyperref[\detokenize{index:category}]{\sphinxcrossref{\DUrole{std,std-ref}{Option Category}}}}, and a description of each option which is accepted by the
+procedure. By referencing this documentation, the user can obtain precise
+control over the execution of Genarris procedures.
+
+
+\section{Genarris Procedures}
+\label{\detokenize{index:genarris-procedures}}\index{Genarris (class in Genarris.genarris\_master)@\spxentry{Genarris}\spxextra{class in Genarris.genarris\_master}}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{class }}\sphinxcode{\sphinxupquote{Genarris.genarris\_master.}}\sphinxbfcode{\sphinxupquote{Genarris}}}{\emph{inst\_path}}{}
@@ -138,26 +216,12 @@ Begins by reading and intepreting the configuration file.
 Calls the defined procedures with the options specified in the
 configuration file. Some options may be inferred from previous sections
 if they are not present in every section.
-\begin{description}
-\item[{Arguments}] \leavevmode\begin{description}
-\item[{inst\_path: str}] \leavevmode
-Path to the configuration file.
-
-\end{description}
-
-\end{description}
 \index{Affinity\_Propagation\_Fixed\_Clusters() (Genarris.genarris\_master.Genarris method)@\spxentry{Affinity\_Propagation\_Fixed\_Clusters()}\spxextra{Genarris.genarris\_master.Genarris method}}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Affinity_Propagation_Fixed_Clusters}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Affinity\_Propagation\_Fixed\_Clusters}}}{\emph{comm}}{}
 AP that explores the setting of preference in order to generate
 desired number of clusters.
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator.
-
-\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{output\_dir}] \leavevmode{[}str{]}
@@ -283,12 +347,6 @@ energy\_name.
 Performs volume estimation using a machine learned model train on the
 CSD and based on Monte Carlo volume integration and topological
 molecular fragments. See Genarris 2.0 paper for full description.
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator.
-
-\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{volume\_mean}] \leavevmode{[}float, optional{]}
@@ -301,11 +359,6 @@ a default value of 0.075 multiplied by the prediction volume per
 unit cell is provided.
 
 \end{description}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None}) -- Returns an object of type None.
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -314,17 +367,9 @@ unit cell is provided.
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.FHI_Aims_Energy_Evaluation}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{FHI\_Aims\_Energy\_Evaluation}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
 Runs Self-Consistent Field calculation on a pool of structures.
-\subsubsection*{Arguments}
-
-See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
 \subsubsection*{Configuration File Options}
 
 See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -334,18 +379,12 @@ See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Pygenarris_Structure_Generation}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Pygenarris\_Structure\_Generation}}}{\emph{comm}}{}
 Uses the Genarris module written in C to perform structure generation.
 This module enables generation on special positions.
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator.
-
-\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{molecule\_path}] \leavevmode{[}str{]}
 Path to the relaxed molecule geometry.
 
-\item[{output\_format}] \leavevmode{[}str,{]}
+\item[{output\_format}] \leavevmode{[}str, optional, default="json"{]}
 Determines the type of file which will be output for each
 structure. Can be one of: json, geo, both.
 
@@ -403,12 +442,6 @@ num\_structures.
 Runs RDF calculation for the pool of generated structures. RDF
 descriptor is similar to that described in Behler and Parrinello 2007.
 Then calculates the structure difference matrix.
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator.
-
-\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{structure\_dir}] \leavevmode{[}str, inferred{]}
@@ -461,11 +494,6 @@ Gastegger et al. 2018. Default is {[}{[}0.1,12{]}.
 Input parameter for the pdist function. Default is Euclidean.
 
 \end{description}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -474,17 +502,9 @@ Input parameter for the pdist function. Default is Euclidean.
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Relax_Single_Molecule}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Relax\_Single\_Molecule}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
 Calls run\_fhi\_aims\_batch using the provided single molecule path.
-\subsubsection*{Arguments}
-
-See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
 \subsubsection*{Configuration File Options}
 
 See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None}) -- Returns an object of type None.
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -493,21 +513,6 @@ See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
 Runs FHI-aims calculations on a pool of structures using num\_replicas.
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator to pass into aims
-
-\item[{world\_comm: mpi4py.MPI object}] \leavevmode
-World MPI communicator
-
-\item[{MPI\_ANY\_SOURCE: mpi4py.MPI.ANY\_SOURCE}] \leavevmode
-MPI ANY\_SOURCE object to facilitate communication.
-
-\item[{num\_replicas: int}] \leavevmode
-Number of replicas to use in calculation.
-
-\end{description}
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{verbose}] \leavevmode{[}bool{]}
@@ -540,103 +545,9 @@ relax\_single\_molecule.
 Number of molecules per cell.
 
 \end{description}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
-
-\end{fulllineitems}
-
-
-
-\chapter{Genarris 2.0 Callable Functions}
-\label{\detokenize{index:genarris-2-0-callable-functions}}\index{run\_fhi\_aims\_batch() (in module Genarris.evaluation.run\_fhi\_aims)@\spxentry{run\_fhi\_aims\_batch()}\spxextra{in module Genarris.evaluation.run\_fhi\_aims}}
-
-\begin{fulllineitems}
-\phantomsection\label{\detokenize{index:Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch}}\pysiglinewithargsret{\sphinxcode{\sphinxupquote{Genarris.evaluation.run\_fhi\_aims.}}\sphinxbfcode{\sphinxupquote{run\_fhi\_aims\_batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}, \emph{inst=None}, \emph{sname=None}, \emph{structure\_dir=None}, \emph{aims\_output\_dir=None}, \emph{output\_dir=None}, \emph{aims\_lib\_dir=None}, \emph{control\_path=None}, \emph{energy\_name='energy'}, \emph{verbose=False}}{}
-Performs multiple FHI calculations
-\subsubsection*{Arguments}
-\begin{description}
-\item[{comm: mpi4py.MPI object}] \leavevmode
-MPI communicator to pass into aims
-
-\item[{world\_comm: mpi4py.MPI object}] \leavevmode
-World MPI communicator
-
-\item[{MPI\_ANY\_SOURCE: mpi4py.MPI.ANY\_SOURCE}] \leavevmode
-Any source object for communication.
-
-\item[{num\_replicas: int}] \leavevmode
-Number of replicas to perform calculation.
-
-\item[{inst: genarris.core.instruct.Instruct}] \leavevmode
-Config Parser object which contains all the configuration file sections
-and options for calculation.
-
-\item[{sname: str}] \leavevmode
-Section name which called run\_fhi\_aims\_batch
-
-\item[{struct\_dir: str}] \leavevmode
-Path to directory of structures to perform calculation.
-
-\item[{aims\_output\_dir: str}] \leavevmode
-Path to the directory where FHI-aims calculations should take place.
-
-\item[{output\_dir: str}] \leavevmode
-Path to the directory where the Structure files should be saved.
-
-\item[{aims\_lib\_dir: str}] \leavevmode
-Path to the directory containing the FHI-aims library file.
-
-\item[{control\_path: str}] \leavevmode
-Path to the directory containing the control file to use.
-
-\item[{energy\_name}] \leavevmode{[}str{]}
-Property name which the calculated energy will be stored with in the
-Structure file.
-
-\item[{verbose}] \leavevmode{[}bool{]}
-Controls verbosity of output.
-
-\end{description}
-\subsubsection*{Configuration File Options}
-\begin{description}
-\item[{verbose}] \leavevmode{[}bool{]}
-Controls verbosity of output.
-
-\item[{energy\_name}] \leavevmode{[}str{]}
-Property name which the calculated energy will be stored with in the
-Structure file.
-
-\item[{output\_dir}] \leavevmode{[}str{]}
-Path to the directory where the output structure file will be saved.
-
-\item[{aims\_output\_dir}] \leavevmode{[}str{]}
-Path where the aims calculation will take place.
-
-\item[{aims\_lib\_dir}] \leavevmode{[}str{]}
-Path to the location of the directory containing the FHI-aims library
-file.
-
-\item[{molecule\_path}] \leavevmode{[}str{]}
-Path to the geometry.in file of the molecule to be calculated if
-called using harris\_single\_molecule\_prep or relax\_single\_molecule.
-
-\item[{structure\_dir}] \leavevmode{[}str{]}
-Path to the directory of structures to be calculated if calculation
-was called not using harris\_single\_molecule\_prep or
-relax\_single\_molecule.
-
-\end{description}
-\begin{quote}\begin{description}
-\item[{Returns}] \leavevmode
-\sphinxstylestrong{None} (\sphinxstyleemphasis{None})
-
-\end{description}\end{quote}
 
 \end{fulllineitems}
 
