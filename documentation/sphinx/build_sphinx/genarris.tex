@@ -73,7 +73,7 @@
 
 
 \title{Genarris}
-\date{Sep 20, 2019}
+\date{Sep 22, 2019}
 \release{2.0}
 \author{Rithwik Tom, Timothy Rose, Imanuel Bier}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -400,7 +400,8 @@ This document details the options for procedures that are executed in the Genarr
 
 There are many options that can be specified and modified for each section.
 All of these options are specified in this document under the
-\sphinxstylestrong{Configuration File Options} section of each procedure.
+\sphinxstylestrong{Configuration File Options} section of each procedure. For a detailed
+description of the workflow, see the {\hyperref[\detokenize{index:detailed-instructions}]{\sphinxcrossref{detailed instructions}}} section.
 
 
 \section{Option Category}
@@ -459,8 +460,135 @@ and \sphinxstyleemphasis{geo} file for every structure will be produced.
 \end{itemize}
 
 
+\chapter{Running Genarris Tutorial}
+\label{\detokenize{index:running-genarris-tutorial}}
+
+\section{Quick start}
+\label{\detokenize{index:quick-start}}
+\sphinxcode{\sphinxupquote{cd}} to the tutorial/RDF directory and modify \sphinxcode{\sphinxupquote{aims\_lib\_dir}} in \sphinxcode{\sphinxupquote{ui.conf}}
+to point to the directory containing your aims library wrapper file (the one compiled
+with f2py). Adapt \sphinxcode{\sphinxupquote{sub\_genarris.sh}} to your cluster schdueling submission script
+type (the example is slurm) and options (slurm options, mpi executable, number
+of cores etc.). Then submit e.g.:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{sbatch} \PYG{n}{sub\PYGZus{}genarris}\PYG{o}{.}\PYG{n}{sh}
+\end{sphinxVerbatim}
+
+
+\section{Input options in ui.conf}
+\label{\detokenize{index:input-options-in-ui-conf}}
+See {\hyperref[\detokenize{index:documentation}]{\sphinxcrossref{documentation}}}.
+
+
+\section{Description of Log Files}
+\label{\detokenize{index:description-of-log-files}}
+There are multiple log files created when running Genarris. The files are
+separated by the contents they contain. This makes debugging easier, for example,
+because all error information is saved in a single location.
+\begin{itemize}
+\item {} 
+\sphinxcode{\sphinxupquote{Genarris.log}}: \leavevmode A log of what is currently being run and other info is printed here. 
+The amount of info can be made less verbose by commenting out the verbose
+option in the ui.conf for the various procedures.
+
+\item {} 
+\sphinxcode{\sphinxupquote{Genarris.err}}: Error messages may appear here.
+
+\item {} 
+\sphinxcode{\sphinxupquote{stdout}}: Named something different depending on your submission script,
+this is the standard output which may contain environment info,
+cgenarris output log info, and sometimes error messages.
+
+\end{itemize}
+
+
+\section{Detailed Instructions}
+\label{\detokenize{index:detailed-instructions}}\label{\detokenize{index:id1}}
+Genarris will run the procedures specified by the procedures option in the
+\sphinxcode{\sphinxupquote{Genarris\_master}} section in the order they appear in the list.
+It begins with the \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule}} procedure which creates a folder
+called \sphinxcode{\sphinxupquote{structure\_dir\_for\_relaxing\_single\_molecule}} to store the
+molecule geometry file. Calls to FHI-aims create a folder structure starting
+with the folder name inputted with the \sphinxcode{\sphinxupquote{aims\_output\_dir}} option.
+That folder contains a folder for every structure in the inputted structure
+directory (in this case, there is just one structure). The
+inputted control file is copied to each of those subfolders. A copy of the
+geometry file in FHI-aims and json format is also copied to the
+corresponding subdirectory. Genarris replicas move from folder to folder,
+performing an FHI-aims calculation in each one. This creates
+the aims output file \sphinxcode{\sphinxupquote{aims.out}} and possibly a relaxed geometry file
+\sphinxcode{\sphinxupquote{geometry.in.next\_step}}. Genarris will look to see if the single molecule
+was relaxed and if so, use that geometry in subsequent procedures.
+
+When pygenarris is run, each core will output structures to its own
+\sphinxcode{\sphinxupquote{geometry.out}} file. Each of these are \sphinxcode{\sphinxupquote{geometry.in}} format concatenated.
+When pygenarris completes, these individual files will be appended to a
+single \sphinxcode{\sphinxupquote{geometry.out}} file if desired and each structure will be
+output to the \sphinxcode{\sphinxupquote{output\_dir}} specified as a json file. A json file is like a
+python dictionary which contains key, value pairs for metadata
+about the structure and is required for subsequent steps. pygenarris may also
+output the \sphinxcode{\sphinxupquote{cutoff\_matrix}} which contains distance cutoff
+values between atoms i and j which are derived from the sr inputted
+(see the paper for more details). Because the number of structures generated
+currently must be a multiple of the number of allowed space groups for the
+given molecule and Z, we have:
+
+\begin{sphinxVerbatim}[commandchars=\\\{\}]
+\PYG{n}{num\PYGZus{}structures\PYGZus{}per\PYGZus{}allowed\PYGZus{}SG\PYGZus{}per\PYGZus{}rank} \PYG{o}{=}
+                \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{np}\PYG{o}{.}\PYG{n}{ceil}\PYG{p}{(}\PYG{n+nb}{float}\PYG{p}{(}\PYG{n}{num\PYGZus{}structures}\PYG{p}{)} \PYG{o}{/}
+                \PYG{p}{(}\PYG{n+nb}{float}\PYG{p}{(}\PYG{n}{comm}\PYG{o}{.}\PYG{n}{size}\PYG{p}{)} \PYG{o}{*} \PYG{n+nb}{float}\PYG{p}{(}\PYG{n}{num\PYGZus{}compatible\PYGZus{}spgs}\PYG{p}{)}\PYG{p}{)}\PYG{p}{)}\PYG{p}{)}
+\end{sphinxVerbatim}
+
+and so the total number of structures generated could
+be more than the number specified in \sphinxcode{\sphinxupquote{ui.conf}}. See the documentation, but
+there is an option for choosing to keep them all or only select
+the \sphinxcode{\sphinxupquote{num\_structures}} structures desired. Structures are niggli reduced
+before being output to jsons.
+
+Then the \sphinxcode{\sphinxupquote{Run\_Rdf\_Calc}} procedure is run. It yields a directory of jsons
+specified by its \sphinxcode{\sphinxupquote{output\_dir}} option. These jsons are the same as the
+ones output by Pygenarris except now they have the RDF vector as a recorded
+piece of metadata. A distance matrix is also output in the form
+of a memory map which drastically saves on memory usage.
+
+Alternatively, the RCD procedures may be run. \sphinxcode{\sphinxupquote{RCD\_Calculation}} creates an
+\sphinxcode{\sphinxupquote{output\_dir}} with the jsons including their RCD vectors. It also
+outputs some other log files: \sphinxcode{\sphinxupquote{RCD\_report.out}} and \sphinxcode{\sphinxupquote{rcd\_vectors.info}}.
+\sphinxcode{\sphinxupquote{RCD\_Difference\_Folder\_Inner}} will compute the pairwise distances between all
+structures and output a distance matrix in the form of a memory map.
+
+Next, Affinity Propagation begins by printing the affinity matrix that
+corresponds to the distance matrix outputted in the previous step.
+It then outputs a directory with all structures in the raw pool, but now they
+include more metadata such as the cluster id that AP assigned
+it to as well as the exemplar of its cluster. AP also outputs a directory of
+the exemplars, and the distance matrix of those exemplars which has
+the same name as the first distance matrix file name but with a 1 appended
+to the name.
+
+The next call to FHI-aims computes the energies of the exemplars outputted in
+the previous step. It creates an \sphinxcode{\sphinxupquote{aims\_output\_dir}} with name specified in
+the \sphinxcode{\sphinxupquote{ui.conf}}. The resultant jsons are then dumped to the corresponding
+\sphinxcode{\sphinxupquote{output\_dir}} which are the same as the exemplars but now have the energy
+property included.
+
+Then, AP creates the affintity matrix corresponding to the second distance
+matrix and clusters the structures with energies and outputs a directory
+for all those structures but now they contain the cluster assigned by this AP.
+The tutorial asks the second round of clustering to output the
+structure with the minimum energy from each cluster. These are the structures
+output to \sphinxcode{\sphinxupquote{sample\_structures\_exemplars\_2}}.
+
+These structures are relaxed in the subdirectories of \sphinxcode{\sphinxupquote{aims\_output\_dir}} for
+\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}. The relaxed structures are then niggli reduced and are
+output to this section's \sphinxcode{\sphinxupquote{output\_dir}}. The structures output to \sphinxcode{\sphinxupquote{output\_dir}}
+also contain other metadata such as spglib's new determination of the space
+group.
+
+
 \chapter{Genarris 2.0 Procedures for Robust Workflow}
-\label{\detokenize{index:genarris-2-0-procedures-for-robust-workflow}}
+\label{\detokenize{index:genarris-2-0-procedures-for-robust-workflow}}\label{\detokenize{index:documentation}}
 
 \section{Description}
 \label{\detokenize{index:description}}

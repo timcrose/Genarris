@@ -264,7 +264,8 @@ This document details the options for procedures that are executed in the Genarr
      
 There are many options that can be specified and modified for each section. 
 All of these options are specified in this document under the
-**Configuration File Options** section of each procedure.
+**Configuration File Options** section of each procedure. For a detailed 
+description of the workflow, see the `detailed instructions`_ section.
 
 
 .. _category:
@@ -317,7 +318,120 @@ are *json*, *geo*, or *both*.
 Running Genarris Tutorial
 -------------------------
 
+Quick start
+^^^^^^^^^^^
+``cd`` to the tutorial/RDF directory and modify ``aims_lib_dir`` in ``ui.conf``
+to point to the directory containing your aims library wrapper file (the one compiled 
+with f2py). Adapt ``sub_genarris.sh`` to your cluster schdueling submission script 
+type (the example is slurm) and options (slurm options, mpi executable, number 
+of cores etc.). Then submit e.g.::
 
+     sbatch sub_genarris.sh
+
+Input options in ui.conf
+^^^^^^^^^^^^^^^^^^^^^^^^
+See `documentation`_.
+
+
+Description of Log Files
+^^^^^^^^^^^^^^^^^^^^^^^^
+There are multiple log files created when running Genarris. The files are 
+separated by the contents they contain. This makes debugging easier, for example,
+because all error information is saved in a single location.
+
+* ``Genarris.log``: A log of what is currently being run and other info is printed here. 
+   The amount of info can be made less verbose by commenting out the verbose 
+   option in the ui.conf for the various procedures.
+   
+* ``Genarris.err``: Error messages may appear here.
+
+* ``stdout``: Named something different depending on your submission script, 
+  this is the standard output which may contain environment info, 
+  cgenarris output log info, and sometimes error messages.
+
+.. _detailed instructions:
+
+Detailed Instructions
+^^^^^^^^^^^^^^^^^^^^^
+
+Genarris will run the procedures specified by the procedures option in the 
+``Genarris_master`` section in the order they appear in the list.
+It begins with the ``Relax_Single_Molecule`` procedure which creates a folder 
+called ``structure_dir_for_relaxing_single_molecule`` to store the 
+molecule geometry file. Calls to FHI-aims create a folder structure starting 
+with the folder name inputted with the ``aims_output_dir`` option. 
+That folder contains a folder for every structure in the inputted structure 
+directory (in this case, there is just one structure). The 
+inputted control file is copied to each of those subfolders. A copy of the 
+geometry file in FHI-aims and json format is also copied to the
+corresponding subdirectory. Genarris replicas move from folder to folder, 
+performing an FHI-aims calculation in each one. This creates
+the aims output file ``aims.out`` and possibly a relaxed geometry file 
+``geometry.in.next_step``. Genarris will look to see if the single molecule
+was relaxed and if so, use that geometry in subsequent procedures.
+
+When pygenarris is run, each core will output structures to its own 
+``geometry.out`` file. Each of these are ``geometry.in`` format concatenated.
+When pygenarris completes, these individual files will be appended to a 
+single ``geometry.out`` file if desired and each structure will be 
+output to the ``output_dir`` specified as a json file. A json file is like a 
+python dictionary which contains key, value pairs for metadata
+about the structure and is required for subsequent steps. pygenarris may also 
+output the ``cutoff_matrix`` which contains distance cutoff 
+values between atoms i and j which are derived from the sr inputted 
+(see the paper for more details). Because the number of structures generated
+currently must be a multiple of the number of allowed space groups for the 
+given molecule and Z, we have::
+
+    num_structures_per_allowed_SG_per_rank = 
+                    int(np.ceil(float(num_structures) / 
+                    (float(comm.size) * float(num_compatible_spgs))))
+
+and so the total number of structures generated could
+be more than the number specified in ``ui.conf``. See the documentation, but 
+there is an option for choosing to keep them all or only select
+the ``num_structures`` structures desired. Structures are niggli reduced 
+before being output to jsons.
+
+Then the ``Run_Rdf_Calc`` procedure is run. It yields a directory of jsons 
+specified by its ``output_dir`` option. These jsons are the same as the
+ones output by Pygenarris except now they have the RDF vector as a recorded 
+piece of metadata. A distance matrix is also output in the form
+of a memory map which drastically saves on memory usage.
+
+Alternatively, the RCD procedures may be run. ``RCD_Calculation`` creates an 
+``output_dir`` with the jsons including their RCD vectors. It also 
+outputs some other log files: ``RCD_report.out`` and ``rcd_vectors.info``. 
+``RCD_Difference_Folder_Inner`` will compute the pairwise distances between all
+structures and output a distance matrix in the form of a memory map.
+
+Next, Affinity Propagation begins by printing the affinity matrix that 
+corresponds to the distance matrix outputted in the previous step.
+It then outputs a directory with all structures in the raw pool, but now they 
+include more metadata such as the cluster id that AP assigned
+it to as well as the exemplar of its cluster. AP also outputs a directory of 
+the exemplars, and the distance matrix of those exemplars which has
+the same name as the first distance matrix file name but with a 1 appended 
+to the name.
+
+The next call to FHI-aims computes the energies of the exemplars outputted in 
+the previous step. It creates an ``aims_output_dir`` with name specified in
+the ``ui.conf``. The resultant jsons are then dumped to the corresponding 
+``output_dir`` which are the same as the exemplars but now have the energy
+property included.
+
+Then, AP creates the affintity matrix corresponding to the second distance 
+matrix and clusters the structures with energies and outputs a directory
+for all those structures but now they contain the cluster assigned by this AP. 
+The tutorial asks the second round of clustering to output the 
+structure with the minimum energy from each cluster. These are the structures 
+output to ``sample_structures_exemplars_2``.
+
+These structures are relaxed in the subdirectories of ``aims_output_dir`` for 
+``Run_FHI_Aims_Batch``. The relaxed structures are then niggli reduced and are 
+output to this section's ``output_dir``. The structures output to ``output_dir``
+also contain other metadata such as spglib's new determination of the space
+group.
 
 
 ..
@@ -344,6 +458,8 @@ Running Genarris Tutorial
 .. _Jmol: http://jmol.sourceforge.net
 .. _ASE: https://wiki.fysik.dtu.dk/ase/
 
+
+.. _documentation:
 
 Genarris 2.0 Procedures for Robust Workflow
 -------------------------------------------
