@@ -395,7 +395,66 @@ def calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4,
 
     return min(result, resulte)
 
+def _calculate_rcd_difference_2(v1, v2, ratio=1, select_pairs=4):
+    '''
+    Given 2 RCD vectors, return their difference
+    v1: RCD vector 1
+    v2: RCD vector 2
+    ratio: The difference will be the normalized Euclidean distance of relative coordinates 
+           + Euclidean distance of relative orientation
+    This version requires that the closest 4 molecules be accounted for
+    The difference is taken as the average between the attempts
+    '''
 
+    dist = [(x, y, _calculate_diff(v1[x], v2[y], ratio)) for y in range(len(v2))
+                                                     for x in range(select_pairs)]
+
+    dist.sort(key=lambda x: x[2])
+
+    result = 0
+    s1 = [False] * len(v1)
+    s2 = [False] * len(v2)
+
+    #dist_iter = iter(dist)
+    for l in range(select_pairs):
+        #try:
+        for k in dist:
+            if not s1[k[0]] and not s2[k[1]]:
+            #Avoiding selecting same molecule from cell
+                result += k[2]
+                s1[k[0]] = True
+                s2[k[1]] = True
+                #print("Here is the selection", k)
+                break
+        #except:
+        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
+
+    dist = [(x,y,_calculate_diff(v1[x],v2[y],ratio)) for y in range(select_pairs)
+                                                     for x in range(len(v1))]
+
+    dist.sort(key=lambda x: x[2])
+
+    s1 = [False] * len(v1)
+    s2 = [False] * len(v2)
+
+    #dist_iter = iter(dist)
+    for l in range(select_pairs):
+        #try:
+        for k in dist:
+            if not s1[k[0]] and not s2[k[1]]:
+            #Avoiding selecting same molecule from cell
+                result += k[2]
+                s1[k[0]] = True
+                s2[k[1]] = True
+                #print("Here is the selection", k)
+                break
+        #except:
+        #    raise RuntimeError("Not enough close picks to select the amount of pairs")
+
+
+    return result / 2.0
+
+    
 def _calculate_rcd_difference(v1, v2, ratio=1, select_pairs=4):
     '''
     Given 2 RCD vectors, return their difference

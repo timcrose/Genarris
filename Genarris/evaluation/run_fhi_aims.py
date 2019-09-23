@@ -8,7 +8,11 @@ from ibslib.io import read,write
 import ase, spglib
 import ase.io
 from ase.spacegroup import Spacegroup
+print('ase.__file__', ase.__file__, flush=True)
+print('ase.io.__file__', ase.io.__file__, flush=True)
+print('dir(ase.io)', dir(ase.io), flush=True)
 import numpy as np
+from copy import deepcopy
 
 
 def update_lattice_lengths_in_struct(struct):
@@ -349,14 +353,32 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                         if verbose:
                             print('updated struct properties', flush=True)
                         write(geometry_in_next_step, relaxed_struct, file_format='aims', overwrite=True)
-                        file_utils.cp(geometry_in_next_step, '.', dest_fname='geometry.in.next_step')
+                        write('geometry.in.next_step', relaxed_struct, file_format='aims', overwrite=True)
+
                         if verbose:
+                            print('relaxed_struct.geometry',relaxed_struct.geometry, flush=True)
                             print('updated', geometry_in_next_step, flush=True)
                         if struct_is_periodic:
-                            ase_struct = ase.io.read(geometry_in_next_step, format='aims')
+                            if verbose:
+                                print('structure is periodic', flush=True)
+                            if not os.path.exists(geometry_in_next_step):
+                                raise Exception('path', geometry_in_next_step, 'DNE')
+                            else:
+                                print(geometry_in_next_step, 'exists', flush=True)
+                            try: ase.io.read
+                            except: print('ase.io.read not defined')
+                            ase_struct = ase.io.read(geometry_in_next_step, format='aims', parallel=False)
+                            if verbose:
+                                print('read ase_struct', ase_struct, flush=True)
                             lattice = ase_struct.get_cell()
+                            if verbose:
+                                print('ase lattice', lattice, flush=True)
                             positions = ase_struct.get_scaled_positions()
+                            if verbose:
+                                print('ase positions', positions, flush=True)
                             numbers = ase_struct.get_atomic_numbers()
+                            if verbose:
+                                print('ase numbers', numbers, flush=True)
                             cell = (lattice, positions, numbers)
                             if verbose:
                                 print('cell', cell, flush=True)
@@ -376,7 +398,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                             if 'spg' in relaxed_struct.properties:
                                 relaxed_struct.properties['spg_before_relaxation'] = relaxed_struct.properties['spg']
                             relaxed_struct.properties['spg'] = spglib_spg
-                            relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
+                            if 'cell_vol' in relaxed_struct.properties:
+                                relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
                         relaxed_struct.struct_id = struct.struct_id
                         if verbose:
                             print('relaxed struct_id', relaxed_struct.struct_id, flush=True)
