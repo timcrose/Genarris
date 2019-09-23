@@ -73,7 +73,7 @@
 
 
 \title{Genarris}
-\date{Sep 22, 2019}
+\date{Sep 23, 2019}
 \release{2.0}
 \author{Rithwik Tom, Timothy Rose, Imanuel Bier}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -460,6 +460,34 @@ and \sphinxstyleemphasis{geo} file for every structure will be produced.
 \end{itemize}
 
 
+\section{Restarting the Calculation}
+\vspace{-0.5 cm}
+\label{\detokenize{index:restarting-the-calculation}}
+Genarris calculations can be conveniently restarted if the calculation is
+interrupted during execution.
+\begin{enumerate}
+\def\theenumi{\arabic{enumi}}
+\def\labelenumi{\theenumi .}
+\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\item {} 
+Remove completed procedures from the \sphinxcode{\sphinxupquote{{[}Genarris\_master{]}}}, \sphinxcode{\sphinxupquote{procedures}}
+list.
+
+\item {} 
+Remove files and folders that were created by the most recent processes
+before the interruption occured. \sphinxstylestrong{IMPORTANT}: If the interruption occured
+during FHI-aims evaluation, these folders should not be removed.
+
+\item {} 
+If the interruption occured due an error, change the
+ui.conf to attempt to alleviate the issue.
+
+\item {} 
+Resubmit the calculation.
+
+\end{enumerate}
+
+
 \chapter{Running Genarris Tutorial}
 \label{\detokenize{index:running-genarris-tutorial}}
 
@@ -487,10 +515,12 @@ There are multiple log files created when running Genarris. The files are
 separated by the contents they contain. This makes debugging easier, for example,
 because all error information is saved in a single location.
 \begin{itemize}
-\item {} 
-\sphinxcode{\sphinxupquote{Genarris.log}}: \leavevmode A log of what is currently being run and other info is printed here. 
+\item {} \begin{description}
+\item[{\sphinxcode{\sphinxupquote{Genarris.log}}: A log of what is currently being run and other info is printed here.}] \leavevmode
 The amount of info can be made less verbose by commenting out the verbose
 option in the ui.conf for the various procedures.
+
+\end{description}
 
 \item {} 
 \sphinxcode{\sphinxupquote{Genarris.err}}: Error messages may appear here.
@@ -950,6 +980,27 @@ Number of molecules per cell.
 
 \end{fulllineitems}
 
+
+
+\chapter{TODO}
+\label{\detokenize{index:todo}}
+For the Beta testers, there are a number of quality of life improvements that
+we will be making soon.
+\begin{enumerate}
+\def\theenumi{\arabic{enumi}}
+\def\labelenumi{\theenumi .}
+\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\item {} 
+Improved Genarris.log format for improved readability.
+
+\item {} 
+Improve Restart handling such that the user may not have to remove previously
+executed procedures manually.
+
+\item {} 
+Output folder structure will be organized into procedure folders.
+
+\end{enumerate}
 
 
 

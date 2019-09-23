@@ -313,6 +313,26 @@ are *json*, *geo*, or *both*.
 
 * The user may also specify *both*, in which case both the *json* file
   and *geo* file for every structure will be produced.
+  
+  
+Restarting the Calculation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Genarris calculations can be conveniently restarted if the calculation is 
+interrupted during execution. To restart a calculation:
+
+1. Remove completed procedures from the ``[Genarris_master]``, ``procedures``
+   list.
+
+2. Remove files and folders that were created by the most recent processes
+   before the interruption occured. **IMPORTANT**: If the interruption occured
+   during FHI-aims evaluation, these folders should not be removed. 
+   
+3. If the interruption occured due an error, change the 
+   ui.conf to attempt to alleviate the issue.
+   
+4. Resubmit the calculation.
+
 
 
 Running Genarris Tutorial
@@ -488,6 +508,21 @@ Genarris Procedures
               Affinity_Propagation_Fixed_Clusters,
               FHI_Aims_Energy_Evaluation,
               Run_FHI_Aims_Batch
+
+
+
+TODO
+----
+
+For the Beta testers, there are a number of quality of life improvements that 
+we will be making soon. 
+
+1. Improved Genarris.log format for improved readability. 
+
+2. Improve Restart handling such that the user may not have to remove previously
+   executed procedures manually.
+   
+3. Output folder structure will be organized into procedure folders.
 
 
 
