@@ -533,8 +533,8 @@ cgenarris output log info, and sometimes error messages.
 \end{itemize}
 
 
-\section{Detailed Instructions}
-\label{\detokenize{index:detailed-instructions}}\label{\detokenize{index:id1}}
+\section{Detailed Calculation Output}
+\label{\detokenize{index:detailed-calculation-output}}\label{\detokenize{index:detailed-instructions}}
 Genarris will run the procedures specified by the procedures option in the
 \sphinxcode{\sphinxupquote{Genarris\_master}} section in the order they appear in the list.
 It begins with the \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule}} procedure which creates a folder
@@ -582,11 +582,13 @@ ones output by Pygenarris except now they have the RDF vector as a recorded
 piece of metadata. A distance matrix is also output in the form
 of a memory map which drastically saves on memory usage.
 
-Alternatively, the RCD procedures may be run. \sphinxcode{\sphinxupquote{RCD\_Calculation}} creates an
-\sphinxcode{\sphinxupquote{output\_dir}} with the jsons including their RCD vectors. It also
-outputs some other log files: \sphinxcode{\sphinxupquote{RCD\_report.out}} and \sphinxcode{\sphinxupquote{rcd\_vectors.info}}.
-\sphinxcode{\sphinxupquote{RCD\_Difference\_Folder\_Inner}} will compute the pairwise distances between all
-structures and output a distance matrix in the form of a memory map.
+While the RDF feature vector is preferred over the RCD feature vector (it is
+quicker to calculate and more physically motivated), alternatively, the RCD
+procedures may be run. \sphinxcode{\sphinxupquote{RCD\_Calculation}} creates an \sphinxcode{\sphinxupquote{output\_dir}} with the
+jsons including their RCD vectors. It also outputs some other log files:
+\sphinxcode{\sphinxupquote{RCD\_report.out}} and \sphinxcode{\sphinxupquote{rcd\_vectors.info}}. \sphinxcode{\sphinxupquote{RCD\_Difference\_Folder\_Inner}}
+will compute the pairwise distances between all structures and output a
+distance matrix in the form of a memory map.
 
 Next, Affinity Propagation begins by printing the affinity matrix that
 corresponds to the distance matrix outputted in the previous step.
