@@ -371,8 +371,8 @@ because all error information is saved in a single location.
 
 .. _detailed instructions:
 
-Detailed Instructions
-^^^^^^^^^^^^^^^^^^^^^
+Detailed Calculation Output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Genarris will run the procedures specified by the procedures option in the 
 ``Genarris_master`` section in the order they appear in the list.
@@ -419,11 +419,13 @@ ones output by Pygenarris except now they have the RDF vector as a recorded
 piece of metadata. A distance matrix is also output in the form
 of a memory map which drastically saves on memory usage.
 
-Alternatively, the RCD procedures may be run. ``RCD_Calculation`` creates an 
-``output_dir`` with the jsons including their RCD vectors. It also 
-outputs some other log files: ``RCD_report.out`` and ``rcd_vectors.info``. 
-``RCD_Difference_Folder_Inner`` will compute the pairwise distances between all
-structures and output a distance matrix in the form of a memory map.
+While the RDF feature vector is preferred over the RCD feature vector (it is
+quicker to calculate and more physically motivated), alternatively, the RCD 
+procedures may be run. ``RCD_Calculation`` creates an ``output_dir`` with the
+jsons including their RCD vectors. It also outputs some other log files: 
+``RCD_report.out`` and ``rcd_vectors.info``. ``RCD_Difference_Folder_Inner``
+will compute the pairwise distances between all structures and output a 
+distance matrix in the form of a memory map.
 
 Next, Affinity Propagation begins by printing the affinity matrix that 
 corresponds to the distance matrix outputted in the previous step.
