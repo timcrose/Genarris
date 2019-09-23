@@ -1,0 +1,27 @@
+###############
+# Basic Flags #
+###############
+FC = mpif90
+FFLAGS = -O3 -ip -fp-model precise -fPIC
+F90FLAGS = $(FFLAGS)
+ARCHITECTURE = Generic
+LAPACKBLAS = -L${MKLROOT}/lib/intel64 \
+             -lmkl_intel_lp64 \
+             -lmkl_sequential \
+             -lmkl_core \
+             -lmkl_blacs_intelmpi_lp64 \
+             -lmkl_scalapack_lp64
+F90MINFLAGS = -O0 -fp-model precise -fPIC
+
+#########################
+# Parallelization Flags #
+#########################
+USE_MPI = yes
+MPIFC = ${FC}
+SCALAPACK = ${LAPACKBLAS}
+
+###############
+# C,C++ Flags #
+###############
+CC = icc
+CFLAGS = -O3 -ip -fp-model precise -fPIC

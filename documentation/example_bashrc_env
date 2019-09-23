@@ -1,0 +1,12 @@
+ulimit -s unlimited
+ulimit -v unlimited
+module purge
+module load intel/18.0.3.222
+module load impi/2018_Update_3
+intel=/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux
+export PATH=$intel/mpi/intel64/bin_ohpc:$intel/mpi/intel64/bin:$intel/bin/intel64:/home/maromgroup/Software/anaconda3/envs/intelpython3_full/bin:/home/maromgroup/Software/anaconda3/bin:$PATH
+export PYTHONPATH=/home/maromgroup/Software/anaconda3/envs/intelpython3_full/lib/python3.6/site-packages
+export LD_LIBRARY_PATH=$intel/mpi/intel64/lib:$intel/mpi/mic/lib:$intel/compiler/lib/intel64:$intel/compiler/lib/intel64_lin:$intel/ipp/lib/intel64:$intel/mkl/lib/intel64_lin:$intel/tbb/lib/intel64/gcc4.1:/opt/ohpc/pub/intel/intel18/debugger_2018/iga/lib:/opt/ohpc/pub/intel/intel18/debugger_2018/libipt/intel64/lib:$intel/daal/lib/intel64_lin:$intel/tbb/lib/intel64_lin/gcc4.4
+export PYTHONUNBUFFERED=TRUE
+export OMP_NUM_THREADS=1
+LD_PRELOAD=${MKLROOT}/lib/intel64_lin/libmkl_intel_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_sequential.so:${MKLROOT}/lib/intel64_lin/libmkl_core.so:${MKLROOT}/lib/intel64_lin/libmkl_blacs_intelmpi_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_scalapack_lp64.so:${I_MPI_ROOT}/intel64/lib/libmpi.so.12 
