@@ -180,7 +180,13 @@ def pygenarris_structure_generation(inst=None, comm=None,
     mb = MoleculeBonding(molecule_struct)
     cutoff_matrix = mb.get_crystal_cutoff_matrix(Z, vdw_mult=sr)
     cutoff_matrix = np.array(cutoff_matrix, dtype='float32')
-    start_pygenarris_time = time_utils.gtime()
+
+    if num_structures is None:
+        num_structures_per_allowed_SG = 1
+    else:
+        num_compatible_spg = pygenarris.num_compatible_spacegroups(Z, tol)
+        num_structures_per_allowed_SG = math.ceil(num_structures / float(num_compatible_spg))
+
     print('num_structures_per_allowed_SG', num_structures_per_allowed_SG, flush=True)
     print('Z', Z, flush=True)
     print('volume_mean', volume_mean, flush=True)
@@ -189,12 +195,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
     print('max_attempts_per_spg', max_attempts_per_spg, flush=True)
     np.savetxt('cutoff_matrix', cutoff_matrix)
     
-    if num_structures is None:
-        num_structures_per_allowed_SG = 1
-    else:
-        num_compatible_spg = pygenarris.num_compatible_spacegroups(Z, tol)
-        num_structures_per_allowed_SG = math.ceil(num_structures / float(num_compatible_spg) )
-
+    start_pygenarris_time = time_utils.gtime()
     pygenarris_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(cutoff_matrix,
                    num_structures_per_allowed_SG, Z, volume_mean, volume_std, tol,
                    max_attempts_per_spg, comm)
