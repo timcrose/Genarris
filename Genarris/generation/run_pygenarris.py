@@ -154,7 +154,6 @@ def pygenarris_structure_generation(inst=None, comm=None,
     """
     # Currently does not support multiple instances running simultaneously. 
     # If you want more simultaneous processes, submit more MPI ranks.
-    previous_omp_num_threads = os.environ['OMP_NUM_THREADS']
     if inst is not None:
         sname = 'pygenarris_structure_generation'
         num_structures = inst.get_or_none(sname, 'num_structures', eval=True)
@@ -167,7 +166,6 @@ def pygenarris_structure_generation(inst=None, comm=None,
         molecule_path = get_molecule_path(inst, sname)
         output_format = inst.get_with_default(sname, 'output_format', 'json') #options are json, geometry, both
         output_dir = inst.get_with_default(sname, 'output_dir', '.')
-    os.environ['OMP_NUM_THREADS'] = 1
 
     if comm is None:
         set_up(molecule_path)
@@ -208,4 +206,3 @@ def pygenarris_structure_generation(inst=None, comm=None,
             format_output(output_format, output_dir, num_structures,  Z)
             clean_up(output_format)
 
-    os.environ['OMP_NUM_THREADS'] = previous_omp_num_threads
