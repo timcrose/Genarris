@@ -1,6 +1,7 @@
 import sys, os, random
 import numpy as np
-import pygenarris_mpi, pygenarris
+import _pygenarris_mpi as pygenarris_mpi
+import _pygenarris as pygenarris
 import math
 from Genarris.utilities import file_utils, list_utils, time_utils
 from Genarris.core import structure
