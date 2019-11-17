@@ -8,9 +8,6 @@ from ibslib.io import read,write
 import ase, spglib
 import ase.io
 from ase.spacegroup import Spacegroup
-print('ase.__file__', ase.__file__, flush=True)
-print('ase.io.__file__', ase.io.__file__, flush=True)
-print('dir(ase.io)', dir(ase.io), flush=True)
 import numpy as np
 from copy import deepcopy
 
@@ -85,7 +82,7 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
     Arguments
     ---------
     aims_output_dir: str
-        Path to folder that will contain a folder for every structure you
+        Path to folder that will contain a folder with a folder for every structure you
         want to run FHI-aims on
     structure_dir: str
         Path to folder that contains every structure you want to run FHI-aims 
@@ -101,10 +98,11 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
         completed calculations for that structure.
 
     '''
-    if os.path.isdir(aims_output_dir):
+    aims_calc_dir = os.path.join(aims_output_dir, 'aims_calc_dir')
+    if os.path.isdir(aims_calc_dir):
         #Get ready for restarting calculations
         task_list = []
-        struct_folds = glob(os.path.join(aims_output_dir, '*/'))
+        struct_folds = glob(os.path.join(aims_calc_dir, '*/'))
         for struct_fold in struct_folds:
             aims_out = os.path.join(struct_fold, 'aims.out')
             geometry_in_next_step = os.path.join(struct_fold, 'geometry.in.next_step')
@@ -122,24 +120,17 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
 
     print('Setting working directories up', flush=True)
     # Setup aims working dirs
-    os.makedirs(aims_output_dir)
+    os.makedirs(aims_calc_dir)
     structure_files = glob(os.path.join(structure_dir, '*.json')) + glob(os.path.join(structure_dir, '*.in')) + glob(os.path.join(structure_dir, '*.in.next_step'))
     for structure_file in structure_files:
         name = file_utils.fname_from_fpath(structure_file)
-        struct_fold = os.path.join(aims_output_dir, name)
+        struct_fold = os.path.join(aims_calc_dir, name)
         file_utils.mkdir_if_DNE(struct_fold)
-        struct = Structure()
-        if '.json' in structure_file:
-            struct.build_geo_from_json_file(structure_file)
-        elif '.in' in structure_file or '.in.next_step' in structure_file:
-            struct.build_geo_from_atom_file(structure_file)
-            file_utils.write_to_file(os.path.join(struct_fold, name + '.json'), struct.dumps(), mode='w')
-            #struct_dct = file_utils.get_dct_from_json(structure_file)
-            #file_utils.write_dct_to_json(os.path.join(struct_fold, name + '.json'), struct_dct)
-        
+        struct = read(structure_file)
+        write(os.path.join(struct_fold, name + '.json'), struct)
         file_utils.cp(structure_file, struct_fold)
         geometry_in = os.path.join(struct_fold, 'geometry.in')
-        file_utils.write_to_file(geometry_in, str(struct.get_geometry_atom_format()))
+        write(geometry_in, struct, file_format='aims')
         file_utils.cp(control_path, struct_fold, dest_fname='control.in')
     print('Ready for start', flush=True)
     return [0] * len(structure_files)
@@ -221,7 +212,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
     
     """
     if aims_output_dir is None:
-        aims_output_dir = os.getcwd()
+        aims_output_dir = os.path.join(os.getcwd(), 'aims_output_dir')
     if inst is not None:
         verbose = inst.get_boolean(sname, 'verbose')
         energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
@@ -253,6 +244,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         Z = int(inst.get_inferred(sname, [sname, 'pygenarris_structure_generation', 'estimate_unit_cell_volume'],
                                         ['Z']*3))
 
+    aims_calc_dir = os.path.join(aims_output_dir, 'aims_calc_dir')
     if world_comm.rank == 0:
         print('run_fhi_aims_batch using molecule_path', molecule_path, flush=True)
         # creates the working dirs if DNE. Gets them ready to restart otherwise.
@@ -300,7 +292,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         message = comm.bcast(message, root=0)
         if verbose:
             print('world_comm.rank', world_comm.rank, 'has message', message, flush=True)
-        struct_folds = glob(os.path.join(aims_output_dir, '*/'))
+        struct_folds = glob(os.path.join(aims_calc_dir, '*/'))
         while message != 'done':
             struct_fold = struct_folds[message]
             check_type(aims_lib_dir, 'path')
@@ -433,14 +425,14 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         if verbose:
             print('output_dir', output_dir, flush=True)
         if output_dir is not None:
-            json_flist = file_utils.glob(os.path.join(aims_output_dir, '**', '*.json'), recursive=True)
+            json_flist = file_utils.glob(os.path.join(aims_calc_dir, '**', '*.json'), recursive=True)
             if verbose:
                 print('aims_output_dir', aims_output_dir, flush=True)
                 print('json_flist', json_flist, flush=True)
             # Only save those structures into jsons in output_dir which successfully gave an energy according to the desired control file
             for json_fpath in json_flist:
                 name = file_utils.fname_from_fpath(json_fpath)
-                aims_out = os.path.join(aims_output_dir, name, 'aims.out')
+                aims_out = os.path.join(aims_calc_dir, name, 'aims.out')
                 if verbose:
                     print('aims_out', aims_out, flush=True)
                     print('sname', sname, flush=True)
@@ -453,33 +445,6 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     file_utils.cp(json_fpath, output_dir)
                 elif verbose:
                     print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
-        plot_histograms = inst.get_boolean(sname, 'plot_histograms')
-        if plot_histograms:
-            prop = inst.get_with_default(sname, 'prop', 'unit_cell_volume')
-            prop_figname = inst.get_with_default(sname, 'prop_figname', 'raw_pool_volume_histogram.pdf')
-            prop_xlabel = inst.get_with_default(sname, 'prop_xlabel', 'Structure Volume, $\AA^3$')
-            prop_ylabel = inst.get_with_default(sname, 'prop_ylabel', 'Counts')
-            prop_figure_size = inst.get_with_default(sname, 'prop_figure_size', (12,8), eval=True)
-            prop_label_size = inst.get_with_default(sname, 'prop_label_size', 24, eval=True)
-            prop_tick_size = inst.get_with_default(sname, 'prop_tick_size', 18, eval=True)
-            prop_tick_width = inst.get_with_default(sname, 'prop_tick_width', 3, eval=True)
-            prop_GAtor_IP = inst.get_boolean(sname, 'prop_GAtor_IP')
-
-            pygenarris_outfile = inst.get_with_default(sname, 'pygenarris_outfile', 'outfile')
-            spg_bar_chart_fname = inst.get_with_default(sname, 'spg_bar_chart_fname', 'raw_pool_spg_bar_chart.pdf')
-            spg_bar_width = inst.get_with_default(sname, 'spg_bar_width', 0.5, eval=True)
-            spg_bar_xlabel = inst.get_with_default(sname, 'spg_bar_xlabel', 'Allowed space groups')
-            spg_bar_ylabel = inst.get_with_default(sname, 'spg_bar_ylabel', 'Count')
-            spg_bar_title = inst.get_or_none(sname, 'spg_bar_title')
-            spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
-
-            plot_property(output_dir, prop=prop, nmpc=Z, figname=prop_figname, 
-                                xlabel=prop_xlabel, ylabel=prop_ylabel, figure_size=prop_figure_size,
-                                label_size=prop_label_size, tick_size=prop_tick_size, tick_width=prop_tick_width, GAtor_IP=prop_GAtor_IP)
-
-            plot_spg_bar_chart(output_dir, pygenarris_outfile=pygenarris_outfile, spg_bar_chart_fname=spg_bar_chart_fname,
-                                width=spg_bar_width, ylabel=spg_bar_ylabel, xlabel=spg_bar_xlabel,
-                                title=spg_bar_title, tick_rotation=spg_bar_tick_rotation)
 
 
 if __name__ == '__main__':
