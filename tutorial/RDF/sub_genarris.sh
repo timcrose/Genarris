@@ -31,6 +31,6 @@ export OMP_NUM_THREADS=1
 module list
 export LD_PRELOAD=${MKLROOT}/lib/intel64_lin/libmkl_intel_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_sequential.so:${MKLROOT}/lib/intel64_lin/libmkl_core.so:${MKLROOT}/lib/intel64_lin/libmkl_blacs_intelmpi_lp64.so:${MKLROOT}/lib/intel64_lin/libmkl_scalapack_lp64.so:${I_MPI_ROOT}/intel64/lib/libmpi.so.12
 
-mpirun -n 5 python -u ${HOME}/genarris_mpi4py/merged_4_17_2019/Genarris/Genarris/genarris_master.py ui.conf
+mpirun -n 5 python -u ${HOME}/Genarris_new/Genarris/genarris_master.py ui.conf
 echo " "
 echo "Job Ended at `date`"

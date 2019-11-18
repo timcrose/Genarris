@@ -120,14 +120,16 @@ class Genarris():
         procedures_with_master_slave = ['Run_FHI_Aims_Batch', 
             'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 
             'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
-        
+        ####Wen comment this print block########
+        '''
         for section in self.inst.sections():
+     
             print(section, flush=True)
             print(self.inst.options(section), flush=True)
             for option in self.inst.options(section):
                 print(self.inst.get(section,option), flush=True)
             print(' ', flush=True)
-        
+        '''
         #for procedure in list of procedures, run that procedure
         active_comm = None
         split_comm = None
@@ -257,7 +259,7 @@ class Genarris():
         comm.barrier()
         end_time = time.time()
         if world_rank == 0:
-            print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time, flush=True)
+            print('Number of cores used:', int(self.inst.get(procedure.lower(), 'num_cores')), flush=True)
         
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
@@ -381,7 +383,7 @@ class Genarris():
         start_time = time.time()
         self.inst = volume_estimator.estimate_unit_cell_volume(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Estimate_Unit_Cell_Volume', 
+            print('time taken for Unit Cell Volume Estimation:', 
                   time.time() - start_time, flush=True)
 
     def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, 
@@ -437,25 +439,31 @@ class Genarris():
             makes before moving on to the next space group.
        
         """
+        
         from generation import run_pygenarris
+
+        if comm.rank == 0:
+            print(" ")
+            print("Begin Pygenarris Structure Generation...")
+
         start_time = time.time()
         run_pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
         if comm.rank == 0:
-            print('time taken for Pygenarris_Structure_Generation', time.time() - start_time, flush=True)
+            print('time taken for Pygenarris Structure Generation:', time.time() - start_time, flush=True)
 
     def RCD_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
         start_time = time.time()
         relative_coordinate_descriptor.rcd_calculation(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for RCD_Calculation', time.time() - start_time, flush=True)
+            print('time taken for RCD Calculation:', time.time() - start_time, flush=True)
 
     def RCD_Difference_Folder_Inner(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd
         start_time = time.time()
         rcd.rcd_difference_folder_inner(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for RCD_Difference_Folder_Inner', time.time() - start_time, flush=True)
+            print('time taken for RCD Difference Folder Inner:', time.time() - start_time, flush=True)
 
     def Run_Rdf_Calc(self, comm):
         """
@@ -505,10 +513,14 @@ class Genarris():
         
         """
         from evaluation import rdf_calc
+        if comm.rank == 0:
+            print(" ")
+            print("Begin Run RDF Calculation...")
+
         start_time = time.time()
         rdf_calc.run_rdf_calc(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Run_Rdf_Calc', time.time() - start_time, flush=True)
+            print('time taken for Run_Rdf_Calc:', time.time() - start_time, flush=True)
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
@@ -523,7 +535,7 @@ class Genarris():
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='relax_single_molecule')
         if world_comm.rank == 0:
-            print('time taken for Relax_Single_Molecule', time.time() - start_time, flush=True)
+            print('time taken for Relax Single Molecule:', time.time() - start_time, flush=True)
 
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
@@ -558,14 +570,14 @@ class Genarris():
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='run_fhi_aims_batch')
         if world_comm.rank == 0:
-            print('time taken for Run_FHI_Aims_Batch', time.time() - start_time, flush=True)
+            print('time taken for Run_FHI Aims Batch:', time.time() - start_time, flush=True)
 
     def Structure_Generation_Batch(self, comm):
         from generation import generation_modules
         start_time = time.time()
         generation_modules.structure_generation_batch(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Structure_Generation_Batch', time.time() - start_time, flush=True)
+            print('time taken for Structure Generation Batch:', time.time() - start_time, flush=True)
 
     def _Structure_Generation_Batch(self):
         from generation import generation_modules
