@@ -153,7 +153,8 @@ class APHandler():
                 self.spg_bar_title = inst.get_or_none(sname, 'spg_bar_title_2')
             self.spg_bar_tick_rotation = inst.get_with_default(sname, 'spg_bar_tick_rotation', 'vertical')
 
-        print(sname, 'using structure_dir', self.structure_dir, flush=True)
+        if comm.rank == 0:
+            print(sname, 'using structure_dir:', self.structure_dir, flush=True)
         
         if self.rank == 0:
             self.make_affinity_matrix()
@@ -350,12 +351,13 @@ class APHandler():
         
         while iter_n < self.max_sampled_preferences:
             #print('iter_n', iter_n, flush=True)
+            '''
             if self.rank == 0:
                 print('Beginning new iteration with iter_n being ' + str(iter_n), flush=True)
-            
+            '''
             self.preference = \
                     float(pref_l - pref_u) * float(self.rank + 1) / float(self.size + 1) + pref_u
-            print('self.preference', self.preference, flush=True)
+            #print('self.preference', self.preference, flush=True)
             #print('self.size', self.size, flush=True)
             result = self._run()
             #print('type(result)', type(result), flush=True)
@@ -380,10 +382,11 @@ class APHandler():
             #Get the result of the clustering (success or failure and some 
             # other useful values)
             new_pref_range_result = self.comm.bcast(new_pref_range_result, root=0)
-            
+            '''
             if self.rank == 0:
                 print('num_of_clusters_and_pref_list', num_of_clusters_and_pref_list, flush=True)
-            print('new_pref_range_result', new_pref_range_result, flush=True)
+            '''
+            #print('new_pref_range_result', new_pref_range_result, flush=True)
             success, place_holder_preference, n, pref_l, pref_u, prev_l, prev_u = new_pref_range_result
             self.preference_range = [pref_l, pref_u]
             
@@ -440,7 +443,7 @@ class APHandler():
 
     def _print_results(self, result, verbose=False):
         if not self.output_file is None:
-            print(self.output_file, "Outputted iteration info:", flush=True)
+            #print(self.output_file, "Outputted iteration info:", flush=True)
             
             if verbose:
                 self._print_result_verbose(result)
@@ -467,7 +470,7 @@ class APHandler():
         exemplar_ids = d["exemplar_ids"]
         st += "Set of selected exemplars:\n"
         st += "\n".join(exemplar_ids)
-        print(self.output_file, st, flush=True)
+        print(st, flush=True)
 
     def _print_result_summary(self, result):
         if self.output_file is None:
@@ -480,7 +483,7 @@ class APHandler():
         st += "Mean distance to exemplar: %f\n" % d["avg_distance"]
         st += "STD of distance to exemplar: %f\n" % d["std_distance"]
         st += "Max distance to exemplar: %f\n" % d["max_distance"]
-        print(self.output_file, st, flush=True)
+        #print(self.output_file, st, flush=True)
 
 
     def create_distance_matrix_from_exemplars(self):
@@ -512,7 +515,8 @@ class APHandler():
             #print('inside _affinity_propagation', flush=True)
             #print('len(affinity_matrix)', len(affinity_matrix), flush=True)
             ##print('affinity_matrix', affinity_matrix, flush=True)
-            print('Fitting affinity propagation model...', flush=True)
+            if self.rank == 0:
+                print('Fitting affinity propagation model...', flush=True)
             result = ap.fit(self.affinity_matrix)
         
             #print('result of fit', type(result), flush=True)
@@ -530,7 +534,7 @@ class APHandler():
                             self.max_iter, 'iterations. Check your affinity_type setting and your distance matrix values')
 
         num_of_clusters = len(result.cluster_centers_indices_)
-        print('num_of_clusters gotten on this fit', num_of_clusters, 'preference', self.preference, flush=True)
+        #print('num_of_clusters gotten on this fit', num_of_clusters, 'preference', self.preference, flush=True)
         
         if self.cluster_on_energy and not (iter_n != self.max_sampled_preferences - 1 and \
                 (num_of_clusters > self.num_of_clusters + self.num_of_clusters_tolerance or \
@@ -551,9 +555,9 @@ class APHandler():
 
         else:
             exemplar_indices = result.cluster_centers_indices_
-        print('len(exemplar_indices)', len(exemplar_indices), flush=True)
-        print('len(self.coll)', len(self.coll), flush=True)
-        print('len(assigned_cluster)', len(assigned_cluster), flush=True)
+        #print('len(exemplar_indices)', len(exemplar_indices), flush=True)
+        #print('len(self.coll)', len(self.coll), flush=True)
+        #print('len(assigned_cluster)', len(assigned_cluster), flush=True)
         #print('assigned_cluster', assigned_cluster, flush=True)
         self.exemplar_indices = np.array(exemplar_indices, dtype='int')
         #print('self.exemplar_indices', self.exemplar_indices, flush=True)
@@ -568,7 +572,7 @@ class APHandler():
 
         assigned_exemplar_index = [self.exemplar_indices[x] for x in assigned_cluster]
         assigned_exemplar_id = [exemplar_ids[x] for x in assigned_cluster]
-        print('len(assigned_exemplar_id)', len(assigned_exemplar_id), flush=True)
+        #print('len(assigned_exemplar_id)', len(assigned_exemplar_id), flush=True)
         for x in range(len(self.coll)):
             self.coll[x][1].properties[self.property_key] = assigned_cluster[x]
 

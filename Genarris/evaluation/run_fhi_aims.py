@@ -58,15 +58,15 @@ def run_aims(aims_lib_dir, comm, verbose):
 
     rank = comm.rank
     commf = comm.py2f()
-    if verbose:
-        print('comm.rank', comm.rank, 'entering Barrier', flush=True)
+    #if verbose:
+        #print('comm.rank', comm.rank, 'entering Barrier', flush=True)
     comm.Barrier()
-    if verbose:
-        print('comm.rank', comm.rank, 'about to run aims', flush=True)
+    #if verbose:
+        #print('comm.rank', comm.rank, 'about to run aims', flush=True)
     try:
         aims_w.aims_w(commf)
-        if verbose:
-            print('comm.rank', comm.rank, 'ran aims', flush=True)
+        #if verbose:
+            #print('comm.rank', comm.rank, 'ran aims', flush=True)
     except:
         if verbose:
             print('comm.rank', comm.rank, 'could not run aims', flush=True)
@@ -246,23 +246,23 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
 
     aims_calc_dir = os.path.join(aims_output_dir, 'aims_calc_dir')
     if world_comm.rank == 0:
-        print('run_fhi_aims_batch using molecule_path', molecule_path, flush=True)
+        print('run_fhi_aims_batch using molecule_path:', molecule_path, flush=True)
         # creates the working dirs if DNE. Gets them ready to restart otherwise.
         task_list = setup_aims_dirs(aims_output_dir, structure_dir, control_path)
         if verbose:
-            print('task_list',task_list, flush=True)
-            print('aims_output_dir', aims_output_dir, flush=True)
-            print('structure_dir', structure_dir,flush=True)
-            print('world_comm.size', world_comm.size, flush=True)
+            #print('task_list:',task_list, flush=True)
+            print('aims_output_dir:', aims_output_dir, flush=True)
+            print('structure_dir:', structure_dir,flush=True)
+            #print('world_comm.size', world_comm.size, flush=True)
 
     if world_comm.rank == 0:
         done_ranks = []
         while len(done_ranks) != num_replicas:
-            if verbose:
-                print('world rank 0 waiting for ready task', flush=True)
+            #if verbose:
+                #print('world rank 0 waiting for ready task', flush=True)
             ready_rank, task_id = world_comm.recv(source=MPI_ANY_SOURCE, tag=0)
-            if verbose:
-                print('world rank 0 received task_id', task_id, ' from ready rank', ready_rank, flush=True)
+            #if verbose:
+                #print('world rank 0 received task_id', task_id, ' from ready rank', ready_rank, flush=True)
             if task_id != 'starting':
                 task_list[task_id] = 1
             if 0 in task_list:
@@ -271,27 +271,27 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             else: #Done!
                 message = 'done'
                 done_ranks.append(ready_rank)
-            if verbose:
-                print('world rank 0 sending message', message, 'to rank' , ready_rank, flush=True)
+            #if verbose:
+                #print('world rank 0 sending message', message, 'to rank' , ready_rank, flush=True)
             world_comm.send(message, dest=ready_rank, tag=1)
-            if verbose:
-                print('world rank 0 sent message', message, 'to rank' , ready_rank, flush=True)
+            #if verbose:
+                #print('world rank 0 sent message', message, 'to rank' , ready_rank, flush=True)
     else:
         if comm.rank == 0:
-            if verbose:
-                print('According to comm.rank 0, comm.size is ', comm.size, flush=True)
-                print('According to comm.rank 0, world_comm.size is ', world_comm.size, flush=True)
+            #if verbose:
+                #print('According to comm.rank 0, comm.size is ', comm.size, flush=True)
+                #print('According to comm.rank 0, world_comm.size is ', world_comm.size, flush=True)
             world_comm.send([world_comm.rank, 'starting'], dest=0, tag=0)
-            if verbose:
-                print('comm.rank 0 sent ',[world_comm.rank, 'starting'], ' to world_comm.rank 0', flush=True)
+            #if verbose:
+                #print('comm.rank 0 sent ',[world_comm.rank, 'starting'], ' to world_comm.rank 0', flush=True)
             message = world_comm.recv(source=0, tag=1)
-            if verbose:
-                print('comm.rank 0 received message', message, flush=True)
+            #if verbose:
+                #print('comm.rank 0 received message', message, flush=True)
         else:
             message = None
         message = comm.bcast(message, root=0)
-        if verbose:
-            print('world_comm.rank', world_comm.rank, 'has message', message, flush=True)
+        #if verbose:
+            #print('world_comm.rank', world_comm.rank, 'has message', message, flush=True)
         struct_folds = glob(os.path.join(aims_calc_dir, '*/'))
         while message != 'done':
             struct_fold = struct_folds[message]
@@ -299,6 +299,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             check_type(struct_fold, 'path')
             aims_out = os.path.abspath(os.path.join(struct_fold, 'aims.out'))
             if not os.path.isfile(aims_out):
+                comm.Barrier()
                 os.chdir(struct_fold)
                 run_aims(aims_lib_dir, comm, verbose)
                 if comm.rank == 0:
@@ -326,33 +327,33 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                         relaxed_struct = read(geometry_in_next_step, file_format='aims')
                         relaxed_struct.struct_id = struct.struct_id
                         if verbose:
-                            print('struct_id', relaxed_struct.struct_id, flush=True)
-                            print('Z', Z, flush=True)
+                            print('struct_id:', relaxed_struct.struct_id, flush=True)
+                            print('Z=', Z, flush=True)
                         if not struct_is_periodic:
                             napm = None
                         else:
                             napm = len(relaxed_struct.geometry) / Z
-                        if verbose:
-                            print('napm', napm, 'Z', Z, flush=True)
+                        #if verbose:
+                            #print('napm', napm, 'Z', Z, flush=True)
                         if struct_is_periodic:
                             relaxed_struct = cell_niggli_reduction(relaxed_struct, napm, create_duplicate=False)
                             relaxed_struct = update_lattice_lengths_in_struct(relaxed_struct)
-                            if verbose:
-                                print('updated lattice lengths', flush=True)
+                            #if verbose:
+                                #print('updated lattice lengths', flush=True)
                         for struct_property in struct.properties:
                             if struct_property not in relaxed_struct.properties:
                                 relaxed_struct.properties[struct_property] = struct.properties[struct_property]
-                        if verbose:
-                            print('updated struct properties', flush=True)
+                        #if verbose:
+                            #print('updated struct properties', flush=True)
                         write(geometry_in_next_step, relaxed_struct, file_format='aims', overwrite=True)
                         write('geometry.in.next_step', relaxed_struct, file_format='aims', overwrite=True)
 
                         if verbose:
-                            print('relaxed_struct.geometry',relaxed_struct.geometry, flush=True)
-                            print('updated', geometry_in_next_step, flush=True)
+                            print('relaxed_struct.geometry\n',relaxed_struct.geometry, flush=True)
+                            #print('updated', geometry_in_next_step, flush=True)
                         if struct_is_periodic:
-                            if verbose:
-                                print('structure is periodic', flush=True)
+                            #if verbose:
+                                #print('structure is periodic', flush=True)
                             if not os.path.exists(geometry_in_next_step):
                                 raise Exception('path', geometry_in_next_step, 'DNE')
                             else:
@@ -360,24 +361,24 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                             try: ase.io.read
                             except: print('ase.io.read not defined')
                             ase_struct = ase.io.read(geometry_in_next_step, format='aims', parallel=False)
-                            if verbose:
-                                print('read ase_struct', ase_struct, flush=True)
+                            #if verbose:
+                                #print('read ase_struct', ase_struct, flush=True)
                             lattice = ase_struct.get_cell()
-                            if verbose:
-                                print('ase lattice', lattice, flush=True)
+                            #if verbose:
+                                #print('ase lattice', lattice, flush=True)
                             positions = ase_struct.get_scaled_positions()
-                            if verbose:
-                                print('ase positions', positions, flush=True)
+                            #if verbose:
+                                #print('ase positions', positions, flush=True)
                             numbers = ase_struct.get_atomic_numbers()
-                            if verbose:
-                                print('ase numbers', numbers, flush=True)
+                            #if verbose:
+                                #print('ase numbers', numbers, flush=True)
                             cell = (lattice, positions, numbers)
-                            if verbose:
-                                print('cell', cell, flush=True)
+                            #if verbose:
+                                #print('cell', cell, flush=True)
                             spglib_data = spglib.get_symmetry_dataset(cell, symprec=1e-1)
                             spglib_spg = int(spglib_data['number'])
-                            if verbose:
-                                print('spglib_spg', spglib_spg, flush=True)
+                            #if verbose:
+                                #print('spglib_spg', spglib_spg, flush=True)
                             multiplicity = Spacegroup(spglib_spg)
                             if multiplicity.nsymop == Z:
                                 # general position
@@ -385,26 +386,26 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                             else:
                                 # special position
                                 site_symmetry = 0
-                            if verbose:
-                                print('site_symmetry', site_symmetry, flush=True)
+                            #if verbose:
+                                #print('site_symmetry', site_symmetry, flush=True)
                             if 'spg' in relaxed_struct.properties:
                                 relaxed_struct.properties['spg_before_relaxation'] = relaxed_struct.properties['spg']
                             relaxed_struct.properties['spg'] = spglib_spg
                             if 'cell_vol' in relaxed_struct.properties:
                                 relaxed_struct.properties['unit_cell_volume'] = relaxed_struct.properties['cell_vol']
                         relaxed_struct.struct_id = struct.struct_id
-                        if verbose:
-                            print('relaxed struct_id', relaxed_struct.struct_id, flush=True)
+                        #if verbose:
+                            #print('relaxed struct_id', relaxed_struct.struct_id, flush=True)
 
                         if struct_is_periodic and 'site_symmetry_group' in relaxed_struct.properties and 'site_symmetry_group_before_relaxation' not in relaxed_struct.properties:
                             relaxed_struct.properties['site_symmetry_group_before_relaxation'] = relaxed_struct.properties['site_symmetry_group']
                         if struct_is_periodic:
                             relaxed_struct.properties['site_symmetry_group'] = site_symmetry
-                            if verbose:
-                                print('updated symmetry properties', flush=True)
+                            #if verbose:
+                                #print('updated symmetry properties', flush=True)
                         relaxed_struct.properties[energy_name] = extract_energy(aims_out)
-                        if verbose:
-                            print('updated energy', flush=True)
+                        #if verbose:
+                            #print('updated energy', flush=True)
                         write(structure_file, relaxed_struct, overwrite=True)
                         
                     else:
@@ -419,32 +420,35 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
             else:
                 message = None
             message = comm.bcast(message, root=0)
+            #print("did i come to the end????????????")
+            os.chdir('..')   ###i add this#########
 
     if world_comm.rank == 0:
         # Output (copy) jsons to output_dir
         if verbose:
-            print('output_dir', output_dir, flush=True)
+            print('output_dir:', output_dir, flush=True)
         if output_dir is not None:
             json_flist = file_utils.glob(os.path.join(aims_calc_dir, '**', '*.json'), recursive=True)
             if verbose:
-                print('aims_output_dir', aims_output_dir, flush=True)
-                print('json_flist', json_flist, flush=True)
+                print('aims_output_dir:', aims_output_dir, flush=True)
+                #print('json_flist:', json_flist, flush=True)
             # Only save those structures into jsons in output_dir which successfully gave an energy according to the desired control file
             for json_fpath in json_flist:
                 name = file_utils.fname_from_fpath(json_fpath)
                 aims_out = os.path.join(aims_calc_dir, name, 'aims.out')
-                if verbose:
-                    print('aims_out', aims_out, flush=True)
-                    print('sname', sname, flush=True)
+                #if verbose:
+                    #print('aims_out:', aims_out, flush=True)
+                    #print('sname', sname, flush=True)
                 struct = read(json_fpath)
                 if energy_name in struct.properties and struct.properties[energy_name] != 'none' and \
                     (sname != 'harris_approximation_batch' or len(file_utils.grep('Reading periodic restart information from file', aims_out)) > 0):
                     
-                    if verbose:
-                        print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
+                    #if verbose:
+                        #print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
                     file_utils.cp(json_fpath, output_dir)
-                elif verbose:
-                    print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
+                #elif verbose:
+                    #
+                    #print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
 
 
 if __name__ == '__main__':

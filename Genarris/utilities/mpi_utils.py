@@ -2,7 +2,8 @@ from Genarris.utilities import file_utils, time_utils
 
 def root_print(comm, *print_message):
    if comm.rank == 0:
-      print(print_message)
+       for i in print_message:
+           print(i,end='')
 
 def file_system_barrier(comm):
     '''

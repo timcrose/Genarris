@@ -16,8 +16,9 @@ def estimate_unit_cell_volume(inst, comm):
     
     
     """
-    print("")
-    print("Begin Unit Cell Volume Estimation... ",flush=True)
+    print("---------------------------------------------------------------------------------------------------")
+    print("Begin Unit Cell Volume Estimation",flush=True)
+    print("---------------------------------------------------------------------------------------------------")
     sname = 'estimate_unit_cell_volume'
     verbose = inst.get_boolean(sname, 'verbose')
     Z = float(inst.get_eval(sname, 'Z'))
