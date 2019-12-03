@@ -1,0 +1,16 @@
+PATH
+/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin_ohpc:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/bin/intel64:/home/wwen/anaconda/anaconda3/envs/genarris_env/bin:/home/wwen/anaconda3/bin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin_ohpc:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/bin/intel64:/home/wwen/anaconda/anaconda3/envs/genarris_env/bin:/home/wwen/anaconda/anaconda3/condabin:/home/wwen/local/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/wwen/.local/bin:/home/wwen/bin
+ 
+PYTHONPATH
+/home/wwen/anaconda/anaconda3/envs/genarris_env/lib/python3.6/site-packages
+ 
+LD_LIBRARY_PATH
+/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/lib:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/mic/lib:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/compiler/lib/intel64_lin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/ipp/lib/intel64:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mkl/lib/intel64_lin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64/gcc4.1:/opt/ohpc/pub/intel/intel18/debugger_2018/iga/lib:/opt/ohpc/pub/intel/intel18/debugger_2018/libipt/intel64/lib:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/daal/lib/intel64_lin:/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/tbb/lib/intel64_lin/gcc4.4
+/home/wwen/anaconda/anaconda3/envs/genarris_env/bin/python
+/opt/ohpc/pub/intel/intel18/compilers_and_libraries_2018.3.222/linux/mpi/intel64/bin/mpirun
+
+Currently Loaded Modules:
+  1) intel/18.0.3.222   2) impi/2018_Update_3
+
+ 
+Job Ended at Fri Nov 22 15:45:19 EST 2019

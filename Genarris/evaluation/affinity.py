@@ -441,7 +441,8 @@ class APHandler():
         #print('type(self.affinity_matrix)', type(self.affinity_matrix), flush=True)
         return self._affinity_propagation()
 
-    def _print_results(self, result, verbose=False):
+    def 
+    (self, result, verbose=False):
         if not self.output_file is None:
             #print(self.output_file, "Outputted iteration info:", flush=True)
             

@@ -13,6 +13,7 @@ Created on Wed Jun 17 22:13:09 2015
 """
 
 import os
+import io
 import sys,socket
 from Genarris.core import instruct
 #from utilities import parallel_run, write_log
@@ -46,6 +47,7 @@ def main():
     if len(sys.argv)==1:
         test()
     else:
+        
         main_process = Genarris(sys.argv[-1])
 
 def test():
@@ -74,6 +76,8 @@ class Genarris():
         world_size = comm.Get_size()
         #inst_path is sys.argv[-1] aka path/to/ui.conf
         self.inst_path = inst_path
+
+        
         #Instruct object inherits from SafeConfigParser
         self.inst = instruct.Instruct()
         
@@ -121,7 +125,17 @@ class Genarris():
         procedures_with_master_slave = ['Run_FHI_Aims_Batch', 
             'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 
             'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
-        ####Wen comment this print block########
+        #print the conf file
+        if world_rank == 0:
+            ui_conf=io.open(self.inst_path,"r")
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("ui.conf")
+            print("---------------------------------------------------------------------------------------------------")
+            print(ui_conf.read())
+            ui_conf.close()
+         
+         ####Wen comment this print block########
         '''
         for section in self.inst.sections():
      
@@ -259,8 +273,9 @@ class Genarris():
 
         comm.barrier()
         end_time = time.time()
-        if world_rank == 0:
-            print('Number of cores used:', int(self.inst.get(procedure.lower(), 'num_cores')), flush=True)
+
+        #if world_rank == 0:
+            #print('Number of cores used:', int(self.inst.get(procedure.lower(), 'num_cores')), flush=True)
         
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
@@ -557,6 +572,7 @@ class Genarris():
         
         """
         from evaluation import run_fhi_aims
+
         
         if world_comm.rank == 0:
             print("")
@@ -609,6 +625,10 @@ class Genarris():
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='run_fhi_aims_batch')
         if world_comm.rank == 0:
             print('time taken for Run FHI Aims Batch:', time.time() - start_time, flush=True)
+            print("")
+            print("")
+            print("Generris calculation completed!")
+            print("Have a nice day:)")
 
     def Structure_Generation_Batch(self, comm):
         from generation import generation_modules
