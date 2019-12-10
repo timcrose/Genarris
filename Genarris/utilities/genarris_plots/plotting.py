@@ -13,9 +13,8 @@ from ibslib.io import import_structures,output_struct_dict
 try: plot_GA_prop
 except: from ibslib.analysis.plotting import plot_GA_prop,motif_prop_plot
 
-try: plot_energy_property_motif
-except: from ibslib.analysis.plotting import plot_energy_property_motif
-
+#try: plot_energy_property_motif
+#except: from ibslib.analysis.plotting import plot_energy_property_motif
 
 from ibslib.analysis.plotting import correct_energy,prepare_prop_from_dict
 from ibslib.descriptor.clustering import run_KMeans
