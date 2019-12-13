@@ -32,12 +32,12 @@ torch_whl = 'https://download.pytorch.org/whl/cpu/torch-1.1.0-cp' + str_py_versi
 os.system('pip install ' + torch_whl)
 torch_whl = 'https://download.pytorch.org/whl/cpu/torchvision-0.3.0-cp' + str_py_version + '-cp' + str_py_version + 'm-linux_x86_64.whl'
 os.system('pip install ' + torch_whl)
-#if os.path.exists('ase'):
-   #shutil.rmtree('ase')
-#os.system('pip uninstall -y ase')
-#os.system('git clone https://gitlab.com/ase/ase.git')
-#os.chdir('ase')
-#os.system('python setup.py install')
+if os.path.exists('ase'):
+   shutil.rmtree('ase')
+os.system('pip uninstall -y ase')
+os.system('git clone https://gitlab.com/ase/ase.git')
+os.chdir('ase')
+os.system('python setup.py install')
 os.chdir(cwd)
 os.chdir('Genarris')
 os.chdir('cgenarris')

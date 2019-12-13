@@ -198,7 +198,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
              print('tol:', tol, flush=True)
              print('maximum attempts per space group:', max_attempts_per_spg, flush=True)
              print("************iterations for each space group is listed in detail in standard out file*************")
-             np.savetxt('cutoff matrix:', cutoff_matrix)
+             np.savetxt('cutoff_matrix', cutoff_matrix)
     
     start_pygenarris_time = time_utils.gtime()
     if comm is not None:
