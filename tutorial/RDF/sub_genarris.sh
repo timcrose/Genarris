@@ -30,6 +30,6 @@ echo `which mpirun`
 export OMP_NUM_THREADS=1
 module list
 
-mpirun -n 57 python -u /home/trose/genarris_mpi4py/merged_4_17_2019/new_folder_structure_branch/Genarris_Release_191213/Genarris/genarris_master.py ui.conf
+mpirun -n 57 python -u ../../Genarris/genarris_master.py ui.conf
 echo " "
 echo "Job Ended at `date`"
