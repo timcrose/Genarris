@@ -364,9 +364,11 @@ class Instruct(SafeConfigParser):
 
                     found_sname = sname
                     break
-        if found_sname is None and (required or sname in sname_list):
+        if found_sname is None and required:
             raise Exception('could not find options ' + ', '.join(options) + ' in any of the '+
             'following sections: ' + ', '.join(sname_list), 'Or, path didnt exist')
+        if found_sname is None and not required:
+            return 'none_value'
         if default is not None:
             value = self.get_with_default(found_sname,option,default,eval=eval)
         elif type_ is str or type_ == 'dir' or type_ == 'file':
@@ -382,8 +384,6 @@ class Instruct(SafeConfigParser):
         else:
             value = 'none_value'
         if required and value == 'none_value':
-            raise Exception('Could not find options', options, 'in', sname_list)
-        elif sname in sname_list and value == 'none_value':
             raise Exception('Could not find options', options, 'in', sname_list)
         
         if required and \

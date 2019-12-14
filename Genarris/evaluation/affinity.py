@@ -180,6 +180,8 @@ class APHandler():
         
 
     def make_affinity_matrix(self):
+        if self.verbose_output:
+            print('self.dist_mat_input_file used to create affinity matrix', self.dist_mat_input_file, flush=True)
         distance_matrix = np.memmap(self.dist_mat_input_file, dtype='float32', mode='r')
 
         m = np.sqrt(len(distance_matrix))
@@ -204,10 +206,20 @@ class APHandler():
             raise Exception('Unsuppored affinity_type. Got:', self.affinity_type[0])
 
         self.distance_matrix_shape = distance_matrix.shape
+        if self.verbose_output:
+            print('self.affinity_matrix_path', self.affinity_matrix_path, flush=True)
         # Write affinity matrix
         fp = np.memmap(self.affinity_matrix_path, dtype='float32', mode='write', shape=affinity_matrix.shape)
         fp[:] = affinity_matrix[:]
-        time_utils.sleep(20)
+        if self.verbose_output:
+            print('writing affinity matrix...', flush=True)
+        affinity_matrix_filesize = os.path.getsize(self.affinity_matrix_path)
+        time_utils.sleep(5)
+        while os.path.getsize(self.affinity_matrix_path) != affinity_matrix_filesize:
+            affinity_matrix_filesize = os.path.getsize(self.affinity_matrix_path)
+            time_utils.sleep(3)
+        if self.verbose_output:
+            print('affinity matrix written', flush=True)
 
     def get_new_pref_range(self, num_of_clusters_and_pref_list, prev_l, prev_u, iter_n):
         '''
@@ -499,11 +511,7 @@ class APHandler():
         self.distance_matrix.resize((int(np.sqrt(len(self.distance_matrix))), int(np.sqrt(len(self.distance_matrix)))))
         self.distance_matrix = self.distance_matrix[struct_ids_indices,:][:,struct_ids_indices]
 
-        ext_pos = self.dist_mat_input_file.find('.')
-        
-        self.dist_mat_input_file_2 = self.dist_mat_input_file[:ext_pos] + '1' + self.dist_mat_input_file[ext_pos:]
-
-        fp = np.memmap(self.dist_mat_input_file_2, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
+        fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
         fp[:] = self.distance_matrix[:]
 
     def _affinity_propagation(self):
@@ -621,8 +629,6 @@ def affinity_propagation_fixed_clusters(inst, comm):
     desired number of clusters
     '''
     sname = "affinity_propagation_fixed_clusters"
-    #print('inside ap', flush=True)
-    comm.barrier()
 
     aph = APHandler(inst, sname, comm)
     print('got aph', flush=True)
@@ -636,14 +642,14 @@ def affinity_propagation_fixed_clusters(inst, comm):
     ##print('aph.coll', aph.coll, flush=True)
     if aph.verbose_output:
         print('len(aph.coll)', len(aph.coll), flush=True)
-    if aph.run_num == 2:
+    if aph.run_num == 2 and aph.rank == 0:
         _, struct_ids_for_ap1 = get_struct_coll(aph.structure_dir_for_ap1, stoic)
         aph.create_distance_matrix_from_exemplars(struct_ids,struct_ids_for_ap1)
-    if aph.verbose_output:
-        print('len(aph.distance_matrix)0', len(aph.distance_matrix), flush=True)
+        if aph.verbose_output:
+            print('len(aph.distance_matrix)0', len(aph.distance_matrix), flush=True)
     if aph.rank == 0:
         aph.make_affinity_matrix()
-        time_utils.sleep(20)
+        time_utils.sleep(5)
     else:
         aph.distance_matrix_shape = None
     if aph.verbose_output:
@@ -656,11 +662,8 @@ def affinity_propagation_fixed_clusters(inst, comm):
         print('len(aph.distance_matrix_shape)', len(aph.distance_matrix_shape), flush=True)
     if not (aph.dist_mat_input_file).endswith('.dat'):
         raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
-    while not os.path.exists(aph.affinity_matrix_path):
-        time_utils.sleep(1)
-    if aph.verbose_output:
-        print('len(aph.distance_matrix)1', len(aph.distance_matrix), flush=True)
     aph.get_affinity_and_distance_matrix()
+    comm.barrier()
     if aph.verbose_output:
         print('len(aph.distance_matrix)2', len(aph.distance_matrix), flush=True)
     aph.run_fixed_num_of_clusters()

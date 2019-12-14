@@ -19,8 +19,11 @@ def update_lattice_lengths_in_struct(struct):
     for d in directions:
         if not 'lattice_vector_' + d in struct.properties:
             break
-        struct.properties[d] = np.linalg.norm(
+        try:
+            struct.properties[d] = np.linalg.norm(
                     np.array(struct.properties['lattice_vector_' + d]))
+        except:
+            raise Exception('Could not take the norm of', np.array(struct.properties['lattice_vector_' + d]))
 
     return struct
 
@@ -73,7 +76,7 @@ def run_aims(aims_lib_dir, comm, verbose):
     sys.stdout.flush()
 
 
-def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
+def setup_aims_dirs(aims_output_dir, structure_dir, control_path, molecule_path, sname):
     '''
     FHI-aims requires a new directory for every run. So, we need to
     create a directory for each run we anticipate doing: one per structure
@@ -89,7 +92,10 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
         on in json format.
     control_path: str
         path to FHI-aims control.in file
-
+    molecule_path: str
+        path to single molecule geometry file.
+    sname: str
+        section name (in .conf file)
     
     Returns
     -------
@@ -121,7 +127,10 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path):
     print('Setting working directories up', flush=True)
     # Setup aims working dirs
     os.makedirs(aims_calc_dir)
-    structure_files = glob(os.path.join(structure_dir, '*.json')) + glob(os.path.join(structure_dir, '*.in')) + glob(os.path.join(structure_dir, '*.in.next_step'))
+    if sname == 'relax_single_molecule':
+        structure_files = [molecule_path]
+    else:
+        structure_files = glob(os.path.join(structure_dir, '*.json')) + glob(os.path.join(structure_dir, '*.in')) + glob(os.path.join(structure_dir, '*.in.next_step'))
     for structure_file in structure_files:
         name = file_utils.fname_from_fpath(structure_file)
         struct_fold = os.path.join(aims_calc_dir, name)
@@ -198,11 +207,10 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         file. 
     molecule_path : str
         Path to the geometry.in file of the molecule to be calculated if 
-        called using harris_single_molecule_prep or relax_single_molecule.
+        called using relax_single_molecule.
     structure_dir : str
         Path to the directory of structures to be calculated if calculation
-        was called not using harris_single_molecule_prep or 
-        relax_single_molecule.
+        was called not using relax_single_molecule.
         
         
     Returns
@@ -218,26 +226,15 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
         energy_name = inst.get_with_default(sname, 'energy_name', 'energy')
         output_dir = inst.get_or_none(sname, 'output_dir')
         aims_output_dir = inst.get(sname, 'aims_output_dir')
-        sname_list = [sname, 'relax_single_molecule', 'fhi_aims_energy_evaluation', 'harris_single_molecule_prep', 'harris_approximation_batch', 'run_fhi_aims_batch']
-        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 6, type_='dir', required=True)
+        sname_list = [sname, 'relax_single_molecule', 'fhi_aims_energy_evaluation', 'run_fhi_aims_batch']
+        aims_lib_dir = inst.get_inferred(sname, sname_list, ['aims_lib_dir'] * 4, type_='dir', required=True)
 
         molecule_path = get_molecule_path(inst, sname)
-
-        if sname == 'harris_single_molecule_prep' or sname == 'relax_single_molecule':
-            if inst.has_option(sname, 'structure_dir'):
-                structure_dir = inst.get(sname, 'structure_dir')
-            elif sname == 'harris_single_molecule_prep':
-                structure_dir = 'structure_dir_for_harris_single_molecule_prep'
-            else:
-                structure_dir = 'structure_dir_for_relaxing_single_molecule'
-            if not os.path.isfile(molecule_path):
-                raise Exception("molecule_path", molecule_path, 'DNE')
-            if not os.path.isfile(os.path.join(structure_dir, os.path.basename(molecule_path))) and world_comm.rank == 0:
-                file_utils.cp(molecule_path, structure_dir)
-        else:
-            last_section = get_last_active_procedure_name(inst, sname)
-            sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
-            structure_dir = inst.get_inferred(sname, sname_list,
+        if not os.path.isfile(molecule_path):
+            raise Exception("molecule_path", molecule_path, 'DNE')
+        last_section = get_last_active_procedure_name(inst, sname)
+        sname_list = [sname, last_section, last_section, last_section, 'affinity_propagation_fixed_clusters', 'affinity_propagation_fixed_clusters', 'rcd_calculation', 'harris_approximation_batch', 'pygenarris_structure_generation', 'structure_generation_batch'] * 2
+        structure_dir = inst.get_inferred(sname, sname_list,
                                                     ['structure_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'exemplars_output_dir_2', 'exemplars_output_dir', 'output_dir', 'output_dir', 'output_dir', 'output_dir'] + (len(sname_list) // 2) * ['structure_dir'], type_='dir', required=False)
 
         control_path = inst.get(sname, 'control_path')
@@ -248,7 +245,7 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
     if world_comm.rank == 0:
         print('run_fhi_aims_batch using molecule_path:', molecule_path, flush=True)
         # creates the working dirs if DNE. Gets them ready to restart otherwise.
-        task_list = setup_aims_dirs(aims_output_dir, structure_dir, control_path)
+        task_list = setup_aims_dirs(aims_output_dir, structure_dir, control_path, molecule_path, sname)
         if verbose:
             #print('task_list:',task_list, flush=True)
             print('aims_output_dir:', aims_output_dir, flush=True)
@@ -349,8 +346,8 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                         write('geometry.in.next_step', relaxed_struct, file_format='aims', overwrite=True)
 
                         if verbose:
-                            print('relaxed_struct.geometry\n',relaxed_struct.geometry, flush=True)
-                            #print('updated', geometry_in_next_step, flush=True)
+                            #print('relaxed_struct.geometry\n',relaxed_struct.geometry, flush=True)
+                            print('updated', geometry_in_next_step, flush=True)
                         if struct_is_periodic:
                             #if verbose:
                                 #print('structure is periodic', flush=True)
@@ -440,15 +437,12 @@ def run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=None
                     #print('aims_out:', aims_out, flush=True)
                     #print('sname', sname, flush=True)
                 struct = read(json_fpath)
-                if energy_name in struct.properties and struct.properties[energy_name] != 'none' and \
-                    (sname != 'harris_approximation_batch' or len(file_utils.grep('Reading periodic restart information from file', aims_out)) > 0):
-                    
-                    #if verbose:
-                        #print('file_utils.grep(Reading periodic restart information from file, aims_out)', file_utils.grep('Reading periodic restart information from file', aims_out), flush=True)
+                if energy_name in struct.properties and struct.properties[energy_name] != 'none':
                     file_utils.cp(json_fpath, output_dir)
-                #elif verbose:
-                    #
-                    #print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
+                    if verbose:
+                        print('Copying', json_fpath, 'to output_dir', flush=True)
+                elif verbose:
+                    print('Not copying', json_fpath, 'to output_dir because energy was not obtained by aims', flush=True)
 
 
 if __name__ == '__main__':
