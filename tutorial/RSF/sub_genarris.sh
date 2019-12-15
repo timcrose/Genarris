@@ -1,17 +1,11 @@
 #!/bin/bash                                                                                      
 #                                                                                                
 #SBATCH -J genarris_test # Job name
-#SBATCH -n 56  # Number of total cores
-
+#SBATCH -n 24  # Number of total cores
 #SBATCH -N 1 # Number of nodes                                          
-
 #SBATCH --mem=0
-# SBATCH --mem-per-cpu=2285
-# SBATCH --mem-per-cpu=1100 # Memory pool for all cores in MB (see also --mem-per-cpu)#2285
 #SBATCH -o j_%j.out # File to which STDOUT will be written %j is the job #                                       
-#SBATCH -p cpu
-# SBATCH -p idle
-# SBATCH -p debug 
+#SBATCH -p Manny_is_supercool
 
 #source deactivate
 ulimit -s unlimited
@@ -30,6 +24,6 @@ echo `which mpirun`
 export OMP_NUM_THREADS=1
 module list
 
-mpirun -n 57 python -u ../../Genarris/genarris_master.py ui.conf
+mpirun -n 24 python -u ../../Genarris/genarris_master.py ui.conf
 echo " "
 echo "Job Ended at `date`"
