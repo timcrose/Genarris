@@ -60,6 +60,7 @@
 \fvset{fontsize=\small}
 \usepackage{geometry}
 
+
 % Include hyperref last.
 \usepackage{hyperref}
 % Fix anchor placement for figures with captions.
@@ -73,7 +74,7 @@
 
 
 \title{Genarris}
-\date{Sep 23, 2019}
+\date{Dec 15, 2019}
 \release{2.0}
 \author{Rithwik Tom, Timothy Rose, Imanuel Bier}
 \newcommand{\sphinxlogo}{\vbox{}}
@@ -98,7 +99,7 @@
 \chapter{Installation}
 \label{\detokenize{index:installation}}
 1) Setup MPI and MKL
-If already installed and modules exist, load them after unloading all conflicting modules. Note, in this installation tutorial we will use intel including intel's parallel studio package, but other program environments such as gnu will also work.
+If already installed and modules exist, load them after unloading all conflicting modules. Note, in this installation tutorial we will use intel including intel\textquotesingle{}s parallel studio package, but other program environments such as gnu will also work.
 e.g.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -128,7 +129,7 @@ export LD\PYGZus{}LIBRARY\PYGZus{}PATH=\PYGZdq{}\PYGZdl{}intel/mpi/intel64/lib:\
 \PYGZdl{}intel/daal/lib/intel64\PYGZus{}lin:\PYGZdl{}intel/tbb/lib/intel64\PYGZus{}lin/gcc4.4\PYGZdq{}
 \end{sphinxVerbatim}
 
-Also export LD\_PRELOAD to load the parallel studio MKL and Scalapack so importing FHI-aims and numpy does not cause conflict.
+Also export LD\_PRELOAD to load the parallel studio MKL and Scalapack so importing FHI\sphinxhyphen{}aims and numpy does not cause conflict.
 e.g.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -159,7 +160,7 @@ e.g.:
 \PYG{o}{.}\PYG{o}{/}\PYG{n}{Anaconda3}\PYG{o}{\PYGZhy{}}\PYG{l+m+mf}{2019.07}\PYG{o}{\PYGZhy{}}\PYG{n}{Linux}\PYG{o}{\PYGZhy{}}\PYG{n}{x86\PYGZus{}64}\PYG{o}{.}\PYG{n}{sh}
 \end{sphinxVerbatim}
 
-Include anaconda's binary in PATH
+Include anaconda\textquotesingle{}s binary in PATH
 e.g.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -206,7 +207,7 @@ cd \PYGZdl{}genarris/Genarris
 python setup.py install
 \end{sphinxVerbatim}
 
-Genarris is now installed. We will first test that Genarris imports and MPI is working correctly with the following test and then the next step will be to compile FHI-aims as a python-importable library if you desire to use FHI-aims.
+Genarris is now installed. We will first test that Genarris imports and MPI is working correctly with the following test and then the next step will be to compile FHI\sphinxhyphen{}aims as a python\sphinxhyphen{}importable library if you desire to use FHI\sphinxhyphen{}aims.
 
 6) Test that Genarris imports and MPI is working correctly.
 Modify the submission script for your backend (here, we used slurm).:
@@ -218,12 +219,10 @@ sbatch mpi\PYGZus{}and\PYGZus{}genarris\PYGZus{}test.sh
 
 The desired output is that each rank reports a unique number.
 \begin{enumerate}
-\def\theenumi{\arabic{enumi}}
-\def\labelenumi{\theenumi )}
-\makeatletter\def\p@enumii{\p@enumi \theenumi )}\makeatother
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{)}%
 \setcounter{enumi}{6}
 \item {} 
-Compile libaims into a python-importable library
+Compile libaims into a python\sphinxhyphen{}importable library
 
 \end{enumerate}
 
@@ -237,8 +236,8 @@ Set ulimit to avoid any possible memory problems:
 \PYG{n}{export} \PYG{n}{OMP\PYGZus{}NUM\PYGZus{}THREADS}\PYG{o}{=}\PYG{l+m+mi}{1}
 \end{sphinxVerbatim}
 
-Obtain FHI-aims from \sphinxurl{https://aims-git.rz-berlin.mpg.de/aims/FHIaims}
-If you don't have permissions, ask Volker Blum at \sphinxhref{mailto:volker.blum@duke.edu}{volker.blum@duke.edu}:
+Obtain FHI\sphinxhyphen{}aims from \sphinxurl{https://aims-git.rz-berlin.mpg.de/aims/FHIaims}
+If you don\textquotesingle{}t have permissions, ask Volker Blum at \sphinxhref{mailto:volker.blum@duke.edu}{volker.blum@duke.edu}:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 export \PYGZdl{}aims=\PYGZdl{}\PYGZob{}HOME\PYGZcb{}/aims  \PYGZsh{}Change to your desired location for FHI\PYGZhy{}aims
@@ -247,14 +246,14 @@ export \PYGZdl{}aims=\PYGZdl{}\PYGZob{}HOME\PYGZcb{}/aims  \PYGZsh{}Change to yo
 In its src directory (\$aims/src), make sure the Makefile has all compilation
 flags (user defined settings) commented out.
 Copy the make.sys file in the documentation directory of Genarris into
-FHI-aims' src directory. The make.sys is pasted here for reference.:
+FHI\sphinxhyphen{}aims\textquotesingle{} src directory. The make.sys is pasted here for reference.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 cp \PYGZdl{}genarris/documentation/make.sys \PYGZdl{}aims/src
 \end{sphinxVerbatim}
 
-Note, this make.sys assumes you are using intel's parallel studio and that your
-cluster's backend is intel. If this isn't the case, you'll need to set the
+Note, this make.sys assumes you are using intel\textquotesingle{}s parallel studio and that your
+cluster\textquotesingle{}s backend is intel. If this isn\textquotesingle{}t the case, you\textquotesingle{}ll need to set the
 flags accordingly.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -288,16 +287,16 @@ CC = icc
 CFLAGS = \PYGZhy{}O3 \PYGZhy{}ip \PYGZhy{}fp\PYGZhy{}model precise \PYGZhy{}fPIC
 \end{sphinxVerbatim}
 
-Compile FHI-aims as a shared library object:
+Compile FHI\sphinxhyphen{}aims as a shared library object:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 cd \PYGZdl{}aims/src
 make \PYGZhy{}j 20 libaims.scalapack.mpi
 \end{sphinxVerbatim}
 
-where the \sphinxcode{\sphinxupquote{20}} is however many cores you'd like to use for compilation.
+where the \sphinxcode{\sphinxupquote{20}} is however many cores you\textquotesingle{}d like to use for compilation.
 
-Make a directory for compiling FHI-aims as a python library
+Make a directory for compiling FHI\sphinxhyphen{}aims as a python library
 e.g.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -305,7 +304,7 @@ mkdir \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
 cd \PYGZdl{}aims/aims\PYGZus{}as\PYGZus{}python\PYGZus{}lib
 \end{sphinxVerbatim}
 
-\# Copy the Makefile and aims\_w.f90 in the Genarris documentation directory to this directory. A copy of it has been pasted here for reference. Note that you will need to change the libaims version (currently shown as 190522). Again, you'll need to change the f90exec and/or fcompiler flags if your backend is not intel. aims\_w.f90 is a wrapper script to interface with FHI-aims.
+\# Copy the Makefile and aims\_w.f90 in the Genarris documentation directory to this directory. A copy of it has been pasted here for reference. Note that you will need to change the libaims version (currently shown as 190522). Again, you\textquotesingle{}ll need to change the f90exec and/or fcompiler flags if your backend is not intel. aims\_w.f90 is a wrapper script to interface with FHI\sphinxhyphen{}aims.
 e.g.:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
@@ -327,13 +326,13 @@ clean:
     rm aims\PYGZus{}w.*.so
 \end{sphinxVerbatim}
 
-Compile FHI-aims as an importable python library!:
+Compile FHI\sphinxhyphen{}aims as an importable python library!:
 
 \begin{sphinxVerbatim}[commandchars=\\\{\}]
 \PYG{n}{make}
 \end{sphinxVerbatim}
 
-8) Test that FHI-aims can run a job
+8) Test that FHI\sphinxhyphen{}aims can run a job
 Modify the submission script in the \sphinxcode{\sphinxupquote{\$genarris/documentation/aims\_test}}
 directory to run on your backend (here we used slurm).:
 
@@ -410,9 +409,7 @@ There are three \sphinxstyleemphasis{categories} of \sphinxstylestrong{Configura
 \sphinxstyleemphasis{optional}, and \sphinxstyleemphasis{inferred}. In the \sphinxstylestrong{Configuration File Options}, these categories
 are specified after the \sphinxstyleemphasis{type} of the option, such as \sphinxstyleemphasis{int}, \sphinxstyleemphasis{float}, or \sphinxstyleemphasis{bool}.
 \begin{enumerate}
-\def\theenumi{\arabic{enumi}}
-\def\labelenumi{\theenumi .}
-\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
 \item {} 
 \sphinxstyleemphasis{Required} options have no category placed after the type in the
 documentation. These options are required to be in the configuration
@@ -449,7 +446,7 @@ This file format supports storing the structure ID, the geometry, and
 property information.
 
 \item {} 
-The \sphinxstyleemphasis{geo} file format is the file format support by FHI-aims. Additionally,
+The \sphinxstyleemphasis{geo} file format is the file format support by FHI\sphinxhyphen{}aims. Additionally,
 this file format is support by \sphinxhref{http://jmol.sourceforge.net}{Jmol} , a 3D chemical structure visualizer,
 and by \sphinxhref{https://wiki.fysik.dtu.dk/ase/}{ASE}, the atomic simulation environment tools written for Python.
 
@@ -461,14 +458,11 @@ and \sphinxstyleemphasis{geo} file for every structure will be produced.
 
 
 \section{Restarting the Calculation}
-\vspace{-0.5 cm}
 \label{\detokenize{index:restarting-the-calculation}}
 Genarris calculations can be conveniently restarted if the calculation is
-interrupted during execution.
+interrupted during execution. To restart a calculation:
 \begin{enumerate}
-\def\theenumi{\arabic{enumi}}
-\def\labelenumi{\theenumi .}
-\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
 \item {} 
 Remove completed procedures from the \sphinxcode{\sphinxupquote{{[}Genarris\_master{]}}}, \sphinxcode{\sphinxupquote{procedures}}
 list.
@@ -476,7 +470,7 @@ list.
 \item {} 
 Remove files and folders that were created by the most recent processes
 before the interruption occured. \sphinxstylestrong{IMPORTANT}: If the interruption occured
-during FHI-aims evaluation, these folders should not be removed.
+during FHI\sphinxhyphen{}aims evaluation, these folders should not be removed.
 
 \item {} 
 If the interruption occured due an error, change the
@@ -539,14 +533,14 @@ Genarris will run the procedures specified by the procedures option in the
 \sphinxcode{\sphinxupquote{Genarris\_master}} section in the order they appear in the list.
 It begins with the \sphinxcode{\sphinxupquote{Relax\_Single\_Molecule}} procedure which creates a folder
 called \sphinxcode{\sphinxupquote{structure\_dir\_for\_relaxing\_single\_molecule}} to store the
-molecule geometry file. Calls to FHI-aims create a folder structure starting
+molecule geometry file. Calls to FHI\sphinxhyphen{}aims create a folder structure starting
 with the folder name inputted with the \sphinxcode{\sphinxupquote{aims\_output\_dir}} option.
 That folder contains a folder for every structure in the inputted structure
 directory (in this case, there is just one structure). The
 inputted control file is copied to each of those subfolders. A copy of the
-geometry file in FHI-aims and json format is also copied to the
+geometry file in FHI\sphinxhyphen{}aims and json format is also copied to the
 corresponding subdirectory. Genarris replicas move from folder to folder,
-performing an FHI-aims calculation in each one. This creates
+performing an FHI\sphinxhyphen{}aims calculation in each one. This creates
 the aims output file \sphinxcode{\sphinxupquote{aims.out}} and possibly a relaxed geometry file
 \sphinxcode{\sphinxupquote{geometry.in.next\_step}}. Genarris will look to see if the single molecule
 was relaxed and if so, use that geometry in subsequent procedures.
@@ -599,7 +593,7 @@ the exemplars, and the distance matrix of those exemplars which has
 the same name as the first distance matrix file name but with a 1 appended
 to the name.
 
-The next call to FHI-aims computes the energies of the exemplars outputted in
+The next call to FHI\sphinxhyphen{}aims computes the energies of the exemplars outputted in
 the previous step. It creates an \sphinxcode{\sphinxupquote{aims\_output\_dir}} with name specified in
 the \sphinxcode{\sphinxupquote{ui.conf}}. The resultant jsons are then dumped to the corresponding
 \sphinxcode{\sphinxupquote{output\_dir}} which are the same as the exemplars but now have the energy
@@ -614,8 +608,8 @@ output to \sphinxcode{\sphinxupquote{sample\_structures\_exemplars\_2}}.
 
 These structures are relaxed in the subdirectories of \sphinxcode{\sphinxupquote{aims\_output\_dir}} for
 \sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}. The relaxed structures are then niggli reduced and are
-output to this section's \sphinxcode{\sphinxupquote{output\_dir}}. The structures output to \sphinxcode{\sphinxupquote{output\_dir}}
-also contain other metadata such as spglib's new determination of the space
+output to this section\textquotesingle{}s \sphinxcode{\sphinxupquote{output\_dir}}. The structures output to \sphinxcode{\sphinxupquote{output\_dir}}
+also contain other metadata such as spglib\textquotesingle{}s new determination of the space
 group.
 
 
@@ -701,27 +695,27 @@ the maximum number of sampled preferences without finding the
 correct number of clusters. Default is False.
 
 \item[{affinity\_type}] \leavevmode{[}list, optional{]}
-List of {[}type of afinity, value{]} argument Scikit-Learn AP alogrithm.
+List of {[}type of afinity, value{]} argument Scikit\sphinxhyphen{}Learn AP alogrithm.
 
 \item[{affinity\_matrix\_path}] \leavevmode{[}str, optional{]}
 Path to the affinity matrix to use for the AP algorithm.
 Default is \sphinxcode{\sphinxupquote{affinity\_matrix.dat}}.
 
 \item[{damping}] \leavevmode{[}float, optional{]}
-damping argument for Scikit-Learn AP algorithm. Default is 0.5.
+damping argument for Scikit\sphinxhyphen{}Learn AP algorithm. Default is 0.5.
 
 \item[{convergence\_iter}] \leavevmode{[}int, optional{]}
-convergence\_iter argument for Scikit-Learn AP algorithm.
+convergence\_iter argument for Scikit\sphinxhyphen{}Learn AP algorithm.
 Default is 15.
 
 \item[{max\_iter}] \leavevmode{[}int, optional{]}
-max\_iter argument for Scikit-Learn AP algorithm. Default is 1000.
+max\_iter argument for Scikit\sphinxhyphen{}Learn AP algorithm. Default is 1000.
 
 \item[{preference}] \leavevmode{[}int, optional{]}
-preference argument for Scikit-Learn AP algorithm. Default is None.
+preference argument for Scikit\sphinxhyphen{}Learn AP algorithm. Default is None.
 
 \item[{verbose\_output}] \leavevmode{[}bool, optional{]}
-verbose argument for Scikit-Learn AP algorithm. Default is False.
+verbose argument for Scikit\sphinxhyphen{}Learn AP algorithm. Default is False.
 
 \item[{property\_key}] \leavevmode{[}str, optional{]}
 Key which the AP cluster will be stored in the properties of
@@ -797,7 +791,7 @@ unit cell is provided.
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.FHI_Aims_Energy_Evaluation}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{FHI\_Aims\_Energy\_Evaluation}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
-Runs Self-Consistent Field calculation on a pool of structures.
+Runs Self\sphinxhyphen{}Consistent Field calculation on a pool of structures.
 \subsubsection*{Configuration File Options}
 
 See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}]{\sphinxcrossref{\sphinxcode{\sphinxupquote{Run\_FHI\_Aims\_Batch()}}}}}
@@ -844,85 +838,9 @@ interacting atoms by sr. Default value is 0.85.
 Tolerance to be used to identify space groups compatible with the
 input molecule.
 
-\item[{max\_attempts\_per\_spg\_per\_rank}] \leavevmode{[}int{]}
+\item[{max\_attempts\_per\_spg}] \leavevmode{[}int{]}
 Defines the maximum number of attempts the structure generator
 makes before moving on to the next space group.
-
-\item[{num\_structures\_per\_allowed\_SG\_per\_rank}] \leavevmode{[}int{]}
-Number of structures per space group per rank which will be
-generated by Pygenarris.
-
-\item[{geometry\_out\_filename}] \leavevmode{[}str{]}
-Filename where all structures generated by Pygenarris will be found.
-
-\item[{omp\_num\_threads}] \leavevmode{[}int{]}
-Number of OpenMP threads to pass into Pygenarris
-
-\item[{truncate\_to\_num\_structures}] \leavevmode{[}bool{]}
-If true, will reduce pool to exactly the number defined by
-num\_structures.
-
-\end{description}
-
-\end{fulllineitems}
-
-\index{Run\_Rdf\_Calc() (Genarris.genarris\_master.Genarris method)@\spxentry{Run\_Rdf\_Calc()}\spxextra{Genarris.genarris\_master.Genarris method}}
-
-\begin{fulllineitems}
-\phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Run_Rdf_Calc}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Run\_Rdf\_Calc}}}{\emph{comm}}{}
-Runs RDF calculation for the pool of generated structures. RDF
-descriptor is similar to that described in Behler and Parrinello 2007.
-Then calculates the structure difference matrix.
-\subsubsection*{Configuration File Options}
-\begin{description}
-\item[{structure\_dir}] \leavevmode{[}str, inferred{]}
-Path to the directory of structures to evaluate.
-
-\item[{dist\_mat\_fpath}] \leavevmode{[}str{]}
-Path to file to write distance matrix to.
-
-\item[{output\_dir}] \leavevmode{[}str{]}
-Path of directory to write structures to (will create if it DNE).
-If 'no\_new\_output\_dir' then input structures will be overwritten.
-
-\item[{normalize\_rdf\_vectors: bool,optional}] \leavevmode
-Whether to normalize the rdf vectors over the columns of the
-feature matrix before using them to compute the distance matrix.
-Default is Falase.
-
-\item[{standardize\_distance\_matrix: bool}] \leavevmode
-If True, standardizes the distance matrix. The method is to divide
-all elements by the max value in the distance matrix.
-Because it is a distance matrix and thus all elements are positive,
-the standardized elements will be in the range {[}0, 1{]}.
-Default is False.
-
-\item[{save\_envs: bool, optional}] \leavevmode
-Whether to save the environment vectors calculated by the RDF
-method in the output structure files. Default is False.
-
-\item[{cutoff}] \leavevmode{[}float, optional{]}
-Cutoff radius to apply to the atom centered symmetry function.
-Default is 12.
-
-\item[{n\_D\_inter}] \leavevmode{[}int, optional{]}
-Number of dimensions to use for each type of pair-wise
-interatomic interaction found in the structure. Default is 12.
-
-\item[{init\_scheme}] \leavevmode{[}str, optional{]}
-Can be centered or shifted, as described in Gastegger et al. 2018.
-Default is shifted.
-
-\item[{eta\_range}] \leavevmode{[}list, optional{]}
-List of two floats which define the range for eta parameter in
-Gastegger et al. 2018. Default is {[}0.05,0.5{]}.
-
-\item[{Rs\_range}] \leavevmode{[}list, optional{]}
-List of two floats which define the range for Rs parameter in
-Gastegger et al. 2018. Default is {[}{[}0.1,12{]}.
-
-\item[{pdist\_distance\_type}] \leavevmode{[}str,optional{]}
-Input parameter for the pdist function. Default is Euclidean.
 
 \end{description}
 
@@ -943,7 +861,7 @@ See {\hyperref[\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:Genarris.genarris_master.Genarris.Run_FHI_Aims_Batch}}\pysiglinewithargsret{\sphinxbfcode{\sphinxupquote{Run\_FHI\_Aims\_Batch}}}{\emph{comm}, \emph{world\_comm}, \emph{MPI\_ANY\_SOURCE}, \emph{num\_replicas}}{}
-Runs FHI-aims calculations on a pool of structures using num\_replicas.
+Runs FHI\sphinxhyphen{}aims calculations on a pool of structures using num\_replicas.
 \subsubsection*{Configuration File Options}
 \begin{description}
 \item[{verbose}] \leavevmode{[}bool{]}
@@ -960,7 +878,7 @@ Path to the directory where the output structure file will be saved.
 Path where the aims calculation will take place.
 
 \item[{aims\_lib\_dir}] \leavevmode{[}str, inferred{]}
-Path to the location of the directory containing the FHI-aims library
+Path to the location of the directory containing the FHI\sphinxhyphen{}aims library
 file.
 
 \item[{molecule\_path}] \leavevmode{[}str{]}
@@ -989,9 +907,7 @@ Number of molecules per cell.
 For the Beta testers, there are a number of quality of life improvements that
 we will be making soon.
 \begin{enumerate}
-\def\theenumi{\arabic{enumi}}
-\def\labelenumi{\theenumi .}
-\makeatletter\def\p@enumii{\p@enumi \theenumi .}\makeatother
+\sphinxsetlistlabels{\arabic}{enumi}{enumii}{}{.}%
 \item {} 
 Improved Genarris.log format for improved readability.
 
