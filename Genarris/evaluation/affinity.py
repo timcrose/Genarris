@@ -104,19 +104,19 @@ class APHandler():
                 self.energy_name = inst.get_inferred(sname, sname_list, ['energy_name_2'] + ['energy_name'] * (len(sname_list) - 1))
         #print('self.cluster_on_energy', self.cluster_on_energy, flush=True)
         #print('self.energy_name', self.energy_name, flush=True)
-        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
+        self.dist_mat_input_file = inst.get_inferred(sname, [sname, 'run_rsf_calc', 'rcd_difference_folder_inner', 'rcd_calculation'], 
                                                     ['dist_mat_input_file', 'dist_mat_fpath', 'diff_matrix_output', 'diff_matrix_output'], type_='file')
 
         self.affinity_matrix_path = inst.get_with_default(sname, 'affinity_matrix_path', 'affinity_matrix.dat')
         if self.run_num == 1:
             last_section = get_last_active_procedure_name(inst, sname, iteration=0)
-            sname_list = [sname, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            sname_list = [sname, last_section, 'run_rsf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
             self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir'] + (4 * ['output_dir']), type_='dir')
         elif self.run_num == 2:
             last_section = get_last_active_procedure_name(inst, sname, iteration=1)
-            sname_list = [sname, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            sname_list = [sname, last_section, 'run_rsf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
             self.structure_dir_for_ap1 = inst.get_inferred(sname, sname_list, ['structure_dir'] + (4 * ['output_dir']), type_='dir')
-            sname_list = [sname, last_section, 'fhi_aims_energy_evaluation', last_section, last_section, 'run_rdf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
+            sname_list = [sname, last_section, 'fhi_aims_energy_evaluation', last_section, last_section, 'run_rsf_calc', 'rcd_difference_folder_inner', 'rcd_calculation']
             self.structure_dir = inst.get_inferred(sname, sname_list, ['structure_dir', 'output_dir', 'output_dir', 'exemplars_output_dir'] + (4 * ['output_dir']), type_='dir')
             ext_pos = self.dist_mat_input_file.find('.')
             self.dist_mat_input_file_1 = self.dist_mat_input_file
