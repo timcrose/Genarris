@@ -502,9 +502,9 @@ class Genarris():
         if comm.rank == 0:
             print('time taken for RCD Difference Folder Inner:', time.time() - start_time, flush=True)
 
-    def Run_Rdf_Calc(self, comm):
+    def Run_RSF_Calc(self, comm):
         """
-        Runs RDF calculation for the pool of generated structures. RDF 
+        Runs RSF calculation for the pool of generated structures. RSF
         descriptor is similar to that described in Behler and Parrinello 2007.
         Then calculates the structure difference matrix.        
         
@@ -517,8 +517,8 @@ class Genarris():
         output_dir : str
             Path of directory to write structures to (will create if it DNE). 
             If 'no_new_output_dir' then input structures will be overwritten.
-        normalize_rdf_vectors: bool,optional
-            Whether to normalize the rdf vectors over the columns of the 
+        normalize_rsf_vectors: bool,optional
+            Whether to normalize the rsf vectors over the columns of the 
             feature matrix before using them to compute the distance matrix. 
             Default is Falase. 
         standardize_distance_matrix: bool
@@ -528,7 +528,7 @@ class Genarris():
             the standardized elements will be in the range [0, 1].
             Default is False. 
         save_envs: bool, optional
-            Whether to save the environment vectors calculated by the RDF 
+            Whether to save the environment vectors calculated by the RSF 
             method in the output structure files. Default is False.
         cutoff : float, optional
             Cutoff radius to apply to the atom centered symmetry function.
@@ -549,18 +549,18 @@ class Genarris():
             Input parameter for the pdist function. Default is Euclidean. 
         
         """
-        from evaluation import rdf_calc
+        from evaluation import rsf_calc
         if comm.rank == 0:
             print("")
             print("---------------------------------------------------------------------------------------------------")
-            print("Begin Run RDF Calculation")
+            print("Begin Run RSF Calculation")
             print("---------------------------------------------------------------------------------------------------")
 
 
         start_time = time.time()
-        rdf_calc.run_rdf_calc(self.inst, comm)
+        rsf_calc.run_rsf_calc(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Run_Rdf_Calc:', time.time() - start_time, flush=True)
+            print('time taken for Run_RSF_Calc:', time.time() - start_time, flush=True)
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
