@@ -17,7 +17,7 @@ def write_json_files( output_dir, structs_list, Z, output_format):
 
     """
     if output_format == 'json' or output_format == 'both':
-        print('writing json files', flush=True)
+        print('writing json files...', flush=True)
         file_utils.mkdir_if_DNE(output_dir)
 
     geometry_out_fpath = "geometry.out"
@@ -154,7 +154,10 @@ def pygenarris_structure_generation(inst=None, comm=None,
     """
     # Currently does not support multiple instances running simultaneously. 
     # If you want more simultaneous processes, submit more MPI ranks.
+    if comm is not None:
+        comm.barrier()
     if inst is not None:
+        
         sname = 'pygenarris_structure_generation'
         num_structures = inst.get_or_none(sname, 'num_structures', eval=True)
         Z = inst.get_eval(sname, 'Z')
@@ -171,7 +174,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
         set_up(molecule_path)
     else:
         if comm.rank == 0:
-            print('molecule_path in run_pygenarris is', molecule_path, flush=True)
+            print('molecule path in Pygenarris Structure Generation:', molecule_path, flush=True)
             set_up(molecule_path)
         comm.barrier()
 
@@ -186,21 +189,27 @@ def pygenarris_structure_generation(inst=None, comm=None,
     else:
         num_compatible_spg = pygenarris.num_compatible_spacegroups(Z, tol)
         num_structures_per_allowed_SG = math.ceil(num_structures / float(num_compatible_spg))
-
-    print('num_structures_per_allowed_SG', num_structures_per_allowed_SG, flush=True)
-    print('Z', Z, flush=True)
-    print('volume_mean', volume_mean, flush=True)
-    print('volume_std', volume_std, flush=True)
-    print('tol', tol, flush=True)
-    print('max_attempts_per_spg', max_attempts_per_spg, flush=True)
-    np.savetxt('cutoff_matrix', cutoff_matrix)
+    if comm is not None:
+        if comm.rank==0:
+             print('number of structures per allowed space group:', num_structures_per_allowed_SG, flush=True)
+             print('Z:', Z, flush=True)
+             print('volume mean:', volume_mean, flush=True)
+             print('volume standard deviation:', volume_std, flush=True)
+             print('tol:', tol, flush=True)
+             print('maximum attempts per space group:', max_attempts_per_spg, flush=True)
+             print("************iterations for each space group is listed in detail in standard out file*************")
+             np.savetxt('cutoff_matrix', cutoff_matrix)
     
     start_pygenarris_time = time_utils.gtime()
+    if comm is not None:
+        comm.barrier()
     pygenarris_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(cutoff_matrix,
                    num_structures_per_allowed_SG, Z, volume_mean, volume_std, tol,
                    max_attempts_per_spg, comm)
+    '''
     if comm is not None:
         print('Time for just pygenarris =', time_utils.gtime() - start_pygenarris_time, 'comm.rank', comm.rank,  flush=True)
+    '''
     if comm is not None:
         comm.barrier()
         if comm.rank == 0:

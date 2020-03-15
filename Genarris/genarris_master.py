@@ -13,10 +13,12 @@ Created on Wed Jun 17 22:13:09 2015
 """
 
 import os
+import io
 import sys,socket
 from Genarris.core import instruct
 #from utilities import parallel_run, write_log
 from Genarris.utilities import write_log, mpi_utils
+from Genarris.utilities import mpi_utils
 from mpi4py import MPI
 import time, random
 
@@ -45,6 +47,7 @@ def main():
     if len(sys.argv)==1:
         test()
     else:
+        
         main_process = Genarris(sys.argv[-1])
 
 def test():
@@ -73,6 +76,8 @@ class Genarris():
         world_size = comm.Get_size()
         #inst_path is sys.argv[-1] aka path/to/ui.conf
         self.inst_path = inst_path
+
+        
         #Instruct object inherits from SafeConfigParser
         self.inst = instruct.Instruct()
         
@@ -120,14 +125,26 @@ class Genarris():
         procedures_with_master_slave = ['Run_FHI_Aims_Batch', 
             'Harris_Single_Molecule_Prep', 'Harris_Approximation_Batch', 
             'Relax_Single_Molecule', 'FHI_Aims_Energy_Evaluation']
-        
+        #print the conf file
+        if world_rank == 0:
+            ui_conf=io.open(self.inst_path,"r")
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("ui.conf")
+            print("---------------------------------------------------------------------------------------------------")
+            print(ui_conf.read())
+            ui_conf.close()
+         
+         ####Wen comment this print block########
+        '''
         for section in self.inst.sections():
+     
             print(section, flush=True)
             print(self.inst.options(section), flush=True)
             for option in self.inst.options(section):
                 print(self.inst.get(section,option), flush=True)
             print(' ', flush=True)
-        
+        '''
         #for procedure in list of procedures, run that procedure
         active_comm = None
         split_comm = None
@@ -256,8 +273,9 @@ class Genarris():
 
         comm.barrier()
         end_time = time.time()
-        if world_rank == 0:
-            print('num_cores', int(self.inst.get(procedure.lower(), 'num_cores')), end_time - start_time, flush=True)
+
+        #if world_rank == 0:
+            #print('Number of cores used:', int(self.inst.get(procedure.lower(), 'num_cores')), flush=True)
         
 
     def Affinity_Propagation_Fixed_Clusters(self, comm):
@@ -355,10 +373,16 @@ class Genarris():
         """
         
         from evaluation import affinity
+
+        if comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Affinity Propagation Fixed Clusters")
+            print("---------------------------------------------------------------------------------------------------")
         start_time = time.time()
         affinity.affinity_propagation_fixed_clusters(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Affinity_Propagation_Fixed_Clusters', time.time() - start_time, flush=True)
+            print('time taken for Affinity Propagation Fixed Clusters', time.time() - start_time, flush=True)
 
     def Estimate_Unit_Cell_Volume(self, comm):
         """
@@ -378,10 +402,11 @@ class Genarris():
         
         """
         from utilities import volume_estimator
+        
         start_time = time.time()
         self.inst = volume_estimator.estimate_unit_cell_volume(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Estimate_Unit_Cell_Volume', 
+            print('time taken for Unit Cell Volume Estimation:', 
                   time.time() - start_time, flush=True)
 
     def FHI_Aims_Energy_Evaluation(self, comm, world_comm, MPI_ANY_SOURCE, 
@@ -395,10 +420,15 @@ class Genarris():
         
         """
         from evaluation import run_fhi_aims
+        if world_comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin FHI Aims Energy Evaluation")
+            print("---------------------------------------------------------------------------------------------------")
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='fhi_aims_energy_evaluation')
         if world_comm.rank == 0:
-            print('time taken for FHI_Aims_Energy_Evaluation', time.time() - start_time, flush=True)
+            print('time taken for FHI_Aims_Energy_Evaluation:', time.time() - start_time, flush=True)
 
 
     def Pygenarris_Structure_Generation(self, comm):
@@ -437,29 +467,44 @@ class Genarris():
             makes before moving on to the next space group.
        
         """
+        
         from generation import run_pygenarris
+
+        if comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Pygenarris Structure Generation")
+            print("---------------------------------------------------------------------------------------------------")
+
         start_time = time.time()
         run_pygenarris.pygenarris_structure_generation(inst=self.inst, comm=comm)
         if comm.rank == 0:
-            print('time taken for Pygenarris_Structure_Generation', time.time() - start_time, flush=True)
+            print('time taken for Pygenarris Structure Generation:', time.time() - start_time, flush=True)
 
     def RCD_Calculation(self, comm):
         from evaluation import relative_coordinate_descriptor
+        if comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Run RCD Calculation")
+            print("---------------------------------------------------------------------------------------------------")
+
+
         start_time = time.time()
         relative_coordinate_descriptor.rcd_calculation(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for RCD_Calculation', time.time() - start_time, flush=True)
+            print('time taken for RCD Calculation:', time.time() - start_time, flush=True)
 
     def RCD_Difference_Folder_Inner(self, comm):
         from evaluation import relative_coordinate_descriptor as rcd
         start_time = time.time()
         rcd.rcd_difference_folder_inner(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for RCD_Difference_Folder_Inner', time.time() - start_time, flush=True)
+            print('time taken for RCD Difference Folder Inner:', time.time() - start_time, flush=True)
 
-    def Run_Rdf_Calc(self, comm):
+    def Run_RSF_Calc(self, comm):
         """
-        Runs RDF calculation for the pool of generated structures. RDF 
+        Runs RSF calculation for the pool of generated structures. RSF
         descriptor is similar to that described in Behler and Parrinello 2007.
         Then calculates the structure difference matrix.        
         
@@ -472,8 +517,8 @@ class Genarris():
         output_dir : str
             Path of directory to write structures to (will create if it DNE). 
             If 'no_new_output_dir' then input structures will be overwritten.
-        normalize_rdf_vectors: bool,optional
-            Whether to normalize the rdf vectors over the columns of the 
+        normalize_rsf_vectors: bool,optional
+            Whether to normalize the rsf vectors over the columns of the 
             feature matrix before using them to compute the distance matrix. 
             Default is Falase. 
         standardize_distance_matrix: bool
@@ -483,7 +528,7 @@ class Genarris():
             the standardized elements will be in the range [0, 1].
             Default is False. 
         save_envs: bool, optional
-            Whether to save the environment vectors calculated by the RDF 
+            Whether to save the environment vectors calculated by the RSF 
             method in the output structure files. Default is False.
         cutoff : float, optional
             Cutoff radius to apply to the atom centered symmetry function.
@@ -504,11 +549,18 @@ class Genarris():
             Input parameter for the pdist function. Default is Euclidean. 
         
         """
-        from evaluation import rdf_calc
-        start_time = time.time()
-        rdf_calc.run_rdf_calc(self.inst, comm)
+        from evaluation import rsf_calc
         if comm.rank == 0:
-            print('time taken for Run_Rdf_Calc', time.time() - start_time, flush=True)
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Run RSF Calculation")
+            print("---------------------------------------------------------------------------------------------------")
+
+
+        start_time = time.time()
+        rsf_calc.run_rsf_calc(self.inst, comm)
+        if comm.rank == 0:
+            print('time taken for Run_RSF_Calc:', time.time() - start_time, flush=True)
 
     def Relax_Single_Molecule(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
@@ -520,10 +572,18 @@ class Genarris():
         
         """
         from evaluation import run_fhi_aims
+
+        
+        if world_comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Relax Single Molecule")
+            print("---------------------------------------------------------------------------------------------------")
+
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='relax_single_molecule')
         if world_comm.rank == 0:
-            print('time taken for Relax_Single_Molecule', time.time() - start_time, flush=True)
+            print('time taken for Relax Single Molecule:', time.time() - start_time, flush=True)
 
     def Run_FHI_Aims_Batch(self, comm, world_comm, MPI_ANY_SOURCE, num_replicas):
         """
@@ -555,17 +615,27 @@ class Genarris():
             
         """
         from evaluation import run_fhi_aims
+        if world_comm.rank == 0:
+            print("")
+            print("---------------------------------------------------------------------------------------------------")
+            print("Begin Run FHI Aims Batch")
+            print("---------------------------------------------------------------------------------------------------")
+
         start_time = time.time()
         run_fhi_aims.run_fhi_aims_batch(comm, world_comm, MPI_ANY_SOURCE, num_replicas, inst=self.inst, sname='run_fhi_aims_batch')
         if world_comm.rank == 0:
-            print('time taken for Run_FHI_Aims_Batch', time.time() - start_time, flush=True)
+            print('time taken for Run FHI Aims Batch:', time.time() - start_time, flush=True)
+            print("")
+            print("")
+            print("Generris calculation completed!")
+            print("Have a nice day:)")
 
     def Structure_Generation_Batch(self, comm):
         from generation import generation_modules
         start_time = time.time()
         generation_modules.structure_generation_batch(self.inst, comm)
         if comm.rank == 0:
-            print('time taken for Structure_Generation_Batch', time.time() - start_time, flush=True)
+            print('time taken for Structure Generation Batch:', time.time() - start_time, flush=True)
 
     def _Structure_Generation_Batch(self):
         from generation import generation_modules

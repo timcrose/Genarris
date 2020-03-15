@@ -1,5 +1,10 @@
 from Genarris.utilities import file_utils, time_utils
 
+def root_print(comm, *print_message):
+   if comm.rank == 0:
+       for i in print_message:
+           print(i,end='')
+
 def file_system_barrier(comm):
     '''
     comm: MPI.COMM_WORLD from mpi4py

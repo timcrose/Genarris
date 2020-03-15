@@ -16,7 +16,9 @@ def estimate_unit_cell_volume(inst, comm):
     
     
     """
-
+    print("---------------------------------------------------------------------------------------------------")
+    print("Begin Unit Cell Volume Estimation",flush=True)
+    print("---------------------------------------------------------------------------------------------------")
     sname = 'estimate_unit_cell_volume'
     verbose = inst.get_boolean(sname, 'verbose')
     Z = float(inst.get_eval(sname, 'Z'))
@@ -25,7 +27,7 @@ def estimate_unit_cell_volume(inst, comm):
         sname = 'estimate_unit_cell_volume'
         molecule_path = get_molecule_path(inst, sname)
         if verbose:
-            print('molecule_path', molecule_path, flush=True)
+            print('molecule path :', molecule_path, flush=True)
 
         molecule = read(molecule_path)
 
@@ -49,8 +51,8 @@ def estimate_unit_cell_volume(inst, comm):
         if not inst.has_option('pygenarris_structure_generation', 'volume_std'):
             inst.set('pygenarris_structure_generation', 'volume_std', str(std_to_use))
         if comm.rank == 0:
-            print('volume_mean', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
-            print('volume_std', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
+            print('volume mean:', inst.get('pygenarris_structure_generation', 'volume_mean'), flush=True)
+            print('volume standard deviation:', inst.get('pygenarris_structure_generation', 'volume_std'), flush=True)
     if inst.has_section('structure_generation_batch'):
         if not inst.has_option('structure_generation_batch', 'ucv_target'):
             inst.set('structure_generation_batch', 'ucv_target', str(struct_vol_estimate))

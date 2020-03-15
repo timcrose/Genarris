@@ -14,7 +14,7 @@ from textwrap import wrap
 from ibslib.analysis import pltlib
 
 from ibslib.io import read,write
-from ibslib.sgroup.sgroup import SpaceGroupManager
+#from ibslib.sgroup.sgroup import SpaceGroupManager
 from ibslib.motif.utils import eval_motif,implemented_motifs
 from ibslib.analysis.pltlib import format_ticks,format_axis
 from ibslib.analysis.dictops import get

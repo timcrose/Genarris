@@ -1,8 +1,8 @@
 #!/bin/bash
 
-cd ../../
-python setup_simple.py install
-cd -
+# cd ../../
+# python setup_simple.py install
+# cd -
 
 build="build_sphinx/"
 source="source/"

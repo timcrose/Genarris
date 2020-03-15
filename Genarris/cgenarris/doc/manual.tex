@@ -1,0 +1,175 @@
+%% LyX 2.3.2 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{extarticle}
+\usepackage[latin9]{inputenc}
+\usepackage{geometry}
+\geometry{verbose}
+\usepackage{graphicx}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+%% A simple dot to overcome graphicx limitations
+\newcommand{\lyxdot}{.}
+
+
+\makeatother
+
+\usepackage{babel}
+\begin{document}
+\title{Cgenarris Documentation}
+\author{Marom group}
+
+\maketitle
+\newpage
+
+\tableofcontents{}
+
+\newpage
+
+\section{Features}
+\begin{itemize}
+\item Support for special positions.
+\item Parallelized using OpenMP.
+\item Fast and efficient structure checking.
+\item Can generate in all possible Z (or NMPC) with Z' \textless = 1.
+\end{itemize}
+\newpage
+
+\section{Installation}
+
+\subsection{Cgenarris}
+
+\subsubsection*{Requirements}
+
+Any C compiler which supports ANSI C99 / GNU99 standard.
+
+\subsubsection*{Using Makefile}
+\begin{enumerate}
+\item Uncompress the tar file.
+\item Execute 'make cgenarris'.
+\item This will create cgenarris.x which is the desired executable.
+\end{enumerate}
+NOTE:
+\begin{enumerate}
+\item You may change the C compiler using the environment variable CC. You
+may also uncomment the first line of the makefile and set the compiler.
+\item Remove object files using 'make clean'
+\end{enumerate}
+
+\subsection{Pygenarris}
+
+\subsubsection*{Requirements}
+\begin{enumerate}
+\item Any C compiler which supports ANSI C99 / GNU99 standard.
+\item SWIG (Simplified Wrapper code and Interface Generator).
+\item Numpy
+\item Distutils for installation through setup.py
+\end{enumerate}
+
+\subsubsection*{Method 1: Using Makefile}
+\begin{enumerate}
+\item Uncompress the tar file.
+\item Paste the location of Python.h headerfile in the Makefile. (for Anaconda
+v3.7 it should be ' anaconda/include/python3.7m/ ')
+\item Execute 'make pygenarris'.
+\item This will create pygenarris.so library from which you can import pygenarris.
+\end{enumerate}
+
+\subsubsection*{Method 2: Using Distutils}
+\begin{enumerate}
+\item Uncompress the tar file.
+\item Execute ' python setup.py build\_ext -{}-inplace'.
+\item This will create pygenarris.so library from which you can import pygenarris.
+\end{enumerate}
+NOTE
+\begin{enumerate}
+\item You may change the C compiler using the environment variable CC.
+\item pygenarris can be configured with both python2 and python3.
+\end{enumerate}
+\newpage
+
+\section{Pygenarris}
+
+Pygenarris is a python API for C structure generator and associated
+functions.
+
+\subsection{Generate a pool of random molecular crystals}
+
+\emph{generate\_molecular\_crystals(filename, num\_structures, Z,
+volume\_mean, volume\_std, sr, tol, max\_attempts)}
+
+\subsubsection*{Description}
+
+Generate random molecular crystals by space groups. First, the generator
+first identifies space groups that are compatible with molecular symmetry
+and given number of molecules in the unit cell. Structures are generated
+sequentially from lowest space group to the highest. Cell volumes
+are sampled from a normal distribution. The attempted structures are
+checked for closeness of molecules. If an atom of a molecule is too
+close to its own periodic image or another atom of a different molecule
+in a cell, the structure is discarded. The closeness checks are controlled
+by the specific radius proportion (sr). If the generation of a space
+group fails after max\_attempts times, the generator moves to the
+next higher space group. The generated structures are printed to the
+file in FHI-aims geometry.in format.
+
+\subsubsection*{Input}
+\begin{enumerate}
+\item Geometry of the molecule is read from the file \emph{geometry.in }from
+the working directory.
+\item \emph{filename }is the name of the file to which generated structures
+are printed. Type: string
+\item \emph{num\_structures }is the number of structures from each space
+group. Type: integer
+\item \emph{Z }number of molecules in the conventional cell. Type: integer
+\item \emph{volume\_mean }is the mean of the normal distribution from which
+volume is sampled. Type: float
+\item \emph{volume\_std }is the standard deviation of the volume distribution.
+Type: float
+\item \emph{sr }is specific radius proportion. See Genarris paper for definition.
+Type: float
+\item \emph{tol} is the tolerance for special position generation and space
+group detection. Type: float
+\item \emph{max\_attempts }is the maximum number of attempts before moving
+to the next space group. Type: integer
+\item The number of threads can be set by using the environment variable
+\emph{OMP\_NUM\_THREADS.}
+\end{enumerate}
+
+\subsubsection*{Output}
+\begin{enumerate}
+\item A file with all the generated structures in FHI-aims geometry format.
+\end{enumerate}
+
+\subsection{Identification of compatible space groups given molecular symmetry}
+
+\emph{find\_allowed\_positions\_using\_molecular\_symmetry(point\_group,
+Z, Z'')}
+
+\subsubsection*{Description}
+
+This function finds the compatible space group positions using molecule's
+point group.
+
+\subsubsection*{Input}
+\begin{enumerate}
+\item \emph{point\_group }is the point\_group of the molecule. Eg: ``mmm''
+for tetracene. Type: String.
+\item \emph{Z }is the number of molecules in the conventional cell. Type:
+integer
+\item \emph{Z'' }is the number of inequivalent molecules in the cell. \emph{Not
+implemented! Set any integer.}
+\end{enumerate}
+
+\subsubsection*{Output}
+\begin{enumerate}
+\item Compatible Wyckoff positions and space groups are printed.
+\end{enumerate}
+
+\subsubsection*{Example}
+
+\includegraphics[scale=0.4]{find_allowed_positions\lyxdot png}
+
+
+\end{document}

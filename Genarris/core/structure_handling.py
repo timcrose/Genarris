@@ -37,7 +37,8 @@ __maintainer__ = "Timothy Rose"
 __email__ = "trose@andrew.cmu.edu"
 __url__ = "http://www.noamarom.com"
 
-molar_mass={"H":1,"C":12,"N":14,"O":16,"S":32, 'Cl':35.5,'Br':80,'F':19,b'H':1, b'C':12, b'N':14, b'O':16,b'S':32,b'Cl':35.5,b'Br':80,b'F':19}
+molar_mass={"H":1,"C":12,"N":14,"O":16,"S":32,"Cl":35.5,'Br':80,'F':19, b'H':1, b'C':12, b'N':14, b'O':16,b'S':32,b'Cl':35.5,b'Br':80,b'F':19}
+
 lat_interp={0:'lattice_vector_a',1:'lattice_vector_b',2:'lattice_vector_c'}
 def cell_translation(struct,trans_vec,create_duplicate=True):
 	'''

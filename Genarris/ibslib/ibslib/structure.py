@@ -505,6 +505,7 @@ class Structure(object):
         updates local data with that from the shared filesystem
         """
         struct_path = os.path.join(structure_dir, self.get_stoic_str(), str(self.input_ref))
+        print("read_data(os.path.join(struct_path, str(self.struct_id)), str(self.struct_id)+'.json')",read_data(os.path.join(struct_path, str(self.struct_id)), str(self.struct_id)+'.json'))
         self.loads(read_data(os.path.join(struct_path, str(self.struct_id)), str(self.struct_id)+'.json'))
         
     def update_shared_data(self):

@@ -12,6 +12,8 @@ setup(
                 'ibslib/io',
                 'ibslib/molecules',
                 'ibslib/motif',
+                'ibslib/acsf',
+                'ibslib/libmpi',
                 ],
       #find_packages(exclude=[]),
       requires=['sklearn', 'pandas','pymatgen', 'scipy', 'pymongo']

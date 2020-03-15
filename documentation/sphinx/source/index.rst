@@ -256,7 +256,7 @@ This document details the options for procedures that are executed in the Genarr
     ["Relax_Single_Molecule", 
      "Estimate_Unit_Cell_Volume",
      "Pygenarris_Structure_Generation", 
-     "Run_Rdf_Calc", 
+     "Run_RSF_Calc", 
      "Affinity_Propagation_Fixed_Clusters",
      "FHI_Aims_Energy_Evaluation", 
      "Affinity_Propagation_Fixed_Clusters", 
@@ -340,7 +340,7 @@ Running Genarris Tutorial
 
 Quick start
 ^^^^^^^^^^^
-``cd`` to the tutorial/RDF directory and modify ``aims_lib_dir`` in ``ui.conf``
+``cd`` to the tutorial/RSF directory and modify ``aims_lib_dir`` in ``ui.conf``
 to point to the directory containing your aims library wrapper file (the one compiled 
 with f2py). Adapt ``sub_genarris.sh`` to your cluster schdueling submission script 
 type (the example is slurm) and options (slurm options, mpi executable, number 
@@ -413,13 +413,13 @@ there is an option for choosing to keep them all or only select
 the ``num_structures`` structures desired. Structures are niggli reduced 
 before being output to jsons.
 
-Then the ``Run_Rdf_Calc`` procedure is run. It yields a directory of jsons 
+Then the ``Run_RSF_Calc`` procedure is run. It yields a directory of jsons 
 specified by its ``output_dir`` option. These jsons are the same as the
-ones output by Pygenarris except now they have the RDF vector as a recorded 
+ones output by Pygenarris except now they have the RSF vector as a recorded 
 piece of metadata. A distance matrix is also output in the form
 of a memory map which drastically saves on memory usage.
 
-While the RDF feature vector is preferred over the RCD feature vector (it is
+While the RSF feature vector is preferred over the RCD feature vector (it is
 quicker to calculate and more physically motivated), alternatively, the RCD 
 procedures may be run. ``RCD_Calculation`` creates an ``output_dir`` with the
 jsons including their RCD vectors. It also outputs some other log files: 
@@ -506,34 +506,13 @@ Genarris Procedures
     :members: Relax_Single_Molecule, 
               Estimate_Unit_Cell_Volume, 
               Pygenarris_Structure_Generation, 
-              Run_Rdf_Calc,
+              Run_RSF_Calc,
               Affinity_Propagation_Fixed_Clusters,
               FHI_Aims_Energy_Evaluation,
               Run_FHI_Aims_Batch
 
 
 
-TODO
-----
-
-For the Beta testers, there are a number of quality of life improvements that 
-we will be making soon. 
-
-1. Improved Genarris.log format for improved readability. 
-
-2. Improve Restart handling such that the user may not have to remove previously
-   executed procedures manually.
-   
-3. Output folder structure will be organized into procedure folders.
-
-
-
-.. 
-    Genarris 2.0 Callable Functions
-    -------------------------------
-    
-    .. autofunction:: Genarris.evaluation.run_fhi_aims.run_fhi_aims_batch
-    
     
     
 
