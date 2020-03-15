@@ -1,7 +1,6 @@
 import sys, os, random
 import numpy as np
-import _pygenarris_mpi as pygenarris_mpi
-import _pygenarris as pygenarris
+import _pygenarris_mpi as pg
 import math
 from Genarris.utilities import file_utils, list_utils, time_utils
 from Genarris.core import structure
@@ -187,7 +186,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
     if num_structures is None:
         num_structures_per_allowed_SG = 1
     else:
-        num_compatible_spg = pygenarris.num_compatible_spacegroups(Z, tol)
+        num_compatible_spg = pg.num_compatible_spacegroups(Z, tol)
         num_structures_per_allowed_SG = math.ceil(num_structures / float(num_compatible_spg))
     if comm is not None:
         if comm.rank==0:
@@ -203,7 +202,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
     start_pygenarris_time = time_utils.gtime()
     if comm is not None:
         comm.barrier()
-    pygenarris_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(cutoff_matrix,
+    pg.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(cutoff_matrix,
                    num_structures_per_allowed_SG, Z, volume_mean, volume_std, tol,
                    max_attempts_per_spg, comm)
     '''
