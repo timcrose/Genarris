@@ -9,8 +9,11 @@ __pycache__/
 
 # C extensions
 *.so
+Genarris/cgenarris/*.o
 
 *.nfs000000000*
+
+ase/
 
 # Distribution / packaging
 .Python

@@ -1,6 +1,7 @@
 import sys, os, random
 import numpy as np
 import _pygenarris_mpi as pg
+import _pygenarris
 import math
 from Genarris.utilities import file_utils, list_utils, time_utils
 from Genarris.core import structure
@@ -186,7 +187,7 @@ def pygenarris_structure_generation(inst=None, comm=None,
     if num_structures is None:
         num_structures_per_allowed_SG = 1
     else:
-        num_compatible_spg = pg.num_compatible_spacegroups(Z, tol)
+        num_compatible_spg = _pygenarris.num_compatible_spacegroups(Z, tol)
         num_structures_per_allowed_SG = math.ceil(num_structures / float(num_compatible_spg))
     if comm is not None:
         if comm.rank==0:
