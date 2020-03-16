@@ -7,9 +7,12 @@
 __pycache__/
 *.py[cod]
 
-# C extensions
+# C extensions and SWIG
 *.so
 Genarris/cgenarris/*.o
+Genarris/cgenarris/cgenarris_mpi.x
+Genarris/cgenarris/pygenarris_mpi.py
+Genarris/cgenarris/pygenarris_mpi_wrap.c
 
 *.nfs000000000*
 
@@ -62,5 +65,5 @@ coverage.xml
 # Sphinx documentation
 #docs/_build/
  
-.DS*
+.DS_store
 .agent
