@@ -41,7 +41,7 @@ class MoleculeBonding():
         cutoff_matrix = np.zeros(pair_key_matrix.shape)
         for index,value in np.ndenumerate(pair_key_matrix):
             cutoff_matrix[index] = inter_dist["vdw"][value]
-        cutoff_matrix = cutoff_matrix*0.85
+        cutoff_matrix = cutoff_matrix*vdw_mult
         
         # Add hydrogen bond cutoff distances
         donor_idx,acceptor_idx = self._get_hydrogen_bond_idx()

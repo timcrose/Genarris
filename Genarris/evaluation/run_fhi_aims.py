@@ -105,6 +105,8 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path, molecule_path,
 
     '''
     aims_calc_dir = os.path.join(aims_output_dir, 'aims_calc_dir')
+
+    ## Restart calculation behavior
     if os.path.isdir(aims_calc_dir):
         #Get ready for restarting calculations
         task_list = []
@@ -112,10 +114,13 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path, molecule_path,
         for struct_fold in struct_folds:
             aims_out = os.path.join(struct_fold, 'aims.out')
             geometry_in_next_step = os.path.join(struct_fold, 'geometry.in.next_step')
+            control = os.path.join(struct_fold, "control.in")
             if os.path.isfile(geometry_in_next_step):
                 file_utils.cp(geometry_in_next_step, struct_fold, dest_fname='geometry.in')
             if len(file_utils.grep('Inconsistency of forces', aims_out)) > 0:
                 file_utils.rm(aims_out)
+            if not os.path.isfile(control):
+                file_utils.cp(control_path, struct_fold, dest_fname='control.in')
             if os.path.isfile(aims_out):
                 # If still running or didn't converge then don't rerun it.
                 task_list.append(1)
@@ -139,7 +144,10 @@ def setup_aims_dirs(aims_output_dir, structure_dir, control_path, molecule_path,
         write(os.path.join(struct_fold, name + '.json'), struct)
         file_utils.cp(structure_file, struct_fold)
         geometry_in = os.path.join(struct_fold, 'geometry.in')
-        write(geometry_in, struct, file_format='aims')
+        ## Added overwrite=True for the situation where structure_file == geometry.in
+        ## In general, reducing the number of versions of the same file in 
+        ## the directory would be better. 
+        write(geometry_in, struct, file_format='aims', overwrite=True)
         file_utils.cp(control_path, struct_fold, dest_fname='control.in')
     print('Ready for start', flush=True)
     return [0] * len(structure_files)
