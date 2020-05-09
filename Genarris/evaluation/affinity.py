@@ -12,7 +12,7 @@ Created by Patrick Kilecdi on 12/31/2016
 Conducts Affinity Propagation for a given collection
 '''
 
-import os, random
+import os, random, psutil
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_score
 import numpy as np
@@ -160,6 +160,9 @@ class APHandler():
         if comm.rank == 0:
             print(sname, 'using structure_dir:', self.structure_dir, flush=True)
 
+    def get_affinity_matrix(self):
+        self.affinity_matrix = np.memmap(self.affinity_matrix_path, dtype='float32', mode='r', shape=self.distance_matrix_shape)
+
 
     def get_affinity_and_distance_matrix(self):
         #print("dist_mat_input_file",self.dist_mat_input_file,flush=True)
@@ -176,7 +179,7 @@ class APHandler():
             raise ValueError("Distance matrix is not a square matrix: "
                     + self.dist_mat_input_file)
 
-        self.affinity_matrix = np.memmap(self.affinity_matrix_path, dtype='float32', mode='r', shape=self.distance_matrix_shape)
+        self.get_affinity_matrix()
         
 
     def make_affinity_matrix(self):
@@ -319,10 +322,10 @@ class APHandler():
                     self.size != 1) or\
                  random.random() < resample_prob or\
                      pref_u - pref_l < 0.000001:
-            pref_l -= 50.0
-            pref_u += 50.0
-            prev_l -= 50.0
-            prev_u += 50.0
+            pref_l -= 50.0 + random.random()
+            pref_u += 50.0 + random.random()
+            prev_l -= 50.0 + random.random()
+            prev_u += 50.0 + random.random()
             if self.verbose_output:
                 print('changing pref values to not get stuck', flush=True)
 
@@ -331,6 +334,33 @@ class APHandler():
         
         #In this case, the 0 values are just there for formatting
         return success, 0, 0, pref_l, pref_u, prev_l, prev_u 
+
+    def get_allowed_ranks_per_node(self, allowed_number_of_ranks_per_node, rank_hostnames):
+        '''
+        Determine which ranks may do AP (True) and which should not (False).
+        '''
+        unique_hostnames = set(rank_hostnames)
+        assignments = []
+        assignments_dct = {hostname:0 for hostname in unique_hostnames}
+        for hostname in rank_hostnames:
+            if assignments_dct[hostname] > allowed_number_of_ranks_per_node:
+                assignments.append(False)
+            else:
+                assignments.append(True)
+                assignments_dct[hostname] = assignments_dct[hostname] + 1
+        return assignments
+        
+    def get_allowed_number_of_ranks_per_node(self, available_mem):
+        '''
+        Each node might only be able to have a limited number of ranks
+        run AP simultaneously because of memory accrued in the AffinityPropagation.fit()
+        function.
+        '''
+        n = self.distance_matrix_shape[0]
+        # Memory needed by the AffinityPropagation.fit() function determined empirically in terms
+        # of the number of rows in the matrix (units kB)
+        mem_needed = 0.351 * (n ** 2) + 9 * n + 63100
+        return int(available_mem / mem_needed)
                             
     def run_fixed_num_of_clusters(self):
         '''
@@ -458,7 +488,8 @@ class APHandler():
             #print(self.output_file, "Outputted iteration info:", flush=True)
             
             if verbose:
-                self._print_result_verbose(result)
+                #self._print_result_verbose(result)
+                self._print_result_summary(result)
             else:
                 self._print_result_summary(result)
 
@@ -491,10 +522,10 @@ class APHandler():
         d = result
         st = "Preference: %f. Number of clusters: %i.\n" \
                 % (d["preference"], d["num_of_clusters"])
-        st += "Silhouette score: %f\n" % d["silhouette_score"]
-        st += "Mean distance to exemplar: %f\n" % d["avg_distance"]
-        st += "STD of distance to exemplar: %f\n" % d["std_distance"]
-        st += "Max distance to exemplar: %f\n" % d["max_distance"]
+        #st += "Silhouette score: %f\n" % d["silhouette_score"]
+        #st += "Mean distance to exemplar: %f\n" % d["avg_distance"]
+        #st += "STD of distance to exemplar: %f\n" % d["std_distance"]
+        #st += "Max distance to exemplar: %f\n" % d["max_distance"]
         #print(self.output_file, st, flush=True)
 
 
@@ -514,13 +545,25 @@ class APHandler():
         fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
         fp[:] = self.distance_matrix[:]
 
+    def copy_affinity_matrix_on_disk(self):
+        my_affinity_matrix_dir = os.path.basename(self.affinity_matrix_path)
+        my_affinity_matrix_dir_fname = file_utils.fname_from_fpath(self.affinity_matrix_path) + '_' + str(self.rank) + '.dat'
+        self.my_affinity_matrix_dir_fpath = os.path.join(my_affinity_matrix_dir, my_affinity_matrix_dir_fname)
+        file_utils.cp(self.affinity_matrix_path, my_affinity_matrix_dir, dest_fname=my_affinity_matrix_dir_fname, fail_if_cant_rm=True, overwrite=True)
+        
     def _affinity_propagation(self):
+        # my_affinity_matrix is altered during the course of the fit procedure so
+        # retain a copy of the original on disk. We are making a copy for every rank
+        # because then each rank can modify its own matrix. We are storing on disk
+        # and using memmap to save on RAM usage.
+        self.copy_affinity_matrix_on_disk()
+        my_affinity_matrix = np.memmap(self.my_affinity_matrix_path, dtype='float32', mode='r+', shape=self.distance_matrix_shape)
         
         ap_iter_i = 0
         while ap_iter_i < self.max_iter:
             ap = AffinityPropagation(damping=self.damping, max_iter=self.max_iter, 
                                 convergence_iter=self.convergence_iter,
-                                copy=True, preference=self.preference,
+                                copy=False, preference=self.preference,
                                 affinity="precomputed",verbose=self.verbose_output)
 
             #print('inside _affinity_propagation', flush=True)
@@ -528,7 +571,7 @@ class APHandler():
             ##print('affinity_matrix', affinity_matrix, flush=True)
             if self.rank == 0:
                 print('Fitting affinity propagation model...', flush=True)
-            result = ap.fit(self.affinity_matrix)
+            result = ap.fit(my_affinity_matrix)
         
             #print('result of fit', type(result), flush=True)
             assigned_cluster = result.labels_
@@ -589,8 +632,17 @@ class APHandler():
 
         exemplars = [self.coll[x][1] for x in self.exemplar_indices]
         
+        result_dict = {
+                "num_of_clusters": num_of_clusters,
+                "assigned_cluster": assigned_cluster,
+                "assigned_exemplar_index": assigned_exemplar_index,
+                "assigned_exemplar_id": assigned_exemplar_id,
+                "exemplars": exemplars,
+                "exemplar_indices": self.exemplar_indices,
+                "exemplar_ids": exemplar_ids,
+                "preference": self.preference}
         #output_pool(exemplars, exemplars_output_dir, exemplars_output_format)
-
+        '''
         distances_to_exemplar = \
                 [self.distance_matrix[x]
                         [self.exemplar_indices[result.labels_[x]]]
@@ -604,7 +656,7 @@ class APHandler():
                     result.labels_, metric="precomputed")
         except:
             sil_score = 1.0
-
+        
         result_dict = {
                 "num_of_clusters": num_of_clusters,
                 "assigned_cluster": assigned_cluster,
@@ -619,6 +671,7 @@ class APHandler():
                 "max_distance": max_distance,
                 "silhouette_score": sil_score,
                 "preference": self.preference}
+        '''
         
         return result_dict
 
@@ -645,8 +698,8 @@ def affinity_propagation_fixed_clusters(inst, comm):
     if aph.run_num == 2 and aph.rank == 0:
         _, struct_ids_for_ap1 = get_struct_coll(aph.structure_dir_for_ap1, stoic)
         aph.create_distance_matrix_from_exemplars(struct_ids,struct_ids_for_ap1)
-        if aph.verbose_output:
-            print('len(aph.distance_matrix)0', len(aph.distance_matrix), flush=True)
+        #if aph.verbose_output:
+        #    print('len(aph.distance_matrix)0', len(aph.distance_matrix), flush=True)
     if aph.rank == 0:
         aph.make_affinity_matrix()
         time_utils.sleep(5)
@@ -662,11 +715,23 @@ def affinity_propagation_fixed_clusters(inst, comm):
         print('len(aph.distance_matrix_shape)', len(aph.distance_matrix_shape), flush=True)
     if not (aph.dist_mat_input_file).endswith('.dat'):
         raise Exception('Only supporting distance matrices saved as an np memmap with .dat extension')
-    aph.get_affinity_and_distance_matrix()
+    if aph.rank == 0:
+        aph.get_affinity_and_distance_matrix()
     comm.barrier()
-    if aph.verbose_output:
-        print('len(aph.distance_matrix)2', len(aph.distance_matrix), flush=True)
-    aph.run_fixed_num_of_clusters()
-    #print('ran aph.run_fixed_num_of_clusters', flush=True)
+    #if aph.verbose_output:
+    #    print('len(aph.distance_matrix)2', len(aph.distance_matrix), flush=True)
+    rank_hostnames = comm.gather(gethostname(), root=0)
+    if aph.rank == 0:
+        # units kB
+        available_mem = dict(psutil.virtual_memory()._asdict())['available'] / 1024.0
+        allowed_number_of_ranks_per_node = aph.get_allowed_number_of_ranks_per_node(available_mem)
+        assignments = aph.get_allowed_ranks_per_node(allowed_number_of_ranks_per_node, rank_hostnames)
+    else:
+        assignments = None
+
+    assignment = comm.scatter(assignments, root=0)
+    if assignment:    
+        aph.run_fixed_num_of_clusters()
+        #print('ran aph.run_fixed_num_of_clusters', flush=True)
     
     comm.barrier()
