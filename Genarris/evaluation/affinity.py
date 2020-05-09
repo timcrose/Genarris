@@ -545,10 +545,13 @@ class APHandler():
         fp = np.memmap(self.dist_mat_input_file, dtype='float32', mode='w+', shape=self.distance_matrix.shape)
         fp[:] = self.distance_matrix[:]
 
+    def clean_up_tmp_affinity_matrix(self):
+        file_utils.rm(self.my_affinity_matrix_fpath)
+
     def copy_affinity_matrix_on_disk(self):
         my_affinity_matrix_dir = os.path.basename(self.affinity_matrix_path)
         my_affinity_matrix_dir_fname = file_utils.fname_from_fpath(self.affinity_matrix_path) + '_' + str(self.rank) + '.dat'
-        self.my_affinity_matrix_dir_fpath = os.path.join(my_affinity_matrix_dir, my_affinity_matrix_dir_fname)
+        self.my_affinity_matrix_fpath = os.path.join(my_affinity_matrix_dir, my_affinity_matrix_dir_fname)
         file_utils.cp(self.affinity_matrix_path, my_affinity_matrix_dir, dest_fname=my_affinity_matrix_dir_fname, fail_if_cant_rm=True, overwrite=True)
         
     def _affinity_propagation(self):
@@ -733,5 +736,6 @@ def affinity_propagation_fixed_clusters(inst, comm):
     if assignment:    
         aph.run_fixed_num_of_clusters()
         #print('ran aph.run_fixed_num_of_clusters', flush=True)
+        aph.clean_up_tmp_affinity_matrix()
     
     comm.barrier()
