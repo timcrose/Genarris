@@ -147,7 +147,7 @@ def rsf_calc(structure_path, comm=None, device=torch.device("cpu"),
         if split_comm.rank > 0:
             return
     
-    if comm.rank > 0:
+    if split_comm.rank > 0:
         return
     
     # Calculate pairwise distance matrix
